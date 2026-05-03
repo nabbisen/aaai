@@ -48,6 +48,11 @@ pub struct ProjectConfig {
     /// Custom regex patterns added to the masking engine.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub custom_mask_patterns: Vec<String>,
+
+    /// Warning kind IDs to suppress (e.g. ["no-approver", "no-strategy"]).
+    /// Suppressed warnings are not emitted even if the condition is met.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub suppress_warnings: Vec<String>,
 }
 
 fn default_version() -> String { "1".into() }
@@ -93,6 +98,11 @@ impl ProjectConfig {
     }
 
     /// Generate a starter config with helpful comments embedded as YAML string.
+    /// Check if a warning kind is suppressed.
+    pub fn is_warning_suppressed(&self, kind: &str) -> bool {
+        self.suppress_warnings.iter().any(|k| k == kind)
+    }
+
     pub fn starter_yaml() -> &'static str {
         r#"# aaai project configuration
 # Place this file at the root of your project.
@@ -113,6 +123,11 @@ mask_secrets: false
 # Additional regex patterns to mask (beyond built-in patterns).
 # custom_mask_patterns:
 #   - "MY_INTERNAL_[A-Z0-9]{16}"
+
+# Warning kinds to suppress.
+# suppress_warnings:
+#   - "no-approver"
+#   - "no-strategy"
 "#
     }
 }

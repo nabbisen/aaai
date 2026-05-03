@@ -27,7 +27,7 @@ pub fn run(args: ConfigArgs) -> anyhow::Result<()> {
 
     if args.init {
         let out = target_dir.join(CONFIG_FILENAME);
-        if out.exists() && !args.dir.is_some() {
+        if out.exists() {
             // Ask for confirmation in practice; for CI safety just report.
             println!("{}", format!("⚠  {} already exists: {}", CONFIG_FILENAME, out.display()).yellow());
             println!("   Delete it first if you want to re-initialise.");

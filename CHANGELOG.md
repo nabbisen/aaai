@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.0] — Phase 9: Documentation & Test Completeness
+
+### ドキュメント充実
+- **`gui.md`** — 10 行 → **136 行**: Opening 画面・3 ペイン操作・バッジ一覧・キーボードショートカット・フッター・典型ワークフローを完全記述
+- **`cli.md`** — 27 行 → **307 行**: 全 15 コマンドのフラグ・終了コード・使用例を網羅
+- **`getting-started.md`** — 17 行 → **129 行**: `aaai init` 起点フロー・手動セットアップ・`.aaai.yaml`・シェル補完インストールを追記
+
+### テストカバレッジ拡大 (89 unit + 30 integration = 119 テスト全通過)
+以下の未カバーコマンドにテストを追加:
+- `completions bash/zsh` — 出力が空でない・"aaai" を含む
+- `config --init` — `.aaai.yaml` 生成・既存ファイル検出（バグ修正: `--dir` 指定時も既存チェックするよう修正）
+- `dashboard` — exit 0 確認
+- `init --non-interactive` — `.aaai.yaml` 生成
+- `lint --json-output` — 有効 JSON 出力・`empty-linematch` エラー検出
+- `version --json-output` — `version` / `license` フィールド確認
+
+### 新機能
+- **`AuditWarning` 抑制** — `.aaai.yaml` に `suppress_warnings: [no-approver, no-strategy]` を追加可能。`aaai audit --suppress-warnings <kind,...>` フラグでも抑制可能
+- **`AuditEngine::evaluate_with_options()`** — `AuditOptions` 構造体 (suppress_warnings) を受け取る新オーバーロード
+- **`aaai history --prune <N>`** — 履歴を最新 N 件に刈り込む（history/store.rs に `prune()` を実装）
+- **`aaai audit --warn-only`** — 意図を明示するフラグ（警告は元々 exit code に影響しないため実質ドキュメント的追加）
+
+### バグ修正
+- **`config --init` の既存チェック** — `--dir` 指定時でも `.aaai.yaml` の存在チェックをスキップしていたバグを修正
+
 ## [0.8.0] — UI/UX テスト前 課題修正
 
 ### バグ修正 (UI/UX テスト前に必須)

@@ -540,3 +540,146 @@ entries:
     let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(v["result"], "PASSED");
 }
+
+// ── Phase 9: previously untested commands ───────────────────────────────
+
+#[test]
+fn completions_bash_exits_0() {
+    let out = aaai().args(["completions", "bash"]).output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("aaai"), "bash completion should mention 'aaai'");
+}
+
+#[test]
+fn completions_zsh_exits_0() {
+    let out = aaai().args(["completions", "zsh"]).output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(!stdout.is_empty(), "zsh completion output should not be empty");
+}
+
+#[test]
+fn config_init_creates_aaai_yaml() {
+    let tmp = tempfile::tempdir().unwrap();
+    let status = aaai()
+        .args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let config_path = tmp.path().join(".aaai.yaml");
+    assert!(config_path.exists(), ".aaai.yaml should be created");
+    let content = fs::read_to_string(&config_path).unwrap();
+    assert!(content.contains("version"), ".aaai.yaml should contain 'version'");
+}
+
+#[test]
+fn config_init_skips_existing() {
+    let tmp = tempfile::tempdir().unwrap();
+    // Create first
+    aaai().args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
+        .status().unwrap();
+    // Try again — should report already exists, not overwrite
+    let out = aaai()
+        .args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("already exists") || stdout.contains("既に"),
+        "should report existing config");
+}
+
+#[test]
+fn dashboard_exits_0() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, "version: \"1\"\n");
+
+    let status = aaai()
+        .args(["dashboard",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}
+
+#[test]
+fn init_non_interactive_creates_config() {
+    let tmp = tempfile::tempdir().unwrap();
+    let status = aaai()
+        .args(["init", "--dir", tmp.path().to_str().unwrap(), "--non-interactive"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let config_path = tmp.path().join(".aaai.yaml");
+    assert!(config_path.exists(), "non-interactive init should create .aaai.yaml");
+}
+
+#[test]
+fn lint_json_output_valid() {
+    let tmp = tempfile::tempdir().unwrap();
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "valid reason text here"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["lint", yaml.to_str().unwrap(), "--json-output"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("lint --json-output must produce valid JSON");
+    assert!(parsed.is_array(), "lint JSON must be an array");
+}
+
+#[test]
+fn lint_json_output_finds_empty_linematch() {
+    let tmp = tempfile::tempdir().unwrap();
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "reason here"
+    strategy:
+      type: LineMatch
+      rules: []
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["lint", yaml.to_str().unwrap(), "--json-output"])
+        .output().unwrap();
+    // Should exit 1 because of empty-linematch error
+    assert_eq!(out.status.code(), Some(1));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let has_empty_linematch = issues.as_array().unwrap()
+        .iter()
+        .any(|i| i["kind"] == "empty-linematch");
+    assert!(has_empty_linematch, "should detect empty-linematch");
+}
+
+#[test]
+fn version_json_output_valid() {
+    let out = aaai().args(["version", "--json-output"]).output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("version --json-output must produce valid JSON");
+    assert!(v["version"].is_string(), "version field must be present");
+    assert!(v["license"].is_string(), "license field must be present");
+}
+
+#[test]
+fn version_plain_exits_0() {
+    let status = aaai().args(["version"]).status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}

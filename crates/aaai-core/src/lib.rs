@@ -29,7 +29,7 @@ pub mod project;
 pub mod report;
 pub mod templates;
 
-pub use audit::engine::AuditEngine;
+pub use audit::engine::{AuditEngine, AuditOptions};
 pub use audit::result::{AuditResult, AuditStatus, AuditSummary, FileAuditResult};
 pub use config::definition::{AuditDefinition, AuditEntry, AuditStrategy};
 pub use diff::engine::DiffEngine;

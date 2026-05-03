@@ -16,6 +16,9 @@ pub struct HistoryArgs {
     /// Show trend analytics (pass rate, averages).
     #[arg(long)]
     pub stats: bool,
+    /// Prune history to at most N entries (newest kept).
+    #[arg(long, value_name = "N")]
+    pub prune: Option<usize>,
 }
 
 pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
@@ -23,6 +26,12 @@ pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
 
     if args.json_output {
         println!("{}", serde_json::to_string_pretty(&records)?);
+        return Ok(());
+    }
+
+    if let Some(max) = args.prune {
+        let removed = aaai_core::history::store::prune(max)?;
+        println!("{} History pruned: kept up to {max} entries, removed {removed}.", "✓".green());
         return Ok(());
     }
 

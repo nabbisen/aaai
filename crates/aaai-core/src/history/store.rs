@@ -60,6 +60,26 @@ pub fn load_recent(n: usize) -> anyhow::Result<Vec<HistoryRecord>> {
     Ok(all)
 }
 
+/// Prune the history file to at most `max_entries` records (newest kept).
+/// Rewrites the file atomically.
+pub fn prune(max_entries: usize) -> anyhow::Result<usize> {
+    let all = load_all()?;  // already newest-first
+    if all.len() <= max_entries {
+        return Ok(0);
+    }
+    let keep = &all[..max_entries];
+    // Reverse to oldest-first for writing
+    let mut lines: Vec<String> = keep.iter().rev()
+        .map(|r| serde_json::to_string(r))
+        .collect::<Result<Vec<_>, _>>()?;
+    let path = history_path()?;
+    let content = lines.join("\n") + "\n";
+    std::fs::write(&path, content)?;
+    let removed = all.len() - max_entries;
+    log::info!("History pruned: kept {max_entries}, removed {removed}");
+    Ok(removed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -8,13 +8,35 @@ use super::strategy;
 
 pub struct AuditEngine;
 
+/// Options for audit evaluation.
+#[derive(Debug, Clone, Default)]
+pub struct AuditOptions {
+    /// Warning kind IDs to suppress (e.g. ["no-approver"]).
+    pub suppress_warnings: Vec<String>,
+}
+
 impl AuditEngine {
     /// Judge every DiffEntry against the AuditDefinition.
     pub fn evaluate(diffs: &[DiffEntry], definition: &AuditDefinition) -> AuditResult {
+        Self::evaluate_with_options(diffs, definition, &AuditOptions::default())
+    }
+
+    /// Evaluate with custom options (warning suppression, etc.)
+    pub fn evaluate_with_options(
+        diffs: &[DiffEntry],
+        definition: &AuditDefinition,
+        options: &AuditOptions,
+    ) -> AuditResult {
         let mut results = Vec::new();
 
         for diff in diffs {
-            let result = judge(diff, definition);
+            let mut result = judge(diff, definition);
+            // Filter suppressed warnings.
+            if !options.suppress_warnings.is_empty() {
+                result.warnings.retain(|w| {
+                    !options.suppress_warnings.iter().any(|s| s == w.kind())
+                });
+            }
             results.push(result);
         }
 

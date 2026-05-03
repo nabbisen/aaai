@@ -83,7 +83,7 @@
 - **`aaai snap --approver`** — pre-fill approver_name from project config or flag when generating entries
 - **GUI: resizable panes** — drag handles between file tree / diff view / inspector
 
-## Phase 8 — Almost v1.0
+## Phase 8 — v1.0 comes closer (v0.8.0)
 - **`aaai snap --approver`** — pre-fill approved_by from project config or --approver flag
 - **Async GUI diff** — tokio-based non-blocking diff in aaai-gui; spinner during scan
 - **`aaai version`** — detailed version info: crate version, build profile, Rust toolchain
@@ -93,4 +93,12 @@
 - **`aaai snap --suggest-glob`** — detect common path prefixes and suggest glob rules
 - **README badges** — test count, version, license, CI status shields
 - **v1.0.0 release prep** — full Apache-2.0 LICENSE text, AUTHORS, Cargo.lock finalised
+
+## Phase 9 — Documentation & Test Completeness (v0.9.0)
+- **Complete docs** — gui.md (full 3-pane walkthrough), cli.md (all 15 commands with examples), getting-started.md updated with aaai init
+- **CLI test coverage** — integration tests for: completions, config --init, dashboard, init --non-interactive, lint --json-output, version --json-output
+- **AuditWarning suppression** — suppress_warnings: list in .aaai.yaml; CLI --suppress-warnings flag on audit
+- **History rotation** — --max-entries on history command; history store prune() method
+- **report --no-history** — --no-history flag for report command (already on audit)
+- **aaai audit --warn-only** — exit 0 even with warnings (do not fail on warning-only conditions)
 

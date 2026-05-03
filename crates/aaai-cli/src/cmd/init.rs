@@ -60,6 +60,7 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
         approver_name: if approver.is_empty() { None } else { Some(approver) },
         mask_secrets: mask,
         custom_mask_patterns: Vec::new(),
+        suppress_warnings: Vec::new(),
     };
     cfg.save(&config_path)?;
     println!("{} .aaai.yaml written.", "✓".green());

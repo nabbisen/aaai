@@ -55,6 +55,14 @@ pub struct AuditArgs {
     /// Show a progress bar while comparing files.
     #[arg(long)]
     pub progress: bool,
+    /// Warning kinds to suppress (comma-separated, e.g. "no-approver,no-strategy").
+    #[arg(long, value_delimiter = ',', value_name = "KIND")]
+    pub suppress_warnings: Vec<String>,
+    /// Exit 0 even if warnings are present (do not fail on warnings-only).
+    /// This flag has no effect since warnings never cause failures by default.
+    /// Provided for scripts that want to document the intent explicitly.
+    #[arg(long)]
+    pub warn_only: bool,
 }
 
 pub fn run(args: AuditArgs) -> anyhow::Result<()> {
