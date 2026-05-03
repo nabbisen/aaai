@@ -1,7 +1,5 @@
 //! Unit tests for audit strategies and the audit engine.
 
-use std::path::Path;
-
 use crate::config::definition::{
     AuditDefinition, AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget,
 };
@@ -215,7 +213,7 @@ fn summary_counts_are_correct() {
         make_diff("pending.txt", DiffType::Added,    None,          Some("y")),
         make_diff("failed.txt",  DiffType::Modified, Some("a\n"),   Some("b\n")),
     ];
-    let mut def = make_def(vec![
+    let def = make_def(vec![
         make_entry("ok.txt", DiffType::Added, AuditStrategy::None),
         // pending.txt has no entry
         make_entry("failed.txt", DiffType::Added, AuditStrategy::None), // type mismatch

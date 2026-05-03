@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.10.3] — Fix unused import warnings in aaai-core
+
+### Bug fixes
+Removed 7 unused imports and 1 unnecessary `mut` across `aaai-core` test modules.
+All warnings are now zero when running `cargo check -p aaai-core --tests`.
+
+| File | Fix |
+|---|---|
+| `audit/warning.rs` | Removed unused `DiffStats` import |
+| `audit/tests.rs` | Removed unused `std::path::Path` import; removed unnecessary `mut` |
+| `config/lock.rs` | Removed unused `std::path::PathBuf` in test module |
+| `diff/tests.rs` | Removed unused `std::path::PathBuf` import |
+| `project/mod.rs` | Removed unused `std::path::Path` in test module |
+| `report/sarif.rs` | Removed unused `PathBuf` and `DiffStats` imports in test module |
+
 ## [0.10.2] — Japanese docs, repository files update
 
 ### Repository files (replaced from upstream)

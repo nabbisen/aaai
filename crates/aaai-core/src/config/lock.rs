@@ -60,7 +60,6 @@ impl Drop for LockGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
 
     #[test]
     fn lock_acquire_and_release() {

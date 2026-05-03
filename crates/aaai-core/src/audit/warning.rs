@@ -93,7 +93,7 @@ pub fn collect(diff: &DiffEntry, entry: &AuditEntry) -> Vec<AuditWarning> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::diff::entry::{DiffEntry, DiffStats, DiffType};
+    use crate::diff::entry::{DiffEntry, DiffType};
     use crate::config::definition::{AuditEntry, AuditStrategy, LineRule, LineAction};
 
     fn make_diff(path: &str, size: u64, diff_type: DiffType) -> DiffEntry {

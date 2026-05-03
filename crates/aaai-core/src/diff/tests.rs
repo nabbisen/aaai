@@ -3,7 +3,6 @@
 //! Placed in a dedicated `tests.rs` per the project style guide (別紙).
 
 use std::fs;
-use std::path::PathBuf;
 
 use super::engine::DiffEngine;
 use super::entry::DiffType;

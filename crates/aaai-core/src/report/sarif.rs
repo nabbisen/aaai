@@ -112,9 +112,8 @@ fn sarif_rule(id: &str, name: &str, description: &str, level: &str) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::PathBuf;
     use crate::audit::result::{AuditResult, FileAuditResult, AuditStatus};
-    use crate::diff::entry::{DiffEntry, DiffStats, DiffType};
+    use crate::diff::entry::{DiffEntry, DiffType};
 
     fn dummy_diff(path: &str, diff_type: DiffType) -> DiffEntry {
         DiffEntry {

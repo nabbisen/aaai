@@ -7,7 +7,7 @@ authors.workspace   = true
 license.workspace   = true
 readme       = "README.md"
 documentation       = "https://github.com/nabbisen/aaai/blob/main/docs/src/gui.md"
-homepage       = "https://nabbisen.github.io/aaai"
+homepage       = "https://github.com/nabbisen/aaai"
 
 [[bin]]
 name = "aaai-gui"

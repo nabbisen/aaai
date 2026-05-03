@@ -3,7 +3,6 @@ pub mod config;
 #[cfg(test)]
 mod tests {
     use super::config::ProjectConfig;
-    use std::path::Path;
 
     #[test]
     fn starter_yaml_is_valid() {
