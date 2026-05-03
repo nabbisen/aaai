@@ -5,13 +5,16 @@ version.workspace   = true
 edition.workspace   = true
 authors.workspace   = true
 license.workspace   = true
+readme       = "README.md"
+documentation       = "https://github.com/nabbisen/aaai/blob/main/docs/src/cli.md"
+homepage       = "https://nabbisen.github.io/aaai"
 
 [[bin]]
 name = "aaai"
 path = "src/main.rs"
 
 [dependencies]
-aaai-core  = { path = "../aaai-core", version = "0.10.0" }
+aaai-core  = { path = "../aaai-core", version = "0.10.1" }
 clap       = { workspace = true }
 colored    = { workspace = true }
 anyhow     = { workspace = true }

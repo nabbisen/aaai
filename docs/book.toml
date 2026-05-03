@@ -3,3 +3,14 @@ title       = "aaai Documentation"
 authors     = ["nabbisen"]
 language    = "en"
 src         = "src"
+
+[output.html]
+default-theme           = "light"
+preferred-dark-theme    = "navy"
+git-repository-url      = "https://github.com/nabbisen/aaai"
+git-repository-icon     = "fa-github"
+
+# ── Multilingual (Japanese) ───────────────────────────────────────────────────
+# Japanese translation lives in src/ja/ and is built separately:
+#   mdbook build docs/ja
+# See: https://rust-lang.github.io/mdBook/format/config.html

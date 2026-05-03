@@ -1,0 +1,11 @@
+[book]
+title       = "aaai ドキュメント"
+authors     = ["nabbisen"]
+language    = "ja"
+src         = "src"
+
+[output.html]
+default-theme           = "light"
+preferred-dark-theme    = "navy"
+git-repository-url      = "https://github.com/nabbisen/aaai"
+git-repository-icon     = "fa-github"

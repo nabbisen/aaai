@@ -1,7 +1,5 @@
 # aaai — Release workflow
-# Triggered by a version tag (v0.6.0, v1.0.0, etc.).
-# Builds binaries for Linux / macOS / Windows, then creates a GitHub Release.
-
+# Triggered by a version tag (v0.10.1, v1.0.0, etc.).
 name: Release
 
 on:
@@ -30,7 +28,7 @@ jobs:
             bin_suffix: ".exe"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -40,8 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build CLI release binary
-        run: |
-          cargo build --release --target ${{ matrix.target }} -p aaai-cli
+        run: cargo build --release --target ${{ matrix.target }} -p aaai-cli
 
       - name: Create archive (Linux/macOS)
         if: runner.os != 'Windows'
@@ -64,7 +61,7 @@ jobs:
           Compress-Archive -Path "dist\aaai.exe" -DestinationPath "dist\aaai-$TAG-$TARGET.zip"
           echo "ASSET=dist/aaai-$TAG-$TARGET.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Upload release artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: aaai-${{ matrix.target }}
@@ -75,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -84,7 +81,6 @@ jobs:
           merge-multiple: true
 
       - name: Extract changelog entry
-        id: changelog
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           NOTES=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1)
@@ -98,5 +94,3 @@ jobs:
           name: aaai ${{ github.ref_name }}
           body: ${{ env.NOTES }}
           files: dist/**
-          draft: false
-          prerelease: false

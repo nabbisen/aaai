@@ -1,4 +1,4 @@
-# aaai
+# aaai — audit for asset integrity
 
 [![crates.io](https://img.shields.io/crates/v/aaai?label=rust)](https://crates.io/crates/aaai)
 [![License](https://img.shields.io/github/license/nabbisen/aaai)](https://github.com/nabbisen/aaai/blob/main/LICENSE)
@@ -6,22 +6,19 @@
 [![Dependency Status](https://deps.rs/crate/aaai/latest/status.svg)](https://deps.rs/crate/aaai)
 [![CI](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml/badge.svg)](/.github/workflows/ci.yaml)
 
-**audit for asset integrity** — folder diff auditor with mandatory human-readable justification.
+**aaai** is a folder-diff auditor that requires every detected change to carry a human-readable reason before it can be marked as accepted. It provides a CLI and a desktop GUI built with [iced](https://github.com/iced-rs/iced).
 
 ## Overview
 
-aaai compares two directory trees, detects what changed, and audits the
-differences against a YAML definition of expected changes. Every accepted
-change requires a reason, making audit decisions traceable and explainable.
-
-## Why aaai?
-
-When you need to answer "is this change expected, and *why*?" — not just
-"what changed?" — aaai turns raw diff output into a reviewable, storable
-audit record.
-
-**Use cases:** release artifact verification, config change auditing,
-build output consistency checks, CI/CD gating.
+| Feature | Description |
+|---|---|
+| Folder diff | Parallel comparison of two directory trees |
+| Audit definition | YAML file listing expected changes with reasons |
+| Content strategies | None / Checksum / LineMatch / Regex / Exact |
+| Reports | Markdown, JSON, HTML, SARIF (GitHub Actions) |
+| GUI | 3-pane resizable desktop UI with dark/light theme |
+| CLI | 15 commands — audit, snap, lint, diff, merge, watch, … |
+| CI/CD | Granular exit codes (0 = PASSED … 4 = CONFIG_ERROR) |
 
 ## Quick Start
 
@@ -29,20 +26,34 @@ build output consistency checks, CI/CD gating.
 # Generate a definition template from the current diff
 aaai snap --left ./before --right ./after --out audit.yaml
 
-# Edit audit.yaml: fill in 'reason' for each entry
-
-# Run the audit
+# Fill in the "reason" fields, then audit
 aaai audit --left ./before --right ./after --config audit.yaml
-
-# Generate a report
-aaai report --left ./before --right ./after --config audit.yaml --out report.md
 ```
 
-## Features / Design Notes
+## Crates
 
-- **Mandatory reason**: a diff cannot be approved without a human-readable justification.
-- **Content strategies**: None, Checksum, LineMatch, Regex, Exact.
-- **CLI + GUI**: same judgement engine; GUI adds an interactive approval workflow.
-- **Accessible by default**: color + icon + text for all status indicators.
+| Crate | Description |
+|---|---|
+| [`aaai-core`](crates/aaai-core) | Core engine — diff, audit, report, masking |
+| [`aaai-cli`](crates/aaai-cli) | `aaai` command-line binary |
+| [`aaai-gui`](crates/aaai-gui) | `aaai-gui` desktop application |
 
-For full documentation, see [docs/](docs/).
+## Installation
+
+```sh
+# Build from source (requires Rust 1.81+)
+cargo build --release -p aaai-cli -p aaai-gui
+```
+
+## Documentation
+
+- [Getting Started](docs/src/getting-started.md)
+- [CLI Reference](docs/src/cli.md)
+- [Content Audit Strategies](docs/src/strategies.md)
+- [GUI Guide](docs/src/gui.md)
+- [CI/CD Integration](docs/src/ci-integration.md)
+- [FAQ](docs/src/faq.md)
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).

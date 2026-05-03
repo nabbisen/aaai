@@ -1,284 +1,326 @@
 # Changelog
 
+All notable changes to this project are documented in this file.
+
+Format: `## [version] — description`
+
+## [0.10.1] — Project structure and documentation update
+
+### Cargo / Publish
+- Added `version = "0.10.1"` to `aaai-core` dependency in `aaai-cli` and `aaai-gui` Cargo.toml — `cargo publish` now works correctly
+- Removed `path` from `snora` in workspace `Cargo.toml` (version-only specification)
+- Added `readme`, `documentation`, and `homepage` metadata to each crate's `Cargo.toml`
+
+### Dependency updates
+- `similar` v2 → **v3**
+- `indicatif` v0.17 → **v0.18**
+
+### Repository hygiene
+- Replaced `.gitignore` with a clean, well-commented version
+- Updated `NOTICE` copyright year to 2026
+- Removed redundant `AUTHORS` file (information already in `Cargo.toml`, `LICENSE`, `NOTICE`)
+- Replaced `README.md` with a concise English-only version (removed version-specific test badge — maintenance overhead)
+
+### GitHub Actions
+- `actions/checkout` v4 → **v6**
+- `dtolnay/rust-toolchain@stable` — already correct, confirmed
+- `actions/upload-artifact` — v4 (confirmed)
+- `actions/download-artifact` — v4 (confirmed)
+
+### Per-crate README files (for `cargo publish`)
+- `crates/aaai-core/README.md` — references top-level README
+- `crates/aaai-cli/README.md` — CLI-focused quick reference
+- `crates/aaai-gui/README.md` — GUI-focused quick reference
+
+### CHANGELOG
+- Fixed `[0.8.0]` heading: "Phase 8 — v1.0 comes closer (v0.8.0)"
+- Translated CHANGELOG to English (older phases retain some Japanese in detailed bullet points)
+
+### Documentation (docs/)
+- `book.toml` updated with HTML output settings and multilingual note
+- Japanese docs structure added: `docs/ja/` with `book.toml` + `src/` (mirroring English sources)
+- Created `docs/src/overview.md` and `docs/src/audit-definition.md` (previously stubs)
+- `docs/src/SUMMARY.md` updated to include all 8 chapters
+
 ## [0.10.0] — Phase 10: GUI Polish
 
-### テスト (92 unit + 30 CLI = 122 テスト全通過)
-- `profile/prefs.rs` の round_trip / default / display テスト追加（core unit 92 件）
+### Tests (92 unit + 30 CLI = 122 passing)
+- Added `profile/prefs.rs` round-trip / default / display tests (core unit: 92 tests)
 
-### GUI 新機能
+### GUI features
 
-#### ペインリサイズ (PaneGrid)
-- `main_view.rs` を **`iced::widget::pane_grid::PaneGrid`** ベースに全面書き換え
-- ファイルツリー / 差分ビュー / インスペクターの 3 ペインをドラッグハンドルでリサイズ可能
-- `DiffReady` 時に初期比率（30% / 45% / 25%）で自動初期化
-- `Message::PaneResized(ResizeEvent)` で比率をライブ更新
+#### Resizable panes (PaneGrid)
+- Rewrote `main_view.rs` using **`iced::widget::pane_grid::PaneGrid`**
+- All 3 panes (file tree / diff view / inspector) are resizable via drag handles
+- Auto-initialised at 30% / 45% / 25% on `DiffReady`
+- `Message::PaneResized(ResizeEvent)` updates ratio live
 
-#### ダーク / ライトテーマ
-- `profile/prefs.rs` — `Theme` (Light / Dark / System) + `UserPrefs` を `~/.aaai/prefs.yaml` に永続化
-- `main.rs` に `.theme(|app| ...)` を追加して iced アプリに反映
-- フッターに **テーマピッカー** (Light / Dark) を追加
-- 起動時に前回のテーマを自動復元
+#### Dark / Light theme
+- `profile/prefs.rs` — `Theme` (Light / Dark / System) + `UserPrefs` persisted to `~/.aaai/prefs.yaml`
+- Added `.theme(|app| ...)` in `main.rs` to connect theme to iced application
+- Added **theme picker** (Light / Dark) in the footer
+- Theme is automatically restored on next launch
 
-#### ディレクトリ折りたたみ
-- ファイルツリーにディレクトリヘッダー（▼ / ▶ アイコン）を追加
-- ヘッダークリックで配下エントリを折りたたみ / 展開
-- `App.collapsed_dirs: HashSet<String>` で状態を保持
-- `Message::ToggleDir(String)` で切り替え
+#### Directory collapse
+- Added directory headers (▼ / ▶ icons) to the file tree
+- Click header to collapse / expand child entries
+- State stored in `App.collapsed_dirs: HashSet<String>`
+- `Message::ToggleDir(String)` toggles the state
 
-### コード品質
-- **全クレート警告ゼロ** — `cargo fix` 適用 + 不要インポート整理
+### Code quality
+- **Zero warnings across all crates** — `cargo fix` applied + unnecessary imports cleaned up
 
 ## [0.9.0] — Phase 9: Documentation & Test Completeness
 
-### ドキュメント充実
-- **`gui.md`** — 10 行 → **136 行**: Opening 画面・3 ペイン操作・バッジ一覧・キーボードショートカット・フッター・典型ワークフローを完全記述
-- **`cli.md`** — 27 行 → **307 行**: 全 15 コマンドのフラグ・終了コード・使用例を網羅
-- **`getting-started.md`** — 17 行 → **129 行**: `aaai init` 起点フロー・手動セットアップ・`.aaai.yaml`・シェル補完インストールを追記
+### Documentation improvements
+- **`gui.md`** — 10 lines → **136 lines**: Opening screen, 3-pane operations, badge reference, keyboard shortcuts, footer, and typical workflow fully documented
+- **`cli.md`** — 27 lines → **307 lines**: All 15 commands with flags, exit codes, and examples
+- **`getting-started.md`** — 17 lines → **129 lines**: `aaai init` flow, manual setup, `.aaai.yaml`, and shell completion install
 
-### テストカバレッジ拡大 (89 unit + 30 integration = 119 テスト全通過)
-以下の未カバーコマンドにテストを追加:
-- `completions bash/zsh` — 出力が空でない・"aaai" を含む
-- `config --init` — `.aaai.yaml` 生成・既存ファイル検出（バグ修正: `--dir` 指定時も既存チェックするよう修正）
-- `dashboard` — exit 0 確認
-- `init --non-interactive` — `.aaai.yaml` 生成
-- `lint --json-output` — 有効 JSON 出力・`empty-linematch` エラー検出
-- `version --json-output` — `version` / `license` フィールド確認
+### Test coverage expansion (89 unit + 30 integration = 119 passing)
+Added tests for the following previously untested commands:
+- `completions bash/zsh` — output is non-empty and contains "aaai"
+- `config --init` — `.aaai.yaml` creation and existing file detection (bug fix: now checks existence even when `--dir` is specified)
+- `dashboard` — exit 0 verified
+- `init --non-interactive` — `.aaai.yaml` creation
+- `lint --json-output` — valid JSON output and `empty-linematch` error detection
+- `version --json-output` — `version` / `license` field validation
 
-### 新機能
-- **`AuditWarning` 抑制** — `.aaai.yaml` に `suppress_warnings: [no-approver, no-strategy]` を追加可能。`aaai audit --suppress-warnings <kind,...>` フラグでも抑制可能
-- **`AuditEngine::evaluate_with_options()`** — `AuditOptions` 構造体 (suppress_warnings) を受け取る新オーバーロード
-- **`aaai history --prune <N>`** — 履歴を最新 N 件に刈り込む（history/store.rs に `prune()` を実装）
-- **`aaai audit --warn-only`** — 意図を明示するフラグ（警告は元々 exit code に影響しないため実質ドキュメント的追加）
+### New features
+- **`AuditWarning` suppression** — `suppress_warnings: [no-approver, no-strategy]` in `.aaai.yaml`; also `aaai audit --suppress-warnings <kind,...>`
+- **`AuditEngine::evaluate_with_options()`** — new overload accepting `AuditOptions` (suppress_warnings)
+- **`aaai history --prune <N>`** — prune history to the most recent N entries (`prune()` implemented in `history/store.rs`)
+- **`aaai audit --warn-only`** — explicit intent flag (warnings do not affect exit codes by design)
 
-### バグ修正
-- **`config --init` の既存チェック** — `--dir` 指定時でも `.aaai.yaml` の存在チェックをスキップしていたバグを修正
+### Bug fixes
+- **`config --init` existence check** — fixed a bug where `.aaai.yaml` existence was not checked when `--dir` was specified
 
-## [0.8.0] — UI/UX テスト前 課題修正
+## [0.8.0] — Phase 8 — v1.0 comes closer (v0.8.0)
 
-### バグ修正 (UI/UX テスト前に必須)
+### Bug fixes (UI/UX  test前に必須)
 
-#### 修正1・2: GUI — `ignore_path` → `IgnoreRules` 未接続
-- **`StartAudit`** の非同期 diff 実行に `ignore_path` フィールドの値を接続
-  - 空欄の場合は `<Before>/.aaaiignore` を自動検索（CLI と同動作に統一）
-  - 指定がある場合はそのパスから `IgnoreRules` を構築
-- **`rerun_audit()`** も同じ `IgnoreRules` で再スキャンするよう修正
-  - `App` に `active_ignore: IgnoreRules` を追加し `DiffReady` メッセージ経由で保存
-  - 「監査再実行」ボタンが以前のスキャンと異なるファイルを返す問題を解消
-- **`DiffReady` メッセージのシグネチャ変更**: `IgnoreRules` を第3引数として追加
+#### Fix 1&2: GUI — `ignore_path` not connected to `IgnoreRules`
+- Connected `ignore_path` field value to the async diff execution in **`StartAudit`**
+  - Falls back to `<Before>/.aaaiignore` auto-discovery when blank (consistent with CLI behaviour)
+  - When specified, builds `IgnoreRules` from the given path
+- Fixed **`rerun_audit()`** to re-scan with the same `IgnoreRules`
+  - Added `active_ignore: IgnoreRules` to `App`, saved via `DiffReady` message
+  - Fixed: "Re-run audit" button was returning different files from the original scan
+- **`DiffReady` message signature changed**: `IgnoreRules` added as the third argument
 
-#### 修正3: GUI — `AuditWarning` 未表示
-- **インスペクターパネル** の divider 直下に警告セクションを追加
-  - `large-file` → 黄色背景ブロック ＋ `⚠` アイコン
-  - `no-strategy` → 青色系 `ℹ` アイコン
-  - `no-approver` → グレー系 `ℹ` アイコン
-  - 警告なしの場合はセクション自体を非表示（レイアウトに影響なし）
+#### Fix 3: GUI — `AuditWarning` not displayed
+- Added warning section immediately below the divider in the **inspector panel**
+  - `large-file` → yellow background block + `⚠` icon
+  - `no-strategy` → blue-tinted `ℹ` icon
+  - `no-approver` → grey-tinted `ℹ` icon
+  - Section hidden entirely when no warnings (no layout impact)
 
-#### 修正4: GUI — ファイルツリーの `AuditWarning` バッジ未表示
-- ファイルツリーの各行に `⚠N`（N = 警告数）バッジを追加
-  - 黄色系の小型バッジ（サイズ 9px）
-  - 警告ゼロのエントリには表示なし
+#### Fix 4: GUI — `AuditWarning` badge missing in file tree
+- Added `⚠N` badge (N = warning count) to each row in the file tree
+  - Small yellow-tinted badge (9px)
+  - Not shown for entries with zero warnings
 
-#### 修正5: GUI — ツールバーの `warning_count` 未表示
-- ツールバーの verdict バッジ横に `⚠ N warning(s)` テキストを追加
-  - `AuditSummary.warning_count > 0` の場合のみ表示
+#### Fix 5: GUI — `warning_count` not shown in toolbar
+- Added `⚠ N warning(s)` text next to the verdict badge in the toolbar
+  - Only shown when `AuditSummary.warning_count > 0`
 
-#### 修正6: GUI — キーボードショートカット凡例未表示
-- フッターに `Ctrl+S: 保存  Ctrl+R: 再実行  Ctrl+Z: Undo  ↑↓: 移動` を表示
-  - Main 画面のみ表示（Opening 画面では非表示）
+#### Fix 6: GUI — keyboard shortcut legend missing
+- Added `Ctrl+S: Save  Ctrl+R: Re-run  Ctrl+Z: Undo  ↑↓: Navigate` to the footer
+  - Shown on Main screen only (hidden on Opening screen)
 
-#### 修正7: GUI — Opening 画面の UX 改善
-- `.aaaiignore` フィールドのプレースホルダーを「省略時: Before/.aaaiignore を自動検索」に更新
-- ローディングスピナーに Before/After フォルダ名を表示してスキャン対象を明示
+#### Fix 7: GUI — Opening screen UX improvements
+- Updated `.aaaiignore` field placeholder to indicate auto-discovery behaviour
+- Loading spinner now shows Before/After folder names to clarify what is being scanned
 
-### バージョン
-- Cargo.toml のバージョンを `0.8.0` に設定（v1.0 は UI/UX テスト後）
+### Version
+- Version set to `0.8.0` in Cargo.toml (v1.0 pending UI/UX testing)
 
 ## [1.0.0] — Phase 8: v1.0 Release
 
-### テスト (109 テスト全通過)
-- core unit tests: **89 件** (proptest プロパティベーステスト 8 件追加: masking idempotency, ignore rules)
+### Tests (109  passing)
+- core unit tests: **89 件** (proptest プロパティベース test 8  added: masking idempotency, ignore rules)
 - CLI integration tests: **20 件**
 
-### Core 追加
-- **プロパティベーステスト** — `proptest` によるランダム入力への堅牢性検証
+### Core additions
+- **プロパティベース test** — `proptest` によるランダム入力への堅牢性検証
   - `masking/prop_tests.rs`: マスキングの非パニック保証・冪等性・`mask_if_needed` 一貫性
   - `diff/prop_tests.rs`: IgnoreRules の非パニック保証・空ルール・グロブマッチング特性
 - **ベンチマーク** — `criterion` による性能計測 (`cargo bench -p aaai-core`)
-  - `diff_bench`: 100 / 1000 ファイルの並列差分エンジン
-  - `masking_bench`: 5 種の混合テキストに対するマスキング処理
+  - `diff_bench`: 100 / 1000  fileの並列差分エンジン
+  - `masking_bench`: 5 種の混合テキストに対するマスキング processing
 
-### CLI 追加
-- **`aaai version`** — 詳細バージョン情報 (version, authors, license, OS/arch, build profile)。`--json-output` 対応
-- **`aaai lint <FILE>`** — 定義ファイルのベストプラクティス全チェック
+### CLI additions
+- **`aaai version`** — 詳細 version情報 (version, authors, license, OS/arch, build profile)。`--json-output`  support
+- **`aaai lint <FILE>`** — 定義 fileのベストプラクティス全チェック
   - duplicate-path: 同一パスの重複定義 (error)
   - short-reason: 理由が短すぎる (warning, default 10 文字)
-  - missing-ticket: チケット未設定 (warning, `--require-ticket` 時)
-  - missing-approver: 承認者未設定 (warning, `--require-approver` 時)
+  - missing-ticket: チケット未 config (warning, `--require-ticket` 時)
+  - missing-approver: 承認者未 config (warning, `--require-approver` 時)
   - expired: 有効期限切れ (warning)
   - empty-linematch / empty-line-rule: LineMatch ルール不備 (error)
   - strategy-mismatch: Added/Removed に LineMatch (info)
   - disabled: 無効化エントリ (info)
-  - `--json-output` 対応・error 存在時は exit 1
-- **`aaai snap --approver <NAME>`** — 生成エントリの `approved_by` を設定。プロジェクト設定の `approver_name` にフォールバック
-- **`aaai snap --suggest-glob`** — 同一ディレクトリのエントリをグロブパターンにまとめる提案を表示
+  - `--json-output`  support・error 存在時は exit 1
+- **`aaai snap --approver <NAME>`** —  generationエントリの `approved_by` を config。プロジェクト configの `approver_name` にフォールバック
+- **`aaai snap --suggest-glob`** — 同一ディレクトリのエントリをグロブパターンにまとめる提案を display
 
-### GUI 追加 (Phase 8)
-- **非同期 diff** — `tokio::task::spawn_blocking` でフォルダ比較をバックグラウンドスレッドで実行。GUI は比較中もレスポンシブを維持
-- **ローディングスピナー** — Opening 画面にスキャン中の進捗メッセージを表示
+### GUI additions (Phase 8)
+- **非同期 diff** — `tokio::task::spawn_blocking` で folder比較をバックグラウンドスレッドで実行。GUI は比較中もレスポンシブを維持
+- **ローディングスピナー** — Opening 画面にスキャン中の進捗メッセージを display
 
 ### v1.0 リリース準備
 - **LICENSE** — Apache-2.0 全文を記載
-- **AUTHORS** — 著者ファイル追加
-- **README バッジ** — version / tests / CI / license シールドを追加
-- **ROADMAP 更新** — Phase 8 を記録し、全フェーズの実績を確定
+- **AUTHORS** — 著者 file added
+- **README バッジ** — version / tests / CI / license シールドを added
+- **ROADMAP  updated** — Phase 8 を記録し、全Phaseの実績を確定
 
 ## [0.7.0] — Phase 7: v1.0 Quality
 
-### テスト (101 テスト全通過)
-- core unit tests: **81 件** (AuditWarning 7 件、SARIF 2 件、lockfile 2 件追加)
-- CLI integration tests: **20 件** (export CSV/TSV, merge conflict, SARIF format, history stats, diff JSON)
+### Tests (101  passing)
+- core unit tests: **81 件** (AuditWarning 7 件、SARIF 2 件、lockfile 2  added)
+- CLI integration tests: **20** (export CSV/TSV, merge conflict, SARIF format, history stats, diff JSON)
 
-### コード品質
-- **警告ゼロ達成** — `cargo fix` + 全 unused variable/dead_code を `_prefix` / `#[allow]` で抑制。`cargo check` が全クレートで警告ゼロ
+### Code quality
+- **Zero warnings** — `cargo fix` + 全 unused variable/dead_code を `_prefix` / `#[allow]` で抑制。`cargo check` が全クレートで warningゼロ
 
-### Core 追加
+### Core additions
 - **`audit/warning.rs`** — `AuditWarning` システム: `LargeFileStrategy` (>1MB に Exact/LineMatch 適用)、`NoStrategyOnModified`、`NoApprover` の 3 種類
-- **`FileAuditResult.warnings`** — 各エントリに advisory 警告リストを付与
-- **`AuditSummary.warning_count`** — 全体の警告件数を集計
-- **`config/lock.rs`** — `.lock` ファイルによる書き込みロック。60 秒 TTL でステールロックを自動削除。`config/io.rs` に統合済み
+- **`FileAuditResult.warnings`** — 各エントリに advisory  warningリストを付与
+- **`AuditSummary.warning_count`** — 全体の warning件数を集計
+- **`config/lock.rs`** — `.lock`  fileによる書き込みロック。60 秒 TTL でステールロックを自動 removed。`config/io.rs` に統合済み
 
-### CLI 追加
+### CLI additions
 - **`aaai export`** — 承認済みエントリを CSV / TSV に出力。13 カラム: path, diff_type, status, reason, strategy, ticket, approved_by, approved_at, expires_at, enabled, note, created_at, updated_at
-- **`aaai init`** — 対話型プロジェクト初期設定ウィザード。Before/After パス・定義ファイル・承認者名を対話入力し `.aaai.yaml` を生成。`--non-interactive` フラグ対応
-- **`aaai history --stats`** — 全実行履歴のトレンド分析: 合格率・平均 OK/Pending/Failed 件数・直近 5 回 vs 前 5 回の傾向 (↑改善 / ↓低下 / →安定)
+- **`aaai init`** — 対話型プロジェクト初期 configウィザード。Before/After パス・定義 file・承認者名を対話入力し `.aaai.yaml` を generation。`--non-interactive` フラグ support
+- **`aaai history --stats`** — 全実行履歴のトレンド分析: 合格率・平均 OK/Pending/Failed 件数・直近 5 回 vs 前 5 回の傾向 (↑ improvement / ↓低下 / →安定)
 
 ## [0.6.0] — Phase 6: Production Readiness
 
-### テスト (85 テスト全通過)
-- core unit tests: 73 件（SARIF テスト 2 件追加）
+### Tests (85  passing)
+- core unit tests: 73 件（SARIF  test 2  added）
 - CLI integration tests: 12 件
 
-### Core 追加
-- **エントリバージョニング** — `AuditEntry` に `created_at` / `updated_at` フィールドを追加。`stamp_now()` メソッドで承認時に自動スタンプ
-- **`report/sarif.rs`** — SARIF v2.1.0 レポート生成。Failed → error、Pending → warning にマッピング
-- **`ReportGenerator::build_markdown_string(include_diff: bool)`** — 差分テキスト埋め込みオプション付き Markdown 生成
+### Core additions
+- **Entry versioning** — `created_at` / `updated_at` fields added to `AuditEntry`; `stamp_now()` auto-stamps on approval
+- **`report/sarif.rs`** — SARIF v2.1.0 レポート generation。Failed → error、Pending → warning にマッピング
+- **`ReportGenerator::build_markdown_string(include_diff: bool)`** — 差分テキスト埋め込みオプション付き Markdown  generation
 
-### CLI 追加
-- **`aaai diff`** — 定義ファイル不要の純粋差分表示。`--content` で実差分テキスト、`--json-output` で JSON 出力
-- **`aaai merge <BASE> <OVERLAY>`** — 2つの定義ファイルをマージ。`--detect-conflicts` で競合チェックのみ実行
-- **`aaai report --format sarif`** — SARIF v2.1.0 出力（GitHub Actions `upload-sarif` で PR アノテーション対応）
+### CLI additions
+- **`aaai diff`** — 定義 file不要の純粋差分 display。`--content` で実差分テキスト、`--json-output` で JSON 出力
+- **`aaai merge <BASE> <OVERLAY>`** — 2つの定義 fileをマージ。`--detect-conflicts` で競合チェックのみ実行
+- **`aaai report --format sarif`** — SARIF v2.1.0 出力（GitHub Actions `upload-sarif` で PR アノテーション support）
 - **`aaai report --include-diff`** — Markdown/HTML レポートに実差分テキストを埋め込み
 
 ### GitHub Actions CI/CD
-- **`.github/workflows/ci.yaml`** — テスト (Ubuntu/macOS/Windows)・フォーマットチェック・Clippy・MSRV 確認・セキュリティ監査
+- **`.github/workflows/ci.yaml`** —  test (Ubuntu/macOS/Windows)・フォーマットチェック・Clippy・MSRV  verified・セキュリティ監査
 - **`.github/workflows/release.yaml`** — タグプッシュ時にクロスコンパイルビルド + GitHub Release 自動作成
 
-### GUI 追加
-- **Undo 機能** — `Message::UndoApproval` で最後の承認を取り消し (最大 20 件スタック)
-- **キーボードショートカット** — Ctrl+S (保存)、Ctrl+R (再実行)、Ctrl+Z (Undo)、↑↓ (エントリ移動)
+### GUI additions
+- **Undo  feature** — `Message::UndoApproval` で最後の承認を取り消し (最大 20 件スタック)
+- **Keyboard shortcuts** — Ctrl+S (save), Ctrl+R (re-run), Ctrl+Z (undo), ↑↓ (navigate)
 
-### ドキュメント完成
+### Documentation完成
 - `docs/src/strategies.md` — 全 5 戦略の詳細解説・使い分けガイド
 - `docs/src/ci-integration.md` — GitHub Actions 例・SARIF アップロード・Watch モード・シェル補完インストール
 - `docs/src/faq.md` — 13 件の FAQ（理由必須の理由・glob ルール・マージ・SARIF 活用など）
-- `docs/src/SUMMARY.md` — mdBook 目次更新 (8 章)
+- `docs/src/SUMMARY.md` — mdBook 目次 updated (8 章)
 
 ## [0.5.0] — Phase 5: Polish
 
-### テスト (83 テスト全通過)
+### Tests (83  passing)
 - **core unit tests**: 71 件 (diff/audit/config/masking/project/templates/profile/history)
-- **CLI integration tests**: 12 件 (実バイナリを使った end-to-end テスト)
-  - exit code 検証 (0/1/2)、JSON 出力の妥当性、glob ルール、HTML レポート生成、dry-run 動作など
+- **CLI integration tests**: 12 件 (実バイナリを使った end-to-end  test)
+  - exit code 検証 (0/1/2)、JSON 出力の妥当性、glob ルール、HTML レポート generation、dry-run 動作など
 
-### CLI 追加
-- **`aaai completions <shell>`** — bash / zsh / fish / powershell 向けシェル補完スクリプト生成 (clap_complete)
-- **`aaai watch`** — before・after・定義ファイルの変更を監視し、変更検出時に自動で監査を再実行 (notify crate、500ms デバウンス)
-- **`aaai dashboard`** — カラーコードの統計カード＋要注意エントリ一覧。`--detail` フラグで全変更エントリを表示
-- **`aaai audit --progress`** — indicatif プログレスバーで大規模フォルダの比較進捗を表示
-- **`aaai snap --dry-run`** — ファイルを書き込まずに生成内容をプレビュー
-- **`aaai report --format html`** — スタイル付き HTML レポートを出力（summary カード・ステータス色分け・チケット表示・差分統計）
+### CLI additions
+- **`aaai completions <shell>`** — bash / zsh / fish / powershell 向けシェル補完スクリプト generation (clap_complete)
+- **`aaai watch`** — before・after・定義 fileの changedを監視し、 changed検出時に自動で監査を再実行 (notify crate、500ms デバウンス)
+- **`aaai dashboard`** — colour-coded stat cards + attention list; `--detail` flag shows all changed entries
+- **`aaai audit --progress`** — indicatif プログレスバーで大規模 folderの比較進捗を display
+- **`aaai snap --dry-run`** —  fileを書き込まずに generation内容をプレビュー
+- **`aaai report --format html`** — スタイル付き HTML レポートを出力（summary カード・ステータス色分け・チケット display・差分統計）
 
-### Core 追加
-- **`diff/progress.rs`** — `DiffProgress` イベント + `ProgressSink` トレイト + `ChannelProgress` / `NullProgress` 実装
+### Core additions
+- **`diff/progress.rs`** — `DiffProgress` イベント + `ProgressSink` トレイト + `ChannelProgress` / `NullProgress`  implementation
 - **`DiffEngine::compare_with_progress()`** — 進捗シンクを受け取るオーバーロード
-- **`report/html.rs`** — セルフコンテイン HTML レポート生成 (BootstrapなしのCSSインライン)
+- **`report/html.rs`** — セルフコンテイン HTML レポート generation (BootstrapなしのCSSインライン)
 
-### GUI 追加
-- **ダッシュボードビュー** — ファイル未選択時にサマリーカード (OK/Pending/Failed/Error/Ignored 件数) + 結果バナー + 要注意エントリ一覧を表示
-- **ファイルツリー検索バー** — パス名インクリメンタルフィルター (フィルターバーの下に検索入力を配置)
+### GUI additions
+- **Dashboard view** — shows summary cards (OK/Pending/Failed/Error/Ignored counts) + result banner + attention list when no file is selected
+- **File tree search bar** — incremental path filter (search input placed below filter bar)
 
 ## [0.4.0] — Phase 4: Advanced
 
-### Core 新モジュール (69 テスト全通過)
-- **`diff/entry.rs` 強化** — `is_binary` フラグ・`before_size`/`after_size`・`before_sha256`・`DiffStats`（lines_added/removed/unchanged）フィールドを追加
-- **並列差分エンジン** — `rayon` による `par_iter` で大規模フォルダの並列ファイル比較を実現。ソート済み出力を保証
-- **バイナリ検出** — ヌルバイト検査によるバイナリ判定。バイナリファイルは hash/size のみ追跡、テキスト戦略の適用を防止
-- **`diff/entry::fmt_size()`** — バイト数を人間可読文字列 (B/KB/MB/GB) にフォーマット
-- **`masking/`** — `MaskingEngine` + 9 種のビルトインパターン（API キー、パスワード、AWS キー、GitHub トークン、Slack トークン、Bearer トークン、接続文字列パスワード、秘密鍵ヘッダー）。カスタムパターン追加可能
-- **`project/config.rs`** — `.aaai.yaml` の読み込み・保存・上位ディレクトリへのオートディスカバリー
+### Core modules (69  passing)
+- **`diff/entry.rs` 強化** — `is_binary` フラグ・`before_size`/`after_size`・`before_sha256`・`DiffStats`（lines_added/removed/unchanged）フィールドを added
+- **Parallel diff engine** — `rayon` `par_iter` for large folder comparison; sorted output guaranteed
+- **Binary detection** — null-byte heuristic; binary files tracked by hash/size only, text strategies not applied
+- **`diff/entry::fmt_size()`** — formats byte counts as human-readable strings (B/KB/MB/GB)
+- **`masking/`** — `MaskingEngine` + 9 種のビルトインパターン（API キー、パスワード、AWS キー、GitHub トークン、Slack トークン、Bearer トークン、接続文字列パスワード、秘密鍵ヘッダー）。カスタムパターン added可能
+- **`project/config.rs`** — `.aaai.yaml` の loading・ saved・上位ディレクトリへのオートディスカバリー
 
-### CLI 追加
-- **`aaai config`** — `.aaai.yaml` を現在ディレクトリ付近から検索・表示。`--init` でスターターテンプレート生成
-- **`aaai audit --mask-secrets`** — Verbose 出力の reason フィールドをマスキング。プロジェクト設定の `mask_secrets: true` でも有効化
-- **`aaai audit --verbose`** — バイナリファイルの (binary file) 表示、差分統計 (+N -N lines)、サイズ変化を追加
-- **レポートへのマスキング対応** — `write_markdown` / `write_json` に `Option<&MaskingEngine>` 引数を追加
+### CLI additions
+- **`aaai config`** — `.aaai.yaml` を現在ディレクトリ付近から検索・ display。`--init` でスターターテンプレート generation
+- **`aaai audit --mask-secrets`** — masks reason field in verbose output; also activated by `mask_secrets: true` in project config
+- **`aaai audit --verbose`** — バイナリ fileの (binary file)  display、差分統計 (+N -N lines)、サイズ変化を added
+- **レポートへのマスキング support** — `write_markdown` / `write_json` に `Option<&MaskingEngine>` 引数を added
 
-### GUI 追加
-- **バイナリファイルパネル** — バイナリ差分選択時に専用パネルを表示。ファイル種別・サイズ変化・before/after SHA-256 ハッシュ・一致/不一致の視覚的表示
-- **差分統計バー** — テキスト差分ビューアの上部に `+N lines` / `−N lines` と サイズ変化を表示
+### GUI additions
+- **バイナリ fileパネル** — バイナリ差分選択時に専用パネルを display。 file種別・サイズ変化・before/after SHA-256 ハッシュ・一致/不一致の視覚的 display
+- **差分統計バー** — テキスト差分ビューアの上部に `+N lines` / `−N lines` と サイズ変化を display
 
 ## [0.3.0] — Phase 3: Integrations
 
-### Core 追加
-- **承認者トラッキング** — `approved_by` / `approved_at` フィールドをすべての `AuditEntry` に追加。承認操作時に自動スタンプ
-- **有効期限** — `expires_at` (NaiveDate) フィールド。期限切れエントリを CLI / GUI で警告表示
-- **チケット連携** — `ticket` フィールド (JIRA-123, INF-42 等) をレポートおよびインスペクターに表示
-- **空理由 → Pending** — snap で生成された理由未入力エントリを Pending として扱うよう AuditEngine を修正
-- **`.aaaiignore`** — `diff/ignore.rs`。gitignore スタイルのパターンで差分から除外。`!pattern` による否定ルール対応
-- **監査履歴** — `history/store.rs`。`~/.aaai/history.jsonl` に実行ログを JSONL 形式で追記
-- **ルールテンプレート** — `templates/library.rs`。8 種の定義済みテンプレート（バージョン番号、ポート変更、設定値変更など）
-- **監査プロファイル** — `profile/store.rs`。`~/.aaai/profiles.yaml` に before/after/定義の組み合わせを保存
+### Core additions
+- **Approver tracking** — `approved_by` / `approved_at` fields added to all `AuditEntry`; auto-stamped on approval
+- **Expiry dates** — `expires_at` (NaiveDate) field; expired entries shown as warnings in CLI and GUI
+- **Ticket linkage** — `ticket` field (JIRA-123, INF-42, etc.) shown in reports and inspector
+- **Empty reason → Pending** — `AuditEngine` now treats snap-generated entries with no reason as Pending
+- **`.aaaiignore`** — `diff/ignore.rs`; gitignore-style pattern exclusion from diff; negation rules (`!pattern`) supported
+- **Audit history** — `history/store.rs`; run log appended to `~/.aaai/history.jsonl` in JSONL format
+- **Rule templates** — `templates/library.rs`; 8 built-in templates (version bump, port change, config value change, etc.)
+- **Audit profiles** — `profile/store.rs`; before/after/definition combos saved to `~/.aaai/profiles.yaml`
 
-### CLI 追加
-- **`aaai check`** — 定義ファイルの妥当性を差分実行なしで検証。期限切れエントリも報告。Config エラーで exit 4
-- **`aaai history`** — `~/.aaai/history.jsonl` から最近の監査実行を一覧表示。`--json-output` 対応
-- **`aaai snap --template <id>`** — 生成時にルールテンプレートを適用
-- **`aaai snap --list-templates`** — テンプレート一覧表示
-- **`aaai audit --ignore <FILE>`** — .aaaiignore ファイルを明示指定
+### CLI additions
+- **`aaai check`** — 定義 fileの妥当性を差分実行なしで検証。期限切れエントリも報告。Config  errorで exit 4
+- **`aaai history`** — `~/.aaai/history.jsonl` から最近の監査実行を一覧 display。`--json-output`  support
+- **`aaai snap --template <id>`** —  generation時にルールテンプレートを適用
+- **`aaai snap --list-templates`** — テンプレート一覧 display
+- **`aaai audit --ignore <FILE>`** — .aaaiignore  fileを明示指定
 - **詳細終了コード** — 0=PASSED, 1=FAILED, 2=PENDING, 3=ERROR, 4=CONFIG_ERROR
 
-### GUI 追加
-- **インスペクター Phase 3 フィールド** — ticket, approved_by, expires_at の表示・編集
-- **有効期限バッジ** — `EXPIRED` / `Expiring soon` のカラーバッジをインスペクターヘッダーに表示
-- **テンプレートピッカー** — インスペクターに "Apply template" ドロップダウンを追加（8 テンプレート対応）
-- **プロファイルマネージャー** — Opening 画面にプロファイル保存・読み込み・削除 UI を追加
-- **Opening: ignore path フィールド** — .aaaiignore ファイルのパスを Opening 画面で指定可能
+### GUI additions
+- **インスペクター Phase 3 フィールド** — ticket, approved_by, expires_at の display・編集
+- **有効期限バッジ** — `EXPIRED` / `Expiring soon` のカラーバッジをインスペクターヘッダーに display
+- **テンプレートピッカー** — インスペクターに "Apply template" ドロップダウンを added（8 テンプレート support）
+- **プロ fileマネージャー** — Opening 画面にプロ file saved・ loading・ removed UI を added
+- **Opening: ignore path フィールド** — .aaaiignore  fileのパスを Opening 画面で指定可能
 
-### テスト
-- Phase 3 動作カバー (51 テスト)：空理由 → Pending、Unchanged 自動 OK など
+### Tests
+- Phase 3 動作カバー (51  test)：空理由 → Pending、Unchanged 自動 OK など
 
 ## [0.2.0] — Phase 2: Quality & Completeness
 
-### 必須要件対応 (別紙)
-- **tests.rs 分離**: `diff/tests.rs`, `audit/tests.rs`, `config/tests.rs` に unit/integration テスト 37 件を追加
-- **GUI 多言語対応**: rust-i18n v3 で日英 locale ファイル (`en.yaml` / `ja.yaml`) を実装。フッターのロケールピッカーで切り替え可能
+### 必須要件 support (別紙)
+- **tests.rs 分離**: `diff/tests.rs`, `audit/tests.rs`, `config/tests.rs` に unit/integration  test 37 件を added
+- **GUI 多言語 support**: rust-i18n v3 で日英 locale  file (`en.yaml` / `ja.yaml`) を implementation。フッターのロケールピッカーで切り替え可能
 
-### Core 機能追加
+### Core  feature added
 - **Glob パターンマッチング**: `path` フィールドに `logs/*.log` や `build/**` 形式の glob ルールを使用可能。完全一致ルールが優先
 - **Unchanged エントリの自動 OK**: 差分のないエントリは監査ルールなしで自動 OK 判定
-- **tests.rs**: config の glob マッチテストを含む 37 件のテストが全通過
+- **tests.rs**: config の glob マッチ testを含む 37 件の testが passing
 
-### GUI 機能追加 (iced + snora)
+### GUI  feature added (iced + snora)
 - **フィルターバー**: Changed Only / All / Pending / Failed・Error の 4 モードで差分一覧を絞り込み
-- **バッチ承認**: 複数エントリを選択（チェックボックス）し、共通理由で一括承認。snora `Sheet` (端パネル) として表示
-- **Toast subscription 修正**: `App::subscription` を iced アプリケーションに正しく接続し、TTL 自動削除が機能するよう修正
-- **差分ビューアの改善**: 行番号表示、`iter_all_changes` ベースの安定したレンダリング
+- **バッチ承認**: 複数エントリを選択（チェックボックス）し、共通理由で一括承認。snora `Sheet` (端パネル) として display
+- **Toast subscription  fixed**: `App::subscription` を iced アプリケーションに正しく接続し、TTL 自動 removedが featureするよう fixed
+- **差分ビューアの improvement**: 行番号 display、`iter_all_changes` ベースの安定したレンダリング
 - **ロケールピッカー**: フッターに配置。`LANG` 環境変数でシステムロケールを自動検出
 
-### CLI 機能追加
-- `--verbose`: OK / Ignored エントリも表示し、reason を併記
+### CLI  feature added
+- `--verbose`: OK / Ignored エントリも displayし、reason を併記
 - `--quiet`: サマリー行のみ出力
-- `--json-output`: 監査結果を JSON で stdout に出力（CI/CD での機械処理向け）
+- `--json-output`: 監査結果を JSON で stdout に出力（CI/CD での機械 processing向け）
 
 ## [Unreleased] — Phase 1
 
