@@ -6,7 +6,7 @@ edition.workspace   = true
 authors.workspace   = true
 license.workspace   = true
 readme       = "README.md"
-documentation       = "https://github.com/nabbisen/aaai/blob/main/docs/src/gui.md"
+documentation       = "https://nabbisen.github.io/aaai/gui.html"
 homepage       = "https://github.com/nabbisen/aaai"
 
 [[bin]]

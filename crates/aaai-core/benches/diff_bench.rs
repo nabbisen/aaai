@@ -1,8 +1,8 @@
 //! Criterion benchmarks for the diff engine.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::fs;
-use aaai_core::{DiffEngine, IgnoreRules};
+use aaai_core::DiffEngine;
 
 fn setup_tree(n_files: usize) -> (tempfile::TempDir, tempfile::TempDir) {
     let before = tempfile::tempdir().unwrap();

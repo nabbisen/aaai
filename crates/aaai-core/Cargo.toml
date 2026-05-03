@@ -6,8 +6,8 @@ edition.workspace   = true
 authors.workspace   = true
 license.workspace   = true
 readme       = "../../README.md"
-documentation       = "https://github.com/nabbisen/aaai/tree/main/docs/src"
-homepage       = "https://nabbisen.github.io/aaai"
+documentation       = "https://docs.rs/aaai-core"
+homepage       = "https://github.com/nabbisen/aaai"
 
 [dependencies]
 serde      = { workspace = true }
