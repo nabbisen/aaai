@@ -33,6 +33,10 @@ fn make_entry(path: &str, diff_type: DiffType, strategy: AuditStrategy) -> Audit
         reason: "test reason".to_string(),
         strategy,
         enabled: true,
+        ticket: None,
+        approved_by: None,
+        approved_at: None,
+        expires_at: None,
         note: None,
     }
 }
@@ -208,3 +212,36 @@ fn summary_counts_are_correct() {
     assert_eq!(result.summary.pending, 1);
     assert_eq!(result.summary.failed,  1);
 }
+
+// ── Phase 3 behaviours ───────────────────────────────────────────────────
+
+#[test]
+fn empty_reason_is_pending_not_ok() {
+    let diff = make_diff("f.txt", DiffType::Added, None, Some("x"));
+    let mut entry = make_entry("f.txt", DiffType::Added, AuditStrategy::None);
+    entry.reason = "   ".to_string(); // whitespace only
+    let def = make_def(vec![entry]);
+    let result = AuditEngine::evaluate(&[diff], &def);
+    assert_eq!(result.results[0].status, AuditStatus::Pending,
+        "empty reason must produce Pending, not OK");
+}
+
+#[test]
+fn ok_requires_non_empty_reason() {
+    let diff = make_diff("f.txt", DiffType::Added, None, Some("x"));
+    let mut entry = make_entry("f.txt", DiffType::Added, AuditStrategy::None);
+    entry.reason = "Intentionally added".to_string();
+    let def = make_def(vec![entry]);
+    let result = AuditEngine::evaluate(&[diff], &def);
+    assert_eq!(result.results[0].status, AuditStatus::Ok);
+}
+
+#[test]
+fn unchanged_is_auto_ok_without_entry() {
+    let diff = make_diff("same.txt", DiffType::Unchanged, Some("x"), Some("x"));
+    let def = make_def(vec![]);
+    let result = AuditEngine::evaluate(&[diff], &def);
+    assert_eq!(result.results[0].status, AuditStatus::Ok,
+        "Unchanged entries should be auto-OK even without a rule");
+}
+

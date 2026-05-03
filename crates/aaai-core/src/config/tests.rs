@@ -17,6 +17,10 @@ fn sample_entry() -> AuditEntry {
             ],
         },
         enabled: true,
+        ticket: Some("INF-42".to_string()),
+        approved_by: None,
+        approved_at: None,
+        expires_at: None,
         note: Some("INF-42".to_string()),
     }
 }

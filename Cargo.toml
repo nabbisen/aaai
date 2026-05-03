@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 authors = ["nabbisen"]
 license = "Apache-2.0"
@@ -52,6 +52,9 @@ snora = "0.8"
 
 # i18n (Phase 2)
 rust-i18n = "3"
+
+# Home directory (for history / profiles)
+dirs = "6"
 
 # Logging
 log        = "0.4"

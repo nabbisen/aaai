@@ -1,7 +1,4 @@
-//! Folder diff engine.
-//!
-//! Walks both directory trees, compares metadata first, then content for
-//! Modified candidates.  Produces a stable, sorted Vec<DiffEntry>.
+//! Folder diff engine with optional ignore-pattern support.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -10,37 +7,42 @@ use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
 use super::entry::{DiffEntry, DiffType};
+use super::ignore::IgnoreRules;
 
-/// Compares two directory trees and produces a sorted list of DiffEntry.
 pub struct DiffEngine;
 
 impl DiffEngine {
-    /// Run a full comparison between `before_root` and `after_root`.
-    ///
-    /// All errors on individual files are surfaced as DiffType::Unreadable
-    /// entries; the overall function only fails if a root directory is
-    /// inaccessible.
+    /// Compare two directory trees.
+    /// Paths matching `ignore` rules are excluded from the result.
     pub fn compare(before_root: &Path, after_root: &Path) -> anyhow::Result<Vec<DiffEntry>> {
-        let before_map = collect_paths(before_root)?;
-        let after_map = collect_paths(after_root)?;
+        Self::compare_with_ignore(before_root, after_root, &IgnoreRules::default())
+    }
 
-        let all_paths: BTreeSet<String> = before_map
-            .keys()
+    /// Compare with explicit ignore rules.
+    pub fn compare_with_ignore(
+        before_root: &Path,
+        after_root: &Path,
+        ignore: &IgnoreRules,
+    ) -> anyhow::Result<Vec<DiffEntry>> {
+        let before_map = collect_paths(before_root)?;
+        let after_map  = collect_paths(after_root)?;
+
+        let all_paths: BTreeSet<String> = before_map.keys()
             .chain(after_map.keys())
             .cloned()
             .collect();
 
         let mut entries = Vec::new();
-
         for rel_path in all_paths {
-            let before_abs = before_map.get(&rel_path);
-            let after_abs = after_map.get(&rel_path);
-
-            let entry = match (before_abs, after_abs) {
-                (None, Some(after)) => build_added(rel_path, after),
-                (Some(before), None) => build_removed(rel_path, before),
-                (Some(before), Some(after)) => build_compared(rel_path, before, after),
-                (None, None) => unreachable!(),
+            if ignore.is_ignored(&rel_path) {
+                log::debug!("ignored: {rel_path}");
+                continue;
+            }
+            let entry = match (before_map.get(&rel_path), after_map.get(&rel_path)) {
+                (None,    Some(a)) => build_added(rel_path, a),
+                (Some(b), None)    => build_removed(rel_path, b),
+                (Some(b), Some(a)) => build_compared(rel_path, b, a),
+                (None,    None)    => unreachable!(),
             };
             entries.push(entry);
         }
@@ -50,11 +52,6 @@ impl DiffEngine {
     }
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────
-
-/// Collect relative paths from a root directory.
-/// Key: unix-style relative path ("foo/bar.toml")
-/// Value: absolute PathBuf
 fn collect_paths(root: &Path) -> anyhow::Result<BTreeMap<String, PathBuf>> {
     if !root.is_dir() {
         anyhow::bail!("Not a directory: {}", root.display());
@@ -62,13 +59,9 @@ fn collect_paths(root: &Path) -> anyhow::Result<BTreeMap<String, PathBuf>> {
     let mut map = BTreeMap::new();
     for entry in WalkDir::new(root).into_iter() {
         let entry = entry.map_err(|e| anyhow::anyhow!("Walk error: {e}"))?;
-        if entry.path() == root {
-            continue;
-        }
-        let rel = entry
-            .path()
-            .strip_prefix(root)
-            .unwrap()
+        if entry.path() == root { continue; }
+        let rel = entry.path()
+            .strip_prefix(root).unwrap()
             .to_string_lossy()
             .replace('\\', "/");
         map.insert(rel, entry.path().to_path_buf());
@@ -76,129 +69,71 @@ fn collect_paths(root: &Path) -> anyhow::Result<BTreeMap<String, PathBuf>> {
     Ok(map)
 }
 
-fn build_added(rel_path: String, after: &Path) -> DiffEntry {
+fn build_added(rel: String, after: &Path) -> DiffEntry {
     let is_dir = after.is_dir();
-    let (after_text, after_sha256, error_detail) = if is_dir {
-        (None, None, None)
-    } else {
-        read_text_and_hash(after)
-    };
-    DiffEntry {
-        path: rel_path,
-        diff_type: DiffType::Added,
-        is_dir,
-        before_text: None,
-        after_text,
-        after_sha256,
-        error_detail,
-    }
+    let (after_text, after_sha256, error_detail) =
+        if is_dir { (None, None, None) } else { read_text_and_hash(after) };
+    DiffEntry { path: rel, diff_type: DiffType::Added, is_dir,
+                before_text: None, after_text, after_sha256, error_detail }
 }
 
-fn build_removed(rel_path: String, before: &Path) -> DiffEntry {
+fn build_removed(rel: String, before: &Path) -> DiffEntry {
     let is_dir = before.is_dir();
-    let (before_text, _, error_detail) = if is_dir {
-        (None, None, None)
-    } else {
-        read_text_and_hash(before)
-    };
-    DiffEntry {
-        path: rel_path,
-        diff_type: DiffType::Removed,
-        is_dir,
-        before_text,
-        after_text: None,
-        after_sha256: None,
-        error_detail,
-    }
+    let (before_text, _, error_detail) =
+        if is_dir { (None, None, None) } else { read_text_and_hash(before) };
+    DiffEntry { path: rel, diff_type: DiffType::Removed, is_dir,
+                before_text, after_text: None, after_sha256: None, error_detail }
 }
 
-fn build_compared(rel_path: String, before: &Path, after: &Path) -> DiffEntry {
-    // Type mismatch?
+fn build_compared(rel: String, before: &Path, after: &Path) -> DiffEntry {
     let before_is_dir = before.is_dir();
-    let after_is_dir = after.is_dir();
+    let after_is_dir  = after.is_dir();
     if before_is_dir != after_is_dir {
         return DiffEntry {
-            path: rel_path,
-            diff_type: DiffType::TypeChanged,
-            is_dir: false,
-            before_text: None,
-            after_text: None,
-            after_sha256: None,
+            path: rel, diff_type: DiffType::TypeChanged, is_dir: false,
+            before_text: None, after_text: None, after_sha256: None,
             error_detail: Some("Path kind changed (file ↔ directory).".into()),
         };
     }
     if before_is_dir {
-        // Directories: exist on both sides — Unchanged at the dir level.
-        return DiffEntry {
-            path: rel_path,
-            diff_type: DiffType::Unchanged,
-            is_dir: true,
-            before_text: None,
-            after_text: None,
-            after_sha256: None,
-            error_detail: None,
-        };
+        return DiffEntry { path: rel, diff_type: DiffType::Unchanged, is_dir: true,
+                           before_text: None, after_text: None, after_sha256: None,
+                           error_detail: None };
     }
 
-    // Read both files.
     let before_bytes = match std::fs::read(before) {
         Ok(b) => b,
-        Err(e) => {
-            return DiffEntry {
-                path: rel_path,
-                diff_type: DiffType::Unreadable,
-                is_dir: false,
-                before_text: None,
-                after_text: None,
-                after_sha256: None,
-                error_detail: Some(format!("Cannot read before-file: {e}")),
-            };
-        }
+        Err(e) => return DiffEntry {
+            path: rel, diff_type: DiffType::Unreadable, is_dir: false,
+            before_text: None, after_text: None, after_sha256: None,
+            error_detail: Some(format!("Cannot read before-file: {e}")),
+        },
     };
     let after_bytes = match std::fs::read(after) {
         Ok(b) => b,
-        Err(e) => {
-            return DiffEntry {
-                path: rel_path,
-                diff_type: DiffType::Unreadable,
-                is_dir: false,
-                before_text: None,
-                after_text: None,
-                after_sha256: None,
-                error_detail: Some(format!("Cannot read after-file: {e}")),
-            };
-        }
+        Err(e) => return DiffEntry {
+            path: rel, diff_type: DiffType::Unreadable, is_dir: false,
+            before_text: None, after_text: None, after_sha256: None,
+            error_detail: Some(format!("Cannot read after-file: {e}")),
+        },
     };
 
     let after_sha256 = hex::encode(Sha256::digest(&after_bytes));
-
-    let diff_type = if before_bytes == after_bytes {
-        DiffType::Unchanged
-    } else {
-        DiffType::Modified
-    };
-
-    let before_text = String::from_utf8(before_bytes).ok();
-    let after_text = String::from_utf8(after_bytes).ok();
-
+    let diff_type = if before_bytes == after_bytes { DiffType::Unchanged } else { DiffType::Modified };
     DiffEntry {
-        path: rel_path,
-        diff_type,
-        is_dir: false,
-        before_text,
-        after_text,
+        path: rel, diff_type, is_dir: false,
+        before_text: String::from_utf8(before_bytes).ok(),
+        after_text: String::from_utf8(after_bytes).ok(),
         after_sha256: Some(after_sha256),
         error_detail: None,
     }
 }
 
-/// Read a file and return (text_option, sha256_option, error_option).
 fn read_text_and_hash(path: &Path) -> (Option<String>, Option<String>, Option<String>) {
     match std::fs::read(path) {
         Ok(bytes) => {
             let sha = hex::encode(Sha256::digest(&bytes));
-            let text = String::from_utf8(bytes).ok();
-            (text, Some(sha), None)
+            (String::from_utf8(bytes).ok(), Some(sha), None)
         }
         Err(e) => (None, None, Some(format!("Cannot read file: {e}"))),
     }

@@ -67,6 +67,16 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
         };
     }
 
+    // Empty reason → treat as Pending (not yet human-approved).
+    if entry.reason.trim().is_empty() {
+        return FileAuditResult {
+            diff: diff.clone(),
+            entry: Some(entry.clone()),
+            status: AuditStatus::Pending,
+            detail: Some("Entry exists but has no reason — human approval required.".into()),
+        };
+    }
+
     // Diff-type mismatch → Failed.
     if entry.diff_type != diff.diff_type {
         return FileAuditResult {

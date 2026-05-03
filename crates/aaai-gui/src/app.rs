@@ -18,7 +18,8 @@ use snora::{
 
 use aaai_core::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
-    AuditStatus, DiffType,
+    AuditStatus, DiffType, IgnoreRules,
+    profile::store::{AuditProfile, ProfileStore},
     config::{
         definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
         io as config_io,
@@ -86,6 +87,10 @@ pub struct InspectorState {
     pub strategy: AuditStrategy,
     pub note: String,
     pub validation_error: Option<String>,
+    // Phase 3
+    pub ticket: String,
+    pub approved_by: String,
+    pub expires_at_str: String,
 }
 
 impl Default for InspectorState {
@@ -96,6 +101,9 @@ impl Default for InspectorState {
             strategy: AuditStrategy::None,
             note: String::new(),
             validation_error: None,
+            ticket: String::new(),
+            approved_by: String::new(),
+            expires_at_str: String::new(),
         }
     }
 }
@@ -134,6 +142,13 @@ pub struct App {
 
     // Locale
     pub locale: String,
+
+    // Phase 3: profiles
+    pub profiles: ProfileStore,
+    pub profile_name_input: String,
+
+    // Phase 3: ignore rules (loaded at audit start)
+    pub ignore_path: String,
 }
 
 impl Default for App {
@@ -156,6 +171,9 @@ impl Default for App {
             toasts: Vec::new(),
             toast_id: 0,
             locale: rust_i18n::locale().to_string(),
+            profiles: ProfileStore::load().unwrap_or_default(),
+            profile_name_input: String::new(),
+            ignore_path: String::new(),
         }
     }
 }
@@ -200,6 +218,19 @@ pub enum Message {
     OpenBatchSheet,
     CloseBatchSheet,
     CommitBatchApprove,
+
+    // Phase 3: inspector fields
+    TicketChanged(String),
+    ApprovedByChanged(String),
+    ExpiresAtChanged(String),
+    ApplyTemplate(String),
+
+    // Phase 3: profiles
+    IgnorePathChanged(String),
+    ProfileNameChanged(String),
+    SaveProfile,
+    LoadProfile(usize),
+    DeleteProfile(usize),
 
     // Locale
     SwitchLocale(String),
@@ -283,6 +314,9 @@ impl App {
                             strategy: entry.strategy.clone(),
                             note: entry.note.clone().unwrap_or_default(),
                             validation_error: None,
+                            ticket: entry.ticket.clone().unwrap_or_default(),
+                            approved_by: entry.approved_by.clone().unwrap_or_default(),
+                            expires_at_str: entry.expires_at.map(|d| d.to_string()).unwrap_or_default(),
                         }
                     } else {
                         InspectorState::default()
@@ -361,16 +395,24 @@ impl App {
                     if let Some(far) = self.audit_result.as_ref()
                         .and_then(|r| r.results.get(idx))
                     {
+                        let expires_at = if self.inspector.expires_at_str.trim().is_empty() {
+                                None
+                            } else {
+                                chrono::NaiveDate::parse_from_str(
+                                    self.inspector.expires_at_str.trim(), "%Y-%m-%d"
+                                ).ok()
+                            };
                         let entry = AuditEntry {
                             path: far.diff.path.clone(),
                             diff_type: far.diff.diff_type,
                             reason: self.inspector.reason.trim().to_string(),
                             strategy: self.inspector.strategy.clone(),
                             enabled: true,
-                            note: {
-                                let n = self.inspector.note.trim().to_string();
-                                if n.is_empty() { None } else { Some(n) }
-                            },
+                            ticket: { let t = self.inspector.ticket.trim().to_string(); if t.is_empty() { None } else { Some(t) } },
+                            approved_by: { let a = self.inspector.approved_by.trim().to_string(); if a.is_empty() { None } else { Some(a) } },
+                            approved_at: Some(chrono::Utc::now()),
+                            expires_at,
+                            note: { let n = self.inspector.note.trim().to_string(); if n.is_empty() { None } else { Some(n) } },
                         };
                         match entry.is_approvable() {
                             Ok(()) => {
@@ -434,6 +476,10 @@ impl App {
                             reason: self.batch.shared_reason.trim().to_string(),
                             strategy: self.batch.shared_strategy.clone(),
                             enabled: true,
+                            ticket: None,
+                            approved_by: None,
+                            approved_at: Some(chrono::Utc::now()),
+                            expires_at: None,
                             note: None,
                         })
                         .collect();
@@ -523,6 +569,60 @@ impl App {
                             &e.to_string(),
                         ),
                     }
+                }
+            }
+
+            // ── Phase 3: inspector fields ─────────────────────────────
+            Message::TicketChanged(s)     => { self.inspector.ticket = s; }
+            Message::ApprovedByChanged(s) => { self.inspector.approved_by = s; }
+            Message::ExpiresAtChanged(s)  => { self.inspector.expires_at_str = s; }
+            Message::ApplyTemplate(id)    => {
+                use aaai_core::templates::library as tmpl;
+                if let Some(t) = tmpl::find(&id) {
+                    self.inspector.strategy = (t.strategy)();
+                    self.inspector.strategy_label = self.inspector.strategy.label().into();
+                    self.validate_inspector();
+                }
+            }
+
+            // ── Phase 3: profiles ─────────────────────────────────────
+            Message::IgnorePathChanged(s)  => { self.ignore_path = s; }
+            Message::ProfileNameChanged(s) => { self.profile_name_input = s; }
+            Message::SaveProfile => {
+                let name = self.profile_name_input.trim().to_string();
+                if name.is_empty() {
+                    self.push_toast(ToastIntent::Error, "Profile", "Profile name must not be empty.");
+                    return Task::none();
+                }
+                let profile = AuditProfile {
+                    name: name.clone(),
+                    before: self.before_path.clone(),
+                    after:  self.after_path.clone(),
+                    definition: if self.definition_path.is_empty() { None } else { Some(self.definition_path.clone()) },
+                    ignore_file: if self.ignore_path.is_empty() { None } else { Some(self.ignore_path.clone()) },
+                };
+                self.profiles.add(profile);
+                if let Err(e) = self.profiles.save() {
+                    self.push_toast(ToastIntent::Error, t!("toast.save_failed").as_ref(), &e.to_string());
+                } else {
+                    self.push_toast(ToastIntent::Success, t!("profile.saved").as_ref(), &name);
+                    self.profile_name_input.clear();
+                }
+            }
+            Message::LoadProfile(idx) => {
+                if let Some(p) = self.profiles.profiles.get(idx).cloned() {
+                    self.before_path     = p.before;
+                    self.after_path      = p.after;
+                    self.definition_path = p.definition.unwrap_or_default();
+                    self.ignore_path     = p.ignore_file.unwrap_or_default();
+                    self.push_toast(ToastIntent::Info, "Profile", "Profile loaded.");
+                }
+            }
+            Message::DeleteProfile(idx) => {
+                if let Some(p) = self.profiles.profiles.get(idx).cloned() {
+                    self.profiles.remove(&p.name);
+                    let _ = self.profiles.save();
+                    self.push_toast(ToastIntent::Success, t!("profile.deleted").as_ref(), &p.name);
                 }
             }
 

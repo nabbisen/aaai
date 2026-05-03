@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.3.0] — Phase 3: Integrations
+
+### Core 追加
+- **承認者トラッキング** — `approved_by` / `approved_at` フィールドをすべての `AuditEntry` に追加。承認操作時に自動スタンプ
+- **有効期限** — `expires_at` (NaiveDate) フィールド。期限切れエントリを CLI / GUI で警告表示
+- **チケット連携** — `ticket` フィールド (JIRA-123, INF-42 等) をレポートおよびインスペクターに表示
+- **空理由 → Pending** — snap で生成された理由未入力エントリを Pending として扱うよう AuditEngine を修正
+- **`.aaaiignore`** — `diff/ignore.rs`。gitignore スタイルのパターンで差分から除外。`!pattern` による否定ルール対応
+- **監査履歴** — `history/store.rs`。`~/.aaai/history.jsonl` に実行ログを JSONL 形式で追記
+- **ルールテンプレート** — `templates/library.rs`。8 種の定義済みテンプレート（バージョン番号、ポート変更、設定値変更など）
+- **監査プロファイル** — `profile/store.rs`。`~/.aaai/profiles.yaml` に before/after/定義の組み合わせを保存
+
+### CLI 追加
+- **`aaai check`** — 定義ファイルの妥当性を差分実行なしで検証。期限切れエントリも報告。Config エラーで exit 4
+- **`aaai history`** — `~/.aaai/history.jsonl` から最近の監査実行を一覧表示。`--json-output` 対応
+- **`aaai snap --template <id>`** — 生成時にルールテンプレートを適用
+- **`aaai snap --list-templates`** — テンプレート一覧表示
+- **`aaai audit --ignore <FILE>`** — .aaaiignore ファイルを明示指定
+- **詳細終了コード** — 0=PASSED, 1=FAILED, 2=PENDING, 3=ERROR, 4=CONFIG_ERROR
+
+### GUI 追加
+- **インスペクター Phase 3 フィールド** — ticket, approved_by, expires_at の表示・編集
+- **有効期限バッジ** — `EXPIRED` / `Expiring soon` のカラーバッジをインスペクターヘッダーに表示
+- **テンプレートピッカー** — インスペクターに "Apply template" ドロップダウンを追加（8 テンプレート対応）
+- **プロファイルマネージャー** — Opening 画面にプロファイル保存・読み込み・削除 UI を追加
+- **Opening: ignore path フィールド** — .aaaiignore ファイルのパスを Opening 画面で指定可能
+
+### テスト
+- Phase 3 動作カバー (51 テスト)：空理由 → Pending、Unchanged 自動 OK など
+
 ## [0.2.0] — Phase 2: Quality & Completeness
 
 ### 必須要件対応 (別紙)
