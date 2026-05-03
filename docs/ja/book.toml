@@ -7,5 +7,6 @@ src         = "src"
 [output.html]
 default-theme           = "light"
 preferred-dark-theme    = "navy"
-git-repository-url      = "https://github.com/nabbisen/aaai"
+git-repository-url      = "https://github.com/nabbisen/aaai/tree/main/docs/src"
+edit-url-template       = "https://github.com/nabbisen/aaai/edit/main/docs/src/{path}"
 git-repository-icon     = "fa-github"

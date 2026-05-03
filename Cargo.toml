@@ -7,11 +7,12 @@ members = [
 ]
 
 [workspace.package]
-version = "0.10.4"
+version = "0.10.5"
 edition = "2024"
 authors = ["nabbisen"]
 license = "Apache-2.0"
 repository = "https://github.com/nabbisen/aaai"
+homepage   = "https://nabbisen.github.io/aaai"
 
 [workspace.dependencies]
 # Serialization

@@ -3,20 +3,24 @@
 aaai is designed to run in CI/CD pipelines with predictable exit codes and
 machine-readable output.
 
-## Exit codes
+---
+
+## Exit Codes
 
 | Code | Meaning |
-|------|---------|
+|---|---|
 | 0 | PASSED — all entries OK or Ignored |
 | 1 | FAILED — one or more audit failures |
-| 2 | PENDING — unresolved entries (use `--allow-pending` to suppress) |
+| 2 | PENDING — unresolved entries (`--allow-pending` to suppress) |
 | 3 | ERROR — file-level read / compare errors |
 | 4 | CONFIG_ERROR — definition file parse error |
 
-## GitHub Actions example
+---
+
+## GitHub Actions Example
 
 ```yaml
-- name: Audit release artifacts
+- name: Audit release artefacts
   run: |
     aaai audit \
       --left ./dist-before \
@@ -25,9 +29,11 @@ machine-readable output.
       --no-history
 ```
 
-## SARIF annotations
+---
 
-Generate SARIF output to get inline file annotations in GitHub pull requests:
+## SARIF Annotations
+
+Generate SARIF output to get inline annotations on GitHub pull requests.
 
 ```yaml
 - name: Run aaai audit
@@ -45,9 +51,11 @@ Generate SARIF output to get inline file annotations in GitHub pull requests:
     sarif_file: results.sarif
 ```
 
-## Allowing pending entries in draft mode
+---
 
-During initial setup, you may want CI to pass even when entries are pending:
+## Allowing Pending in Draft Mode
+
+During initial setup you may want CI to pass even with Pending entries:
 
 ```sh
 aaai audit --left ./before --right ./after \
@@ -55,13 +63,17 @@ aaai audit --left ./before --right ./after \
            --allow-pending --no-history
 ```
 
-## Watch mode for local development
+---
+
+## Watch Mode (Local Development)
 
 ```sh
 aaai watch --left ./before --right ./after --config ./audit.yaml
 ```
 
-## Project-level defaults (.aaai.yaml)
+---
+
+## Project Defaults (`.aaai.yaml`)
 
 Place `.aaai.yaml` at the repository root to avoid repeating flags:
 
@@ -71,11 +83,28 @@ default_definition: "audit/audit.yaml"
 default_ignore: "audit/.aaaiignore"
 approver_name: "ci-bot"
 mask_secrets: true
+suppress_warnings:
+  - no-approver
 ```
 
-## Shell completion
+```sh
+# Initialise a starter config
+aaai config --init
+```
 
-Install completions for faster CLI use:
+---
+
+## Warning Suppression
+
+```sh
+# Suppress specific warning kinds via CLI flag
+aaai audit --left ./before --right ./after --config ./audit.yaml \
+           --suppress-warnings no-approver,no-strategy
+```
+
+---
+
+## Shell Completion
 
 ```sh
 # Bash

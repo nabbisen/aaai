@@ -1,7 +1,9 @@
 # Content Audit Strategies
 
-aaai provides five strategies for content-level auditing. The strategy is
-chosen per entry in the audit definition.
+aaai provides five strategies for content-level auditing.
+The strategy is chosen per entry in the audit definition.
+
+---
 
 ## None
 
@@ -15,8 +17,10 @@ strategy:
 **When to use:** File additions/deletions where content doesn't need to be
 verified; or as a placeholder while you define more specific rules.
 
-**Caution:** Do not use for important configuration files without adding a
-more specific strategy later.
+**Note:** Consider replacing with a more specific strategy for important
+configuration files.
+
+---
 
 ## Checksum
 
@@ -32,10 +36,13 @@ strategy:
 file where byte-for-byte identity must be confirmed.
 
 **Getting the hash:**
+
 ```sh
 sha256sum myfile.bin   # Linux
 shasum -a 256 myfile   # macOS
 ```
+
+---
 
 ## LineMatch
 
@@ -55,7 +62,9 @@ strategy:
 TOML, YAML, `.env`, and INI files.
 
 **Rules:** Each rule checks for one exact line. Order does not matter.
-Whitespace is significant (leading/trailing spaces must match).
+Whitespace (leading/trailing) is significant.
+
+---
 
 ## Regex
 
@@ -71,10 +80,15 @@ strategy:
 **When to use:** Version numbers, dates, or any value that changes
 predictably but cannot be pinned to a single exact value.
 
-**Target options:**
-- `AddedLines` — pattern applied to lines only in the *after* file
-- `RemovedLines` — pattern applied to lines only in the *before* file
-- `AllChangedLines` — pattern applied to all changed lines
+**`target` options:**
+
+| Value | Description |
+|---|---|
+| `AddedLines` | Pattern applied only to lines in the *after* file (default) |
+| `RemovedLines` | Pattern applied only to lines in the *before* file |
+| `AllChangedLines` | Pattern applied to all changed lines |
+
+---
 
 ## Exact
 
@@ -91,5 +105,25 @@ strategy:
 
 **When to use:** Small, stable files where any deviation is unacceptable.
 
-**Caution:** Avoid for files larger than a few KB. Hard to maintain when the
-file changes frequently.
+**Caution:** Avoid for files larger than a few KB or files that change
+frequently — maintenance becomes difficult.
+
+---
+
+## Choosing a Strategy
+
+| File type | Recommended |
+|---|---|
+| Binary, image, archive | Checksum |
+| Config file (key = value changes) | LineMatch |
+| Version numbers, dates | Regex |
+| Addition / removal (content irrelevant) | None |
+| Small, stable text file | Exact |
+
+---
+
+## Large File Warning
+
+Applying **Exact** or **LineMatch** to a file larger than 1 MB triggers
+an `AuditWarning::LargeFileStrategy` advisory.
+Consider **Checksum** for large files instead.
