@@ -49,6 +49,8 @@ fn make_entry(path: &str, diff_type: DiffType, strategy: AuditStrategy) -> Audit
         approved_at: None,
         expires_at: None,
         note: None,
+        created_at: None,
+        updated_at: None,
     }
 }
 

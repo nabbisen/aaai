@@ -108,6 +108,8 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
             approved_at: None,
             expires_at: None,
             note: None,
+            created_at: None,
+            updated_at: None,
         };
         definition.upsert_entry(entry);
         added += 1;

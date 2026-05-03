@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.6.0] — Phase 6: Production Readiness
+
+### テスト (85 テスト全通過)
+- core unit tests: 73 件（SARIF テスト 2 件追加）
+- CLI integration tests: 12 件
+
+### Core 追加
+- **エントリバージョニング** — `AuditEntry` に `created_at` / `updated_at` フィールドを追加。`stamp_now()` メソッドで承認時に自動スタンプ
+- **`report/sarif.rs`** — SARIF v2.1.0 レポート生成。Failed → error、Pending → warning にマッピング
+- **`ReportGenerator::build_markdown_string(include_diff: bool)`** — 差分テキスト埋め込みオプション付き Markdown 生成
+
+### CLI 追加
+- **`aaai diff`** — 定義ファイル不要の純粋差分表示。`--content` で実差分テキスト、`--json-output` で JSON 出力
+- **`aaai merge <BASE> <OVERLAY>`** — 2つの定義ファイルをマージ。`--detect-conflicts` で競合チェックのみ実行
+- **`aaai report --format sarif`** — SARIF v2.1.0 出力（GitHub Actions `upload-sarif` で PR アノテーション対応）
+- **`aaai report --include-diff`** — Markdown/HTML レポートに実差分テキストを埋め込み
+
+### GitHub Actions CI/CD
+- **`.github/workflows/ci.yaml`** — テスト (Ubuntu/macOS/Windows)・フォーマットチェック・Clippy・MSRV 確認・セキュリティ監査
+- **`.github/workflows/release.yaml`** — タグプッシュ時にクロスコンパイルビルド + GitHub Release 自動作成
+
+### GUI 追加
+- **Undo 機能** — `Message::UndoApproval` で最後の承認を取り消し (最大 20 件スタック)
+- **キーボードショートカット** — Ctrl+S (保存)、Ctrl+R (再実行)、Ctrl+Z (Undo)、↑↓ (エントリ移動)
+
+### ドキュメント完成
+- `docs/src/strategies.md` — 全 5 戦略の詳細解説・使い分けガイド
+- `docs/src/ci-integration.md` — GitHub Actions 例・SARIF アップロード・Watch モード・シェル補完インストール
+- `docs/src/faq.md` — 13 件の FAQ（理由必須の理由・glob ルール・マージ・SARIF 活用など）
+- `docs/src/SUMMARY.md` — mdBook 目次更新 (8 章)
+
 ## [0.5.0] — Phase 5: Polish
 
 ### テスト (83 テスト全通過)

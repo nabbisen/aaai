@@ -121,6 +121,15 @@ pub struct AuditEntry {
     /// Free-form note (stored but not used for judgement).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+
+    // ── Phase 6: versioning ──────────────────────────────────────────
+    /// UTC timestamp when this entry was first created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+
+    /// UTC timestamp when this entry was last modified.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 fn default_true() -> bool { true }
@@ -147,6 +156,15 @@ impl AuditEntry {
         let today = Utc::now().date_naive();
         let threshold = today + chrono::Duration::days(days);
         self.expires_at.map_or(false, |d| d > today && d <= threshold)
+    }
+
+    /// Stamp created_at (first time) and updated_at (always) with the current UTC time.
+    pub fn stamp_now(&mut self) {
+        let now = Utc::now();
+        if self.created_at.is_none() {
+            self.created_at = Some(now);
+        }
+        self.updated_at = Some(now);
     }
 
     pub fn is_approvable(&self) -> Result<(), String> {

@@ -36,6 +36,10 @@ enum Commands {
     Watch(cmd::watch::WatchArgs),
     /// Generate shell completions and print them to stdout.
     Completions(cmd::completions::CompletionsArgs),
+    /// Show raw folder diff without an audit definition.
+    Diff(cmd::diff_cmd::DiffArgs),
+    /// Merge two audit definition files.
+    Merge(cmd::merge::MergeArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -54,6 +58,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Dashboard(args)   => cmd::dashboard::run(args),
         Commands::Watch(args)       => cmd::watch::run(args),
         Commands::Completions(args) => cmd::completions::run(args),
+        Commands::Diff(args)        => cmd::diff_cmd::run(args),
+        Commands::Merge(args)       => cmd::merge::run(args),
     }
 }
 

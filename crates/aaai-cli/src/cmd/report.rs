@@ -24,6 +24,9 @@ pub struct ReportArgs {
     /// Report format.
     #[arg(short = 'f', long, default_value = "markdown")]
     pub format: ReportFormat,
+    /// Embed actual diff text in the report (Markdown/HTML only).
+    #[arg(long)]
+    pub include_diff: bool,
 }
 
 #[derive(Clone, ValueEnum)]
@@ -31,6 +34,7 @@ pub enum ReportFormat {
     Markdown,
     Json,
     Html,
+    Sarif,
 }
 
 pub fn run(args: ReportArgs) -> anyhow::Result<()> {
@@ -40,15 +44,22 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
     let result = AuditEngine::evaluate(&diffs, &definition);
 
     match args.format {
-        ReportFormat::Markdown => {
-            ReportGenerator::write_markdown(
-                &result,
-                &args.left,
-                &args.right,
-                Some(&args.config),
-                &args.out,
-                None,
+        ReportFormat::Sarif => {
+            aaai_core::report::generator::ReportGenerator::write_sarif(
+                &result, &args.left, &args.right, &args.out,
             )?;
+        }
+        ReportFormat::Markdown => {
+            if args.include_diff {
+                let md = aaai_core::report::generator::ReportGenerator::build_markdown_string(
+                    &result, &args.left, &args.right, Some(&args.config), None, true,
+                );
+                std::fs::write(&args.out, md.as_bytes())?;
+            } else {
+                ReportGenerator::write_markdown(
+                    &result, &args.left, &args.right, Some(&args.config), &args.out, None,
+                )?;
+            }
         }
         ReportFormat::Html => {
             aaai_core::report::generator::ReportGenerator::write_html(
@@ -57,12 +68,7 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
         }
         ReportFormat::Json => {
             ReportGenerator::write_json(
-                &result,
-                &args.left,
-                &args.right,
-                Some(&args.config),
-                &args.out,
-                None,
+                &result, &args.left, &args.right, Some(&args.config), &args.out, None,
             )?;
         }
     }

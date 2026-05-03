@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use iced::{Element, Subscription, Task};
+use iced::keyboard;
 use snora::{
     AppLayout, Dialog, Sheet, SheetEdge, SheetSize,
     Toast, ToastIntent, ToastLifetime, ToastPosition, render,
@@ -152,6 +153,9 @@ pub struct App {
 
     // Phase 5: file tree search
     pub search_query: String,
+
+    // Phase 6: undo stack (stores path of last upserted entry)
+    pub undo_stack: Vec<String>,
 }
 
 impl Default for App {
@@ -178,6 +182,7 @@ impl Default for App {
             profile_name_input: String::new(),
             ignore_path: String::new(),
             search_query: String::new(),
+            undo_stack: Vec::new(),
         }
     }
 }
@@ -225,6 +230,11 @@ pub enum Message {
 
     // Phase 5: search
     SearchQueryChanged(String),
+
+    // Phase 6: undo + keyboard navigation
+    UndoApproval,
+    SelectNext,
+    SelectPrev,
 
     // Phase 3: inspector fields
     TicketChanged(String),
@@ -420,12 +430,21 @@ impl App {
                             approved_at: Some(chrono::Utc::now()),
                             expires_at,
                             note: { let n = self.inspector.note.trim().to_string(); if n.is_empty() { None } else { Some(n) } },
+                            created_at: None,
+                            updated_at: None,
                         };
                         match entry.is_approvable() {
                             Ok(()) => {
                                 let path = far.diff.path.clone();
                                 if let Some(def) = &mut self.definition {
-                                    def.upsert_entry(entry);
+                                    let mut stamped = entry;
+                                    stamped.stamp_now();
+                                    let path_for_undo = stamped.path.clone();
+                                    def.upsert_entry(stamped);
+                                    self.undo_stack.push(path_for_undo);
+                                    if self.undo_stack.len() > 20 {
+                                        self.undo_stack.remove(0);
+                                    }
                                     self.dirty = true;
                                     self.rerun_audit();
                                     self.push_toast(
@@ -488,6 +507,8 @@ impl App {
                             approved_at: Some(chrono::Utc::now()),
                             expires_at: None,
                             note: None,
+                            created_at: None,
+                            updated_at: None,
                         })
                         .collect();
                     count = entries.len();
@@ -582,6 +603,68 @@ impl App {
             // ── Phase 5: search ───────────────────────────────────────
             Message::SearchQueryChanged(s) => { self.search_query = s; }
 
+            // ── Phase 6: undo + navigation ───────────────────────────
+            Message::UndoApproval => {
+                if let Some(path) = self.undo_stack.pop() {
+                    if let Some(def) = &mut self.definition {
+                        if let Some(idx) = def.entries.iter().position(|e| e.path == path) {
+                            def.entries.remove(idx);
+                            self.dirty = true;
+                            self.rerun_audit();
+                            self.push_toast(
+                                ToastIntent::Info,
+                                "Undo",
+                                &format!("Removed approval for: {path}"),
+                            );
+                        }
+                    }
+                } else {
+                    self.push_toast(ToastIntent::Info, "Undo", "Nothing to undo.");
+                }
+            }
+            Message::SelectNext => {
+                if let Some(result) = &self.audit_result {
+                    let visible: Vec<usize> = result.results.iter().enumerate()
+                        .filter(|(_, r)| self.filter_mode.passes(r)
+                                      && r.diff.diff_type != aaai_core::DiffType::Unchanged
+                                      && (self.search_query.is_empty()
+                                          || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
+                        .map(|(i, _)| i)
+                        .collect();
+                    if !visible.is_empty() {
+                        let next = match self.selected_index {
+                            None => visible[0],
+                            Some(cur) => {
+                                let pos = visible.iter().position(|&i| i == cur).unwrap_or(0);
+                                visible[(pos + 1) % visible.len()]
+                            }
+                        };
+                        return self.update(Message::SelectEntry(next));
+                    }
+                }
+            }
+            Message::SelectPrev => {
+                if let Some(result) = &self.audit_result {
+                    let visible: Vec<usize> = result.results.iter().enumerate()
+                        .filter(|(_, r)| self.filter_mode.passes(r)
+                                      && r.diff.diff_type != aaai_core::DiffType::Unchanged
+                                      && (self.search_query.is_empty()
+                                          || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
+                        .map(|(i, _)| i)
+                        .collect();
+                    if !visible.is_empty() {
+                        let prev = match self.selected_index {
+                            None => *visible.last().unwrap(),
+                            Some(cur) => {
+                                let pos = visible.iter().position(|&i| i == cur).unwrap_or(0);
+                                visible[(pos + visible.len() - 1) % visible.len()]
+                            }
+                        };
+                        return self.update(Message::SelectEntry(prev));
+                    }
+                }
+            }
+
             // ── Phase 3: inspector fields ─────────────────────────────
             Message::TicketChanged(s)     => { self.inspector.ticket = s; }
             Message::ApprovedByChanged(s) => { self.inspector.approved_by = s; }
@@ -660,7 +743,30 @@ impl App {
     // ── Subscription ─────────────────────────────────────────────────────
 
     pub fn subscription(&self) -> Subscription<Message> {
-        snora::toast::subscription(&self.toasts, || Message::ToastTick)
+        use iced::keyboard::{self, Key, Modifiers};
+        let toast_sub = snora::toast::subscription(&self.toasts, || Message::ToastTick);
+        let kb_sub = iced::keyboard::listen().map(|event| {
+            use iced::keyboard::{Event as KbEvent, Key, Modifiers};
+            match event {
+                KbEvent::KeyPressed { key, modifiers, .. } => {
+                    match (key.as_ref(), modifiers) {
+                        (Key::Character("s"), m) if m.contains(Modifiers::CTRL) =>
+                            Message::SaveDefinition,
+                        (Key::Character("r"), m) if m.contains(Modifiers::CTRL) =>
+                            Message::RerunAudit,
+                        (Key::Character("z"), m) if m.contains(Modifiers::CTRL) =>
+                            Message::UndoApproval,
+                        (Key::Named(iced::keyboard::key::Named::ArrowDown), _) =>
+                            Message::SelectNext,
+                        (Key::Named(iced::keyboard::key::Named::ArrowUp), _) =>
+                            Message::SelectPrev,
+                        _ => Message::CloseMenus, // no-op passthrough
+                    }
+                }
+                _ => Message::CloseMenus, // no-op passthrough
+            }
+        });
+        Subscription::batch([toast_sub, kb_sub])
     }
 
     // ── View ─────────────────────────────────────────────────────────────

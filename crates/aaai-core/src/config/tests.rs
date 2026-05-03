@@ -22,6 +22,8 @@ fn sample_entry() -> AuditEntry {
         approved_at: None,
         expires_at: None,
         note: Some("INF-42".to_string()),
+        created_at: None,
+        updated_at: None,
     }
 }
 

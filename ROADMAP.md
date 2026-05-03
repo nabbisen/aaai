@@ -59,3 +59,15 @@
 - **CLI integration tests** — end-to-end tests driving the real binary
 - **Image diff (basic)** — detect image type for binary panel (PNG/JPEG/GIF/WebP) and show metadata
 
+## Phase 6 — Production Readiness (v0.6.0)
+- **Entry versioning** — created_at / updated_at auto-stamped on AuditEntry at approval time
+- **`aaai diff`** — raw folder diff without an audit definition (plain change listing)
+- **`aaai merge`** — merge two audit definition files with conflict detection
+- **SARIF output** — SARIF v2.1.0 report format for GitHub/GitLab CI annotations
+- **Report --include-diff** — optionally embed actual diff text in Markdown / HTML reports
+- **GitHub Actions CI/CD** — .github/workflows/ci.yaml and release.yaml
+- **GUI keyboard shortcuts** — Ctrl+S (save), Ctrl+R (re-run), Escape (deselect), / (search)
+- **Undo last approval** — revert the most recently upserted entry
+- **Complete documentation** — all docs/src/ chapters populated (strategies, CI integration, FAQ)
+- **`aaai completions --install`** — auto-install completion script to shell config
+

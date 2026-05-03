@@ -20,8 +20,23 @@ impl ReportGenerator {
         masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> anyhow::Result<()> {
         let md = Self::build_markdown(result, before_root, after_root, definition_path, masker);
+        // (include_diff variant available via build_markdown_string)
         std::fs::write(output_path, md.as_bytes())?;
         log::info!("Markdown report written to {}", output_path.display());
+        Ok(())
+    }
+
+    /// Generate a SARIF v2.1.0 report for CI/CD annotation systems.
+    pub fn write_sarif(
+        result: &AuditResult,
+        before_root: &Path,
+        after_root: &Path,
+        output_path: &Path,
+    ) -> anyhow::Result<()> {
+        let sarif = crate::report::sarif::build_sarif(result, before_root, after_root);
+        let json = serde_json::to_string_pretty(&sarif)?;
+        std::fs::write(output_path, json.as_bytes())?;
+        log::info!("SARIF report written to {}", output_path.display());
         Ok(())
     }
 
@@ -38,6 +53,57 @@ impl ReportGenerator {
         std::fs::write(output_path, json.as_bytes())?;
         log::info!("JSON report written to {}", output_path.display());
         Ok(())
+    }
+
+    /// Build a Markdown report string.
+    /// `include_diff`: embed actual diff text for Modified entries.
+    pub fn build_markdown_string(
+        result: &AuditResult,
+        before_root: &Path,
+        after_root: &Path,
+        definition_path: Option<&Path>,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
+        include_diff: bool,
+    ) -> String {
+        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masker);
+        if include_diff {
+            md.push_str("
+## Diff Details
+
+");
+            for r in &result.results {
+                if r.diff.diff_type != crate::diff::entry::DiffType::Modified { continue; }
+                if r.diff.is_binary { continue; }
+                let before = r.diff.before_text.as_deref().unwrap_or("");
+                let after  = r.diff.after_text.as_deref().unwrap_or("");
+                if before == after { continue; }
+                md.push_str(&format!("### `{}`
+
+```diff
+", r.diff.path));
+                use similar::{ChangeTag, TextDiff};
+                let td = TextDiff::from_lines(before, after);
+                for change in td.iter_all_changes() {
+                    let prefix = match change.tag() {
+                        ChangeTag::Insert => "+",
+                        ChangeTag::Delete => "-",
+                        ChangeTag::Equal  => " ",
+                    };
+                    let line = change.value().trim_end_matches('\n');
+                    if let Some(m) = masker {
+                        md.push_str(&format!("{prefix}{}
+", m.mask(line)));
+                    } else {
+                        md.push_str(&format!("{prefix}{line}
+"));
+                    }
+                }
+                md.push_str("```
+
+");
+            }
+        }
+        md
     }
 
     fn build_markdown(
