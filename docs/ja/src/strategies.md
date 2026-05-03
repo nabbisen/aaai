@@ -1,45 +1,52 @@
-# Content Audit Strategies
+# 内容監査戦略
 
-aaai provides five strategies for content-level auditing. The strategy is
-chosen per entry in the audit definition.
+aaai は 5 種類の内容監査戦略を提供します。  
+戦略は監査定義ファイルの各エントリで指定します。
+
+---
 
 ## None
 
-Checks only that the expected diff type occurred. No content inspection.
+差分種別（Added / Modified など）が一致することだけを確認します。  
+内容の検査は行いません。
 
 ```yaml
 strategy:
   type: None
 ```
 
-**When to use:** File additions/deletions where content doesn't need to be
-verified; or as a placeholder while you define more specific rules.
+**使いどころ:** ファイルの追加/削除で内容確認が不要な場合、  
+またはより具体的なルールを後で追加するためのプレースホルダーとして使います。
 
-**Caution:** Do not use for important configuration files without adding a
-more specific strategy later.
+**注意:** 重要な設定ファイルに対しては、後でより具体的な戦略を設定することを検討してください。
+
+---
 
 ## Checksum
 
-Verifies the file's SHA-256 digest matches an expected value.
+ファイルの SHA-256 ダイジェストが期待値と一致することを確認します。
 
 ```yaml
 strategy:
   type: Checksum
-  expected_sha256: "abc123...64hexchars"
+  expected_sha256: "abc123...（64 文字の 16 進数）"
 ```
 
-**When to use:** Binary files (images, archives, compiled assets), or any
-file where byte-for-byte identity must be confirmed.
+**使いどころ:** バイナリファイル（画像・アーカイブ・コンパイル済みアセットなど）、  
+またはバイト単位での同一性を保証したい任意のファイル。
 
-**Getting the hash:**
+**ハッシュの取得方法:**
+
 ```sh
 sha256sum myfile.bin   # Linux
 shasum -a 256 myfile   # macOS
 ```
 
+---
+
 ## LineMatch
 
-Verifies that specific lines were added and/or removed.
+指定した行が追加・削除されていることを確認します。
 
 ```yaml
 strategy:
@@ -51,15 +58,16 @@ strategy:
       line: "port = 8080"
 ```
 
-**When to use:** Configuration value changes. The most common strategy for
-TOML, YAML, `.env`, and INI files.
+**使いどころ:** 設定値の変更確認。TOML・YAML・`.env`・INI ファイルに最もよく使う戦略です。
 
-**Rules:** Each rule checks for one exact line. Order does not matter.
-Whitespace is significant (leading/trailing spaces must match).
+**ルール:** 各ルールは 1 行を検証します。  
+順序は関係ありません。空白（先頭・末尾）は区別されます。
+
+---
 
 ## Regex
 
-Verifies that changed lines match a regular expression pattern.
+変更行が正規表現パターンに一致することを確認します。
 
 ```yaml
 strategy:
@@ -68,17 +76,21 @@ strategy:
   target: AddedLines   # AddedLines | RemovedLines | AllChangedLines
 ```
 
-**When to use:** Version numbers, dates, or any value that changes
-predictably but cannot be pinned to a single exact value.
+**使いどころ:** バージョン番号・日付など、値は変わるが形式は固定のケース。
 
-**Target options:**
-- `AddedLines` — pattern applied to lines only in the *after* file
-- `RemovedLines` — pattern applied to lines only in the *before* file
-- `AllChangedLines` — pattern applied to all changed lines
+**`target` の選択:**
+
+| 値 | 説明 |
+|---|---|
+| `AddedLines` | 追加された行にのみ適用（デフォルト） |
+| `RemovedLines` | 削除された行にのみ適用 |
+| `AllChangedLines` | 追加・削除の全変更行に適用 |
+
+---
 
 ## Exact
 
-Verifies that the after-file's full content exactly matches expected text.
+ファイル全体の内容が期待値と完全に一致することを確認します。
 
 ```yaml
 strategy:
@@ -89,7 +101,27 @@ strategy:
     port = 8080
 ```
 
-**When to use:** Small, stable files where any deviation is unacceptable.
+**使いどころ:** 小さく安定したファイルで、いかなる変化も許容しない場合。
 
-**Caution:** Avoid for files larger than a few KB. Hard to maintain when the
-file changes frequently.
+**注意:** 数 KB を超えるファイルへの適用は避けてください。  
+頻繁に変更されるファイルでは保守が困難になります。
+
+---
+
+## 戦略の選び方
+
+| ファイルの種類 | 推奨戦略 |
+|---|---|
+| バイナリ・画像・アーカイブ | Checksum |
+| 設定ファイル（キー=値の変更） | LineMatch |
+| バージョン番号・日付の変更 | Regex |
+| 追加/削除のみ（内容は不要） | None |
+| 小さく安定したテキストファイル | Exact |
+
+---
+
+## 大容量ファイルの警告
+
+1 MB を超えるファイルに **Exact** または **LineMatch** を適用すると、  
+`AuditWarning::LargeFileStrategy` 警告が発生します。  
+このような場合は **Checksum** の使用を検討してください。

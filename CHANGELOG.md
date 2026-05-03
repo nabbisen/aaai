@@ -4,6 +4,31 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.10.2] — Japanese docs, repository files update
+
+### Repository files (replaced from upstream)
+- `LICENSE` — updated to upstream version
+- `README.md` — added crates.io / docs.rs / deps.rs badges
+- `NOTICE` — copyright 2026 nabbisen
+- `.github/CODE_OF_CONDUCT.md` — added
+- `.github/CONTRIBUTING.md` — added
+- `.github/SECURITY.md` — added (private reporting via GitHub security advisories)
+- `.github/ISSUE_TEMPLATE/bug_report.yml` — structured bug report (YAML form)
+- `.github/ISSUE_TEMPLATE/feature_request.yml` — structured feature request
+- `.github/ISSUE_TEMPLATE/question.yml` — structured question
+- `.github/ISSUE_TEMPLATE/config.yml` — blank issues enabled
+
+### Documentation — Japanese translation complete (`docs/ja/`)
+All 8 chapters are now fully written in Japanese:
+- `overview.md` — 概要、構成、特徴
+- `getting-started.md` — インストール、`aaai init`、手動セットアップ、GUI、`.aaai.yaml`
+- `cli.md` — 全 15 コマンドのフラグ・終了コード・使用例
+- `audit-definition.md` — YAML 構造、フィールド一覧、グロブ、バリデーション
+- `strategies.md` — 5 戦略の詳細・使い分けガイド・大容量ファイル警告
+- `gui.md` — 3 ペイン操作・キーボードショートカット・テーマ・ワークフロー
+- `ci-integration.md` — 終了コード、GitHub Actions、SARIF、watch、設定
+- `faq.md` — 13 件の Q&A（reason の必要性・グロブ・マージ・SARIF・マスキングなど）
+
 ## [0.10.1] — Project structure and documentation update
 
 ### Cargo / Publish

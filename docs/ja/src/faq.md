@@ -1,62 +1,70 @@
-# Frequently Asked Questions
+# よくある質問 (FAQ)
 
-## Why does aaai require a reason for every entry?
+---
 
-The central value of aaai is *explainability*. A diff without a reason is
-just a change — it tells you *what* happened but not *why* it was accepted.
-The mandatory reason transforms each entry from a technical fact into a
-human-readable decision record that future maintainers (including your future
-self) can understand.
+## なぜすべてのエントリに reason（理由）が必要なのですか？
 
-## How do I handle files I never want to audit?
+aaai の中心的な価値は **説明可能性** です。  
+reason のない差分は「何が変わったか」は示しますが「なぜ許容されたか」を示しません。  
+reason を必須にすることで、各エントリは技術的な事実から将来の保守者が理解できる意思決定の記録へと変わります。
 
-Add them to `.aaaiignore` using gitignore-style patterns:
+---
+
+## 監査対象から除外したいファイルはどうすればいいですか？
+
+`.aaaiignore` ファイルに gitignore スタイルのパターンを記述します。
 
 ```
-# Build artifacts
+# ビルド生成物
 target/**
 dist/**
 *.lock
 
-# OS files
+# OS ファイル
 .DS_Store
 Thumbs.db
 ```
 
-## Can I use glob patterns in audit rules?
+省略時は `Before/.aaaiignore` が自動検索されます。  
+CLI では `--ignore` フラグ、GUI では Opening 画面の専用フィールドで指定できます。
 
-Yes. The `path` field accepts glob patterns:
+---
+
+## 監査ルールにグロブパターンは使えますか？
+
+はい。`path` フィールドにグロブパターンを使えます。
 
 ```yaml
 - path: "logs/*.log"
   diff_type: Modified
-  reason: "Log files rotate on every deploy"
+  reason: "デプロイのたびにログがローテーションされる"
   strategy:
     type: None
 ```
 
-Exact-path entries always take priority over glob entries when both match.
+完全パスのエントリは、グロブエントリより常に優先されます。
 
-## What happens when an entry expires?
+---
 
-Expired entries (`expires_at` in the past) still produce OK verdicts during
-audit — expiry is a *reminder*, not an enforcement mechanism. The CLI
-and GUI both display warnings so you know to review them.
+## エントリの有効期限が切れるとどうなりますか？
 
-## How do I merge definitions from two teams?
+`expires_at` が過去の日付になっても、監査の verdict は変わりません（**再審査の促し**であって強制ではありません）。  
+CLI とGUI の両方で警告表示されるので、再審査が必要なことがわかります。
+
+---
+
+## 2 つのチームの定義ファイルをマージするには？
 
 ```sh
 aaai merge base.yaml overlay.yaml --out merged.yaml
 ```
 
-The overlay wins on conflicts. Use `--detect-conflicts` first to see what
-would be overwritten.
+競合（同一パスに異なる diff_type）がある場合は overlay が優先されます。  
+`--detect-conflicts` で競合チェックのみ実行できます。
 
-## Can I generate completions for my shell?
+---
 
-Yes — see [CI/CD Integration](ci-integration.md#shell-completion).
-
-## How do I embed diff text in reports?
+## レポートに実際の差分テキストを含めるには？
 
 ```sh
 aaai report --left ./before --right ./after \
@@ -64,19 +72,67 @@ aaai report --left ./before --right ./after \
             --include-diff
 ```
 
-This embeds a `diff`-formatted block for every Modified text file.
+変更のある全テキストファイルに `diff` 形式のブロックを埋め込みます。
 
-## Is aaai safe to run in CI on untrusted code?
+---
 
-aaai reads files but never executes them. It does write to:
-- The audit definition file when saving.
-- `~/.aaai/history.jsonl` (unless `--no-history` is passed).
+## SARIF 出力は何のために使いますか？
 
-It never modifies the files it is comparing.
+SARIF（Static Analysis Results Interchange Format）は  
+GitHub・GitLab・Azure DevOps がプルリクエストにインライン注釈を表示するために使う JSON 標準です。  
+`--format sarif` で出力し、CI の upload-sarif アクションでアップロードすると  
+ファイル・行ごとの注釈が表示されます。
 
-## What is SARIF output used for?
+---
 
-SARIF (Static Analysis Results Interchange Format) is a JSON standard that
-GitHub, GitLab, and Azure DevOps use to show inline annotations on pull
-requests. Generate SARIF with `--format sarif` and upload it via your CI
-provider's upload action to get per-file, per-line annotations.
+## 機密情報をレポートに含めないようにするには？
+
+```sh
+aaai audit --mask-secrets --left ./before --right ./after --config ./audit.yaml
+```
+
+または `.aaai.yaml` に設定します。
+
+```yaml
+mask_secrets: true
+```
+
+API キー・パスワード・Bearer トークンなど、9 種類のビルトインパターンで自動マスクします。  
+カスタムパターンは `custom_mask_patterns` で追加できます。
+
+---
+
+## AuditWarning の特定の種別を無効化するには？
+
+`.aaai.yaml` に記述します。
+
+```yaml
+suppress_warnings:
+  - no-approver
+  - no-strategy
+```
+
+または CLI フラグで指定します。
+
+```sh
+aaai audit --suppress-warnings no-approver,no-strategy ...
+```
+
+---
+
+## aaai は CI で実行したファイルを変更しますか？
+
+aaai は比較対象のファイルを変更しません。書き込みが発生するのは以下のみです。
+
+- `--config` で指定した監査定義ファイル（承認時）
+- `~/.aaai/history.jsonl`（`--no-history` で無効化可能）
+- `~/.aaai/prefs.yaml`（GUI テーマ設定）
+
+---
+
+## 履歴ファイルが大きくなりすぎた場合は？
+
+```sh
+# 最新 100 件のみ残す
+aaai history --prune 100
+```

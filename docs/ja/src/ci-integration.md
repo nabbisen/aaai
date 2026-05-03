@@ -1,22 +1,26 @@
-# CI/CD Integration
+# CI/CD 統合
 
-aaai is designed to run in CI/CD pipelines with predictable exit codes and
-machine-readable output.
+aaai は、予測可能な終了コードと機械可読な出力を備え、  
+CI/CD パイプラインでの利用を想定して設計されています。
 
-## Exit codes
+---
 
-| Code | Meaning |
-|------|---------|
-| 0 | PASSED — all entries OK or Ignored |
-| 1 | FAILED — one or more audit failures |
-| 2 | PENDING — unresolved entries (use `--allow-pending` to suppress) |
-| 3 | ERROR — file-level read / compare errors |
-| 4 | CONFIG_ERROR — definition file parse error |
+## 終了コード
 
-## GitHub Actions example
+| コード | 意味 |
+|---|---|
+| 0 | PASSED — 全エントリ OK または Ignored |
+| 1 | FAILED — 1 件以上の監査失敗 |
+| 2 | PENDING — 未承認エントリあり（`--allow-pending` で 0 に） |
+| 3 | ERROR — ファイル読み取りエラー |
+| 4 | CONFIG_ERROR — 定義ファイルの構文エラー |
+
+---
+
+## GitHub Actions の例
 
 ```yaml
-- name: Audit release artifacts
+- name: リリース成果物を監査する
   run: |
     aaai audit \
       --left ./dist-before \
@@ -25,12 +29,14 @@ machine-readable output.
       --no-history
 ```
 
-## SARIF annotations
+---
 
-Generate SARIF output to get inline file annotations in GitHub pull requests:
+## SARIF アノテーション
+
+SARIF 出力を生成して GitHub のプルリクエストにインライン注釈を表示できます。
 
 ```yaml
-- name: Run aaai audit
+- name: aaai 監査を実行
   run: |
     aaai report \
       --left ./before \
@@ -39,15 +45,17 @@ Generate SARIF output to get inline file annotations in GitHub pull requests:
       --format sarif \
       --out results.sarif
 
-- name: Upload SARIF
+- name: SARIF をアップロード
   uses: github/codeql-action/upload-sarif@v3
   with:
     sarif_file: results.sarif
 ```
 
-## Allowing pending entries in draft mode
+---
 
-During initial setup, you may want CI to pass even when entries are pending:
+## ドラフトモードでの Pending 許容
+
+初期セットアップ時など、エントリが Pending でも CI を通したい場合:
 
 ```sh
 aaai audit --left ./before --right ./after \
@@ -55,15 +63,19 @@ aaai audit --left ./before --right ./after \
            --allow-pending --no-history
 ```
 
-## Watch mode for local development
+---
+
+## ローカル開発向け Watch モード
 
 ```sh
 aaai watch --left ./before --right ./after --config ./audit.yaml
 ```
 
-## Project-level defaults (.aaai.yaml)
+---
 
-Place `.aaai.yaml` at the repository root to avoid repeating flags:
+## プロジェクト設定 (.aaai.yaml)
+
+リポジトリルートに `.aaai.yaml` を置くとフラグの繰り返しを省略できます。
 
 ```yaml
 version: "1"
@@ -71,11 +83,23 @@ default_definition: "audit/audit.yaml"
 default_ignore: "audit/.aaaiignore"
 approver_name: "ci-bot"
 mask_secrets: true
+suppress_warnings:
+  - no-approver
 ```
 
-## Shell completion
+---
 
-Install completions for faster CLI use:
+## 警告の抑制
+
+```sh
+# コマンドラインで抑制
+aaai audit --left ./before --right ./after --config ./audit.yaml \
+           --suppress-warnings no-approver,no-strategy
+```
+
+---
+
+## シェル補完のインストール
 
 ```sh
 # Bash

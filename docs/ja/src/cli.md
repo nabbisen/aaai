@@ -2,8 +2,6 @@
 
 aaai の全コマンドとフラグを説明します。
 
-## 共通オプション
-
 すべてのコマンドで `--help` が使えます。
 
 ```sh
@@ -15,7 +13,7 @@ aaai <command> --help
 
 ## aaai audit
 
-2つのフォルダを比較し、監査定義ファイルに照らして審査します。
+2 つのフォルダを比較し、監査定義ファイルに照らして審査します。
 
 ```sh
 aaai audit --left <BEFORE> --right <AFTER> --config <FILE> [OPTIONS]
@@ -27,11 +25,12 @@ aaai audit --left <BEFORE> --right <AFTER> --config <FILE> [OPTIONS]
 | `-r, --right <PATH>` | 変更後フォルダ |
 | `-c, --config <FILE>` | 監査定義ファイル（YAML） |
 | `--ignore <FILE>` | .aaaiignore ファイルのパス |
-| `--verbose` | OK/Ignored エントリと reason も表示 |
+| `--verbose` | OK / Ignored エントリと reason も表示 |
 | `--quiet` | サマリー行のみ出力 |
 | `--json-output` | JSON 形式で stdout に出力 |
 | `--allow-pending` | Pending エントリを許容（exit 0） |
 | `--mask-secrets` | reason などの機密値をマスク |
+| `--suppress-warnings <KIND,...>` | 指定した種別の警告を抑制 |
 | `--progress` | プログレスバーを表示 |
 | `--no-history` | 実行履歴を記録しない |
 
@@ -76,7 +75,7 @@ aaai snap --left <BEFORE> --right <AFTER> --out <FILE> [OPTIONS]
 | `--template <ID>` | ルールテンプレートを適用 |
 | `--list-templates` | テンプレート一覧を表示して終了 |
 | `--ignore <FILE>` | .aaaiignore ファイルのパス |
-| `--approver <NAME>` | 生成エントリの approved_by を設定 |
+| `--approver <NAME>` | 生成エントリの `approved_by` を設定 |
 | `--suggest-glob` | グロブパターン化の提案を表示 |
 | `--dry-run` | ファイルを書かずにプレビュー |
 
@@ -86,7 +85,7 @@ aaai snap --left <BEFORE> --right <AFTER> --out <FILE> [OPTIONS]
 # 初回スナップショット
 aaai snap --left ./before --right ./after --out audit.yaml
 
-# テンプレート適用（バージョン番号変更パターン）
+# バージョン番号変更パターンのテンプレートを適用
 aaai snap --left ./before --right ./after --out audit.yaml \
           --template version_bump
 
@@ -109,7 +108,7 @@ aaai report --left <BEFORE> --right <AFTER> --config <FILE> \
 | フラグ | 説明 |
 |---|---|
 | `--format` | markdown（デフォルト）/ json / html / sarif |
-| `--include-diff` | 実差分テキストを Markdown/HTML に埋め込み |
+| `--include-diff` | 実差分テキストを Markdown / HTML に埋め込み |
 | `--mask-secrets` | 機密値をマスク |
 
 **例:**
@@ -207,13 +206,14 @@ aaai merge <BASE> <OVERLAY> [--out <FILE>] [OPTIONS]
 過去の監査実行履歴を表示します。
 
 ```sh
-aaai history [-n <N>] [--stats] [--json-output]
+aaai history [-n <N>] [--stats] [--prune <N>] [--json-output]
 ```
 
 | フラグ | 説明 |
 |---|---|
 | `-n <N>` | 表示件数（デフォルト: 10） |
 | `--stats` | 合格率・平均件数・トレンド分析を表示 |
+| `--prune <N>` | 最新 N 件のみ残して刈り込む |
 | `--json-output` | JSON 形式で出力 |
 
 ---
@@ -227,6 +227,9 @@ aaai export --left <BEFORE> --right <AFTER> --config <FILE> \
             [--out <FILE>] [--format csv|tsv] [--all]
 ```
 
+出力カラム: `path` / `diff_type` / `status` / `reason` / `strategy` / `ticket` /  
+`approved_by` / `approved_at` / `expires_at` / `enabled` / `note` / `created_at` / `updated_at`
+
 ---
 
 ## aaai dashboard
@@ -236,6 +239,10 @@ aaai export --left <BEFORE> --right <AFTER> --config <FILE> \
 ```sh
 aaai dashboard --left <BEFORE> --right <AFTER> --config <FILE> [--detail]
 ```
+
+| フラグ | 説明 |
+|---|---|
+| `--detail` | 全変更エントリを一覧表示 |
 
 ---
 
