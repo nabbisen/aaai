@@ -48,9 +48,14 @@
 - **GUI: diff statistics bar** — lines changed count shown in diff viewer header
 
 ## Phase 5 — Polish (v0.5.0)
-- Image diff preview (side-by-side pixel diff)
-- Interactive progress bar for large folder scans
-- Audit dashboard / summary view
-- Watch mode (re-run on file change)
-- Shell completion (bash / zsh / fish)
+- **Shell completion** — `aaai completions <shell>` for bash/zsh/fish/powershell via clap_complete
+- **Watch mode** — `aaai watch` re-runs audit when before/after/definition files change (notify crate)
+- **Progress tracking** — channel-based DiffProgress events; CLI progress bar via indicatif
+- **HTML report** — third output format alongside Markdown and JSON
+- **`aaai snap --dry-run`** — preview what would be generated without writing
+- **`aaai dashboard`** — CLI summary dashboard with colour-coded stat cards
+- **GUI: dashboard view** — summary cards as the default landing pane before selecting a file
+- **GUI: file tree search** — incremental path filter input above the file tree
+- **CLI integration tests** — end-to-end tests driving the real binary
+- **Image diff (basic)** — detect image type for binary panel (PNG/JPEG/GIF/WebP) and show metadata
 

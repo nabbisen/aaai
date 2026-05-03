@@ -30,6 +30,7 @@ pub struct ReportArgs {
 pub enum ReportFormat {
     Markdown,
     Json,
+    Html,
 }
 
 pub fn run(args: ReportArgs) -> anyhow::Result<()> {
@@ -47,6 +48,11 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
                 Some(&args.config),
                 &args.out,
                 None,
+            )?;
+        }
+        ReportFormat::Html => {
+            aaai_core::report::generator::ReportGenerator::write_html(
+                &result, &args.left, &args.right, Some(&args.config), &args.out, None,
             )?;
         }
         ReportFormat::Json => {

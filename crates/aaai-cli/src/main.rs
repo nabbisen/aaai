@@ -11,7 +11,7 @@ mod cmd;
     about   = "audit for asset integrity — folder diff auditor",
     version,
 )]
-struct Cli {
+pub(crate) struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
@@ -30,6 +30,12 @@ enum Commands {
     History(cmd::history::HistoryArgs),
     /// Initialise or display the project .aaai.yaml config.
     Config(cmd::config::ConfigArgs),
+    /// Show a colour-coded audit statistics dashboard.
+    Dashboard(cmd::dashboard::DashboardArgs),
+    /// Re-run the audit whenever source files change.
+    Watch(cmd::watch::WatchArgs),
+    /// Generate shell completions and print them to stdout.
+    Completions(cmd::completions::CompletionsArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -44,6 +50,12 @@ fn main() -> anyhow::Result<()> {
         Commands::Report(args)  => cmd::report::run(args),
         Commands::Check(args)   => cmd::check::run(args),
         Commands::History(args) => cmd::history::run(args),
-        Commands::Config(args)   => cmd::config::run(args),
+        Commands::Config(args)      => cmd::config::run(args),
+        Commands::Dashboard(args)   => cmd::dashboard::run(args),
+        Commands::Watch(args)       => cmd::watch::run(args),
+        Commands::Completions(args) => cmd::completions::run(args),
     }
 }
+
+#[cfg(test)]
+mod tests;

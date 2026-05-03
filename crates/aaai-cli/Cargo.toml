@@ -11,11 +11,17 @@ name = "aaai"
 path = "src/main.rs"
 
 [dependencies]
-aaai-core  = { path = "../aaai-core", version = "0.4.0" }
+aaai-core  = { path = "../aaai-core", version = "0.5.0" }
 clap       = { workspace = true }
 colored    = { workspace = true }
 anyhow     = { workspace = true }
 log        = { workspace = true }
 env_logger = { workspace = true }
 chrono     = { workspace = true }
-serde_json = { workspace = true }
+serde_json     = { workspace = true }
+clap_complete  = { workspace = true }
+notify         = { workspace = true }
+indicatif      = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

@@ -35,5 +35,6 @@ pub use config::definition::{AuditDefinition, AuditEntry, AuditStrategy};
 pub use diff::engine::DiffEngine;
 pub use diff::entry::{DiffEntry, DiffStats, DiffType, LARGE_FILE_THRESHOLD};
 pub use diff::ignore::IgnoreRules;
+pub use diff::progress::{DiffProgress, ProgressSink, ChannelProgress, NullProgress};
 pub use masking::engine::MaskingEngine;
 pub use report::generator::ReportGenerator;

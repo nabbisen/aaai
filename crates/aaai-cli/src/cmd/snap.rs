@@ -31,6 +31,9 @@ pub struct SnapArgs {
     /// Path to .aaaiignore file.
     #[arg(long, value_name = "FILE")]
     pub ignore: Option<PathBuf>,
+    /// Preview what would be generated without writing the file.
+    #[arg(long)]
+    pub dry_run: bool,
 }
 
 pub fn run(args: SnapArgs) -> anyhow::Result<()> {
@@ -108,6 +111,16 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
         };
         definition.upsert_entry(entry);
         added += 1;
+    }
+
+    if args.dry_run {
+        println!("{}", "--- DRY RUN (not written) ---".cyan().bold());
+        println!("Would write to: {}", args.out.display());
+        for e in &definition.entries {
+            println!("  {} {}  ({})", "entry:".dimmed(), e.path, e.diff_type);
+        }
+        println!("{}", format!("--- {} entries would be added, {} skipped ---", added, skipped).dimmed());
+        return Ok(());
     }
 
     config_io::save(&definition, &args.out, false)?;

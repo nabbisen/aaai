@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 authors = ["nabbisen"]
 license = "Apache-2.0"
@@ -55,6 +55,15 @@ rust-i18n = "3"
 
 # Parallel processing
 rayon = "1"
+
+# File watching (watch mode)
+notify = { version = "8", features = ["macos_fsevent"] }
+
+# Progress bars (CLI)
+indicatif = "0.17"
+
+# Shell completion
+clap_complete = "4"
 
 # Home directory (for history / profiles)
 dirs = "6"

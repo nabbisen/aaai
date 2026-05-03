@@ -9,6 +9,7 @@ use walkdir::WalkDir;
 
 use super::entry::{DiffEntry, DiffStats, DiffType};
 use super::ignore::IgnoreRules;
+use super::progress::{DiffProgress, NullProgress, ProgressSink};
 
 pub struct DiffEngine;
 
@@ -25,6 +26,16 @@ impl DiffEngine {
         after_root: &Path,
         ignore: &IgnoreRules,
     ) -> anyhow::Result<Vec<DiffEntry>> {
+        Self::compare_with_progress(before_root, after_root, ignore, &NullProgress)
+    }
+
+    /// Compare with ignore rules and a progress sink.
+    pub fn compare_with_progress(
+        before_root: &Path,
+        after_root: &Path,
+        ignore: &IgnoreRules,
+        progress: &dyn ProgressSink,
+    ) -> anyhow::Result<Vec<DiffEntry>> {
         let before_map = collect_paths(before_root)?;
         let after_map  = collect_paths(after_root)?;
 
@@ -39,21 +50,34 @@ impl DiffEngine {
             .filter(|p| !ignore.is_ignored(p))
             .collect();
 
+        let total = paths_to_compare.len();
+        progress.emit(DiffProgress::Started { total });
+
         // ── Parallel per-file comparison ───────────────────────────────────
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        let processed = AtomicUsize::new(0);
+
         let mut entries: Vec<DiffEntry> = paths_to_compare
             .into_par_iter()
             .map(|rel_path| {
-                match (before_map.get(&rel_path), after_map.get(&rel_path)) {
+                let diff_entry = match (before_map.get(&rel_path), after_map.get(&rel_path)) {
                     (None,    Some(a)) => build_added(rel_path, a),
                     (Some(b), None)    => build_removed(rel_path, b),
                     (Some(b), Some(a)) => build_compared(rel_path, b, a),
                     (None,    None)    => unreachable!(),
-                }
+                };
+                let n = processed.fetch_add(1, Ordering::Relaxed) + 1;
+                progress.emit(DiffProgress::File {
+                    path: diff_entry.path.clone(), processed: n, total,
+                });
+                diff_entry
             })
             .collect();
 
         // Restore deterministic sort (parallel iter may reorder).
+        progress.emit(DiffProgress::Sorting);
         entries.sort_by(|a, b| a.path.cmp(&b.path));
+        progress.emit(DiffProgress::Done { total_files: entries.len() });
         Ok(entries)
     }
 }

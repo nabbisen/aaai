@@ -1,5 +1,6 @@
 //! Report generation — Markdown and JSON output.
 
+use super::html::build_html;
 use std::path::Path;
 use chrono::Local;
 
@@ -111,6 +112,21 @@ impl ReportGenerator {
         }
 
         md
+    }
+
+    /// Generate an HTML report and write to `output_path`.
+    pub fn write_html(
+        result: &AuditResult,
+        before_root: &Path,
+        after_root: &Path,
+        definition_path: Option<&Path>,
+        output_path: &Path,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
+    ) -> anyhow::Result<()> {
+        let html = build_html(result, before_root, after_root, definition_path, masker);
+        std::fs::write(output_path, html.as_bytes())?;
+        log::info!("HTML report written to {}", output_path.display());
+        Ok(())
     }
 
     fn build_json(

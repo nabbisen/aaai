@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.0] — Phase 5: Polish
+
+### テスト (83 テスト全通過)
+- **core unit tests**: 71 件 (diff/audit/config/masking/project/templates/profile/history)
+- **CLI integration tests**: 12 件 (実バイナリを使った end-to-end テスト)
+  - exit code 検証 (0/1/2)、JSON 出力の妥当性、glob ルール、HTML レポート生成、dry-run 動作など
+
+### CLI 追加
+- **`aaai completions <shell>`** — bash / zsh / fish / powershell 向けシェル補完スクリプト生成 (clap_complete)
+- **`aaai watch`** — before・after・定義ファイルの変更を監視し、変更検出時に自動で監査を再実行 (notify crate、500ms デバウンス)
+- **`aaai dashboard`** — カラーコードの統計カード＋要注意エントリ一覧。`--detail` フラグで全変更エントリを表示
+- **`aaai audit --progress`** — indicatif プログレスバーで大規模フォルダの比較進捗を表示
+- **`aaai snap --dry-run`** — ファイルを書き込まずに生成内容をプレビュー
+- **`aaai report --format html`** — スタイル付き HTML レポートを出力（summary カード・ステータス色分け・チケット表示・差分統計）
+
+### Core 追加
+- **`diff/progress.rs`** — `DiffProgress` イベント + `ProgressSink` トレイト + `ChannelProgress` / `NullProgress` 実装
+- **`DiffEngine::compare_with_progress()`** — 進捗シンクを受け取るオーバーロード
+- **`report/html.rs`** — セルフコンテイン HTML レポート生成 (BootstrapなしのCSSインライン)
+
+### GUI 追加
+- **ダッシュボードビュー** — ファイル未選択時にサマリーカード (OK/Pending/Failed/Error/Ignored 件数) + 結果バナー + 要注意エントリ一覧を表示
+- **ファイルツリー検索バー** — パス名インクリメンタルフィルター (フィルターバーの下に検索入力を配置)
+
 ## [0.4.0] — Phase 4: Advanced
 
 ### Core 新モジュール (69 テスト全通過)

@@ -15,6 +15,7 @@ use colored::Colorize;
 
 use aaai_core::{
     AuditEngine, AuditStatus, DiffEngine, DiffType, DiffStats, IgnoreRules, MaskingEngine,
+    DiffProgress, ChannelProgress,
     config::io as config_io,
     history::{record::HistoryRecord, store as history_store},
     project::config::ProjectConfig,
@@ -49,12 +50,19 @@ pub struct AuditArgs {
     /// Mask secrets (API keys, passwords, tokens) in output.
     #[arg(long)]
     pub mask_secrets: bool,
-    /// Approver name to stamp on auto-approved entries (CLI approval not currently implemented).
+    /// Approver name (reserved for future approval CLI).
     #[arg(long, value_name = "NAME")]
     pub approver: Option<String>,
+    /// Show a progress bar while comparing files.
+    #[arg(long)]
+    pub progress: bool,
 }
 
 pub fn run(args: AuditArgs) -> anyhow::Result<()> {
+    // Clone paths upfront so they're available throughout the function.
+    let left_path  = args.left.clone();
+    let right_path = args.right.clone();
+
     // Load ignore rules
     let ignore_path = args.ignore.clone()
         .unwrap_or_else(|| args.left.join(".aaaiignore"));
@@ -78,7 +86,40 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     let definition = config_io::load(&args.config)?;
 
     // Diff + audit
-    let diffs  = DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)?;
+    let diffs = if args.progress {
+        use aaai_core::{ChannelProgress, DiffProgress, NullProgress};
+        use std::sync::mpsc;
+        let (tx, rx) = mpsc::channel::<DiffProgress>();
+        let sink = ChannelProgress::new(tx);
+        let pb = indicatif::ProgressBar::new(0);
+        pb.set_style(
+            indicatif::ProgressStyle::with_template(
+                "  {spinner:.cyan} [{bar:30.cyan/blue}] {pos}/{len} {msg}"
+            )?.progress_chars("█▓░")
+        );
+        let _lp  = args.left.clone();
+        let _rp  = args.right.clone();
+        let _ign = ignore.clone();
+        let handle = std::thread::spawn(move || {
+            DiffEngine::compare_with_progress(&_lp, &_rp, &_ign, &sink)
+        });
+        for event in rx {
+            match event {
+                DiffProgress::Started { total } => pb.set_length(total as u64),
+                DiffProgress::File { path, processed, total } => {
+                    pb.set_position(processed as u64);
+                    pb.set_message(path);
+                }
+                DiffProgress::Sorting => pb.set_message("Sorting…"),
+                DiffProgress::Done { total_files } => {
+                    pb.finish_with_message(format!("{total_files} files"));
+                }
+            }
+        }
+        handle.join().unwrap()?
+    } else {
+        DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)?
+    };
     let result = AuditEngine::evaluate(&diffs, &definition);
     let s      = &result.summary;
 
@@ -122,8 +163,8 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     // ── Human output ──────────────────────────────────────────────────
     if !args.quiet {
         println!("{}", "aaai audit".bold());
-        println!("Before : {}", args.left.display());
-        println!("After  : {}", args.right.display());
+        println!("Before : {}", left_path.display());
+        println!("After  : {}", right_path.display());
         println!("Config : {}", args.config.display());
         if ignore_path.exists() {
             println!("Ignore : {}", ignore_path.display());

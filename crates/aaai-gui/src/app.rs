@@ -149,6 +149,9 @@ pub struct App {
 
     // Phase 3: ignore rules (loaded at audit start)
     pub ignore_path: String,
+
+    // Phase 5: file tree search
+    pub search_query: String,
 }
 
 impl Default for App {
@@ -174,6 +177,7 @@ impl Default for App {
             profiles: ProfileStore::load().unwrap_or_default(),
             profile_name_input: String::new(),
             ignore_path: String::new(),
+            search_query: String::new(),
         }
     }
 }
@@ -218,6 +222,9 @@ pub enum Message {
     OpenBatchSheet,
     CloseBatchSheet,
     CommitBatchApprove,
+
+    // Phase 5: search
+    SearchQueryChanged(String),
 
     // Phase 3: inspector fields
     TicketChanged(String),
@@ -571,6 +578,9 @@ impl App {
                     }
                 }
             }
+
+            // ── Phase 5: search ───────────────────────────────────────
+            Message::SearchQueryChanged(s) => { self.search_query = s; }
 
             // ── Phase 3: inspector fields ─────────────────────────────
             Message::TicketChanged(s)     => { self.inspector.ticket = s; }

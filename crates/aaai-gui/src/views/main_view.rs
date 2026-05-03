@@ -10,13 +10,16 @@ use aaai_core::{AuditStatus, DiffType, FileAuditResult};
 use crate::app::{App, FilterMode, Message};
 use crate::style::panel_style;
 use crate::theme;
-use crate::views::{diff_view, inspector};
+use crate::views::{dashboard, diff_view, inspector};
 use rust_i18n::t;
 
 pub fn view(app: &App) -> Element<'_, Message> {
     let toolbar = build_toolbar(app);
     let filter_bar = build_filter_bar(app);
     let file_tree = build_file_tree(app);
+
+    // Search bar
+    let search_bar = build_search_bar(app);
 
     let center_and_inspector: Element<'_, Message> =
         if let Some(idx) = app.selected_index {
@@ -38,6 +41,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
     let body = column![
         toolbar,
         filter_bar,
+        search_bar,
         row![file_tree, center_and_inspector]
             .spacing(1)
             .height(Length::Fill),
@@ -175,6 +179,13 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
         if !app.filter_mode.passes(far) {
             continue;
         }
+        // Search filter
+        if !app.search_query.is_empty() {
+            let q = app.search_query.to_lowercase();
+            if !far.diff.path.to_lowercase().contains(&q) {
+                continue;
+            }
+        }
 
         let is_selected = app.selected_index == Some(idx);
         let is_batch_selected = app.batch.selected.contains(&idx);
@@ -253,6 +264,33 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     )
     .width(Length::Fixed(260.0))
     .height(Length::Fill)
+    .into()
+}
+
+fn build_search_bar<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
+    use iced::widget::{container, text_input};
+    use crate::app::Message;
+    if app.audit_result.is_none() {
+        return space().height(Length::Fixed(0.0)).into();
+    }
+    container(
+        row![
+            text("🔍").size(12),
+            text_input("Search paths…", &app.search_query)
+                .on_input(Message::SearchQueryChanged)
+                .padding(Padding::from([4.0, 8.0]))
+                .size(12)
+                .width(Length::Fixed(220.0)),
+        ]
+        .spacing(6)
+        .align_y(iced::Alignment::Center),
+    )
+    .padding(Padding::from([3.0, 8.0]))
+    .width(Length::Fill)
+    .style(|_| iced::widget::container::Style {
+        background: Some(iced::Background::Color(iced::Color::from_rgb(0.95, 0.96, 0.97))),
+        ..Default::default()
+    })
     .into()
 }
 
