@@ -1,5 +1,6 @@
 //! Audit engine: matches DiffEntries against AuditDefinition → AuditResult.
 
+use crate::audit::warning;
 use crate::config::definition::AuditDefinition;
 use crate::diff::entry::{DiffEntry, DiffType};
 use super::result::{AuditResult, AuditStatus, FileAuditResult};
@@ -31,6 +32,7 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             detail: diff.error_detail.clone().or_else(|| {
                 Some("File could not be read or compared.".into())
             }),
+            warnings: Vec::new(),
         };
     }
 
@@ -41,6 +43,7 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             entry: definition.find_entry(&diff.path).cloned(),
             status: AuditStatus::Ok,
             detail: None,
+            warnings: Vec::new(),
         };
     }
 
@@ -53,6 +56,7 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
                 entry: None,
                 status: AuditStatus::Pending,
                 detail: Some("No audit rule defined for this path.".into()),
+                warnings: Vec::new(),
             };
         }
     };
@@ -64,6 +68,7 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             entry: Some(entry.clone()),
             status: AuditStatus::Ignored,
             detail: Some("Entry is disabled.".into()),
+            warnings: Vec::new(),
         };
     }
 
@@ -74,6 +79,7 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             entry: Some(entry.clone()),
             status: AuditStatus::Pending,
             detail: Some("Entry exists but has no reason — human approval required.".into()),
+            warnings: Vec::new(),
         };
     }
 
@@ -87,22 +93,28 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
                 "Expected diff type {:?} but found {:?}.",
                 entry.diff_type, diff.diff_type
             )),
+            warnings: Vec::new(),
         };
     }
 
     // Content strategy check.
     match strategy::evaluate(&entry.strategy, diff) {
-        Ok(()) => FileAuditResult {
-            diff: diff.clone(),
-            entry: Some(entry.clone()),
-            status: AuditStatus::Ok,
-            detail: None,
-        },
+        Ok(()) => {
+            let warns = warning::collect(diff, entry);
+            FileAuditResult {
+                diff: diff.clone(),
+                entry: Some(entry.clone()),
+                status: AuditStatus::Ok,
+                detail: None,
+                warnings: warns,
+            }
+        }
         Err(msg) => FileAuditResult {
             diff: diff.clone(),
             entry: Some(entry.clone()),
             status: AuditStatus::Failed,
             detail: Some(msg),
+            warnings: Vec::new(),
         },
     }
 }

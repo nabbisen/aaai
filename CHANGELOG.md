@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.7.0] — Phase 7: v1.0 Quality
+
+### テスト (101 テスト全通過)
+- core unit tests: **81 件** (AuditWarning 7 件、SARIF 2 件、lockfile 2 件追加)
+- CLI integration tests: **20 件** (export CSV/TSV, merge conflict, SARIF format, history stats, diff JSON)
+
+### コード品質
+- **警告ゼロ達成** — `cargo fix` + 全 unused variable/dead_code を `_prefix` / `#[allow]` で抑制。`cargo check` が全クレートで警告ゼロ
+
+### Core 追加
+- **`audit/warning.rs`** — `AuditWarning` システム: `LargeFileStrategy` (>1MB に Exact/LineMatch 適用)、`NoStrategyOnModified`、`NoApprover` の 3 種類
+- **`FileAuditResult.warnings`** — 各エントリに advisory 警告リストを付与
+- **`AuditSummary.warning_count`** — 全体の警告件数を集計
+- **`config/lock.rs`** — `.lock` ファイルによる書き込みロック。60 秒 TTL でステールロックを自動削除。`config/io.rs` に統合済み
+
+### CLI 追加
+- **`aaai export`** — 承認済みエントリを CSV / TSV に出力。13 カラム: path, diff_type, status, reason, strategy, ticket, approved_by, approved_at, expires_at, enabled, note, created_at, updated_at
+- **`aaai init`** — 対話型プロジェクト初期設定ウィザード。Before/After パス・定義ファイル・承認者名を対話入力し `.aaai.yaml` を生成。`--non-interactive` フラグ対応
+- **`aaai history --stats`** — 全実行履歴のトレンド分析: 合格率・平均 OK/Pending/Failed 件数・直近 5 回 vs 前 5 回の傾向 (↑改善 / ↓低下 / →安定)
+
 ## [0.6.0] — Phase 6: Production Readiness
 
 ### テスト (85 テスト全通過)

@@ -65,7 +65,7 @@ impl ReportGenerator {
         masker: Option<&crate::masking::engine::MaskingEngine>,
         include_diff: bool,
     ) -> String {
-        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masker);
+        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masker); // masker is used below
         if include_diff {
             md.push_str("
 ## Diff Details
@@ -200,7 +200,7 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        _masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> anyhow::Result<String> {
         use serde_json::{json, Value};
         let now = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();

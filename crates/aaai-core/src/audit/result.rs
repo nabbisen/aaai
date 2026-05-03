@@ -31,6 +31,8 @@ pub struct FileAuditResult {
     pub entry: Option<AuditEntry>,
     pub status: AuditStatus,
     pub detail: Option<String>,
+    /// Advisory warnings for this entry (non-fatal).
+    pub warnings: Vec<crate::audit::warning::AuditWarning>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -41,6 +43,8 @@ pub struct AuditSummary {
     pub failed: usize,
     pub ignored: usize,
     pub error: usize,
+    /// Total number of advisory warnings across all entries.
+    pub warning_count: usize,
 }
 
 impl AuditSummary {
@@ -55,6 +59,7 @@ impl AuditSummary {
                 AuditStatus::Ignored => s.ignored += 1,
                 AuditStatus::Error => s.error += 1,
             }
+            s.warning_count += r.warnings.len();
         }
         s
     }

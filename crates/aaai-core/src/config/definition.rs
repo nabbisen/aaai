@@ -196,6 +196,7 @@ impl Default for AuditStrategy {
 }
 
 impl AuditStrategy {
+    #[allow(dead_code)]
     pub fn label(&self) -> &'static str {
         match self {
             AuditStrategy::None           => "None",

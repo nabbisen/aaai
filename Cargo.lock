@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aaai-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aaai-core",
  "anyhow",
@@ -23,7 +23,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-core"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -45,7 +45,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-gui"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aaai-core",
  "anyhow",

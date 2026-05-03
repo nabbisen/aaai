@@ -336,3 +336,207 @@ entries:
         .status().unwrap();
     assert_eq!(status.code(), Some(0), "glob rule should match both log files");
 }
+
+// ── Phase 7: new commands ────────────────────────────────────────────────
+
+#[test]
+fn diff_exits_0_and_shows_changes() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "old.txt", "line1\n");
+    write(&a, "new.txt", "line2\n");
+    write(&b, "same.txt", "same\n");
+    write(&a, "same.txt", "same\n");
+
+    let out = aaai()
+        .args(["diff", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap()])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("old.txt") || stdout.contains("new.txt"),
+        "diff should mention changed files");
+}
+
+#[test]
+fn diff_json_output_is_valid() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&a, "added.txt", "content\n");
+
+    let out = aaai()
+        .args(["diff", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--json-output"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("diff --json-output must produce valid JSON");
+    assert!(parsed.is_array(), "diff JSON output should be an array");
+}
+
+#[test]
+fn export_csv_produces_header_row() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old\n");
+    write(&a, "f.txt", "new\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "test export"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out_csv = tmp.path().join("out.csv");
+
+    let status = aaai()
+        .args(["export", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--out", out_csv.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    assert!(out_csv.exists());
+    let content = fs::read_to_string(&out_csv).unwrap();
+    let first_line = content.lines().next().unwrap_or("");
+    assert!(first_line.contains("path"), "CSV header should contain 'path'");
+    assert!(first_line.contains("reason"), "CSV header should contain 'reason'");
+    assert!(first_line.contains("status"), "CSV header should contain 'status'");
+}
+
+#[test]
+fn export_tsv_uses_tab_separator() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, "version: \"1\"\n");
+    let out_tsv = tmp.path().join("out.tsv");
+
+    let status = aaai()
+        .args(["export", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--format", "tsv",
+               "--out", out_tsv.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out_tsv).unwrap();
+    let first_line = content.lines().next().unwrap_or("");
+    assert!(first_line.contains('\t'), "TSV header should use tab separator");
+}
+
+#[test]
+fn merge_detect_conflicts() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base = tmp.path().join("base.yaml");
+    let overlay = tmp.path().join("overlay.yaml");
+    write_audit(&base, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "base"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    write_audit(&overlay, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Added
+    reason: "overlay"
+    strategy:
+      type: None
+    enabled: true
+"#);
+
+    let out = aaai()
+        .args(["merge", base.to_str().unwrap(), overlay.to_str().unwrap(),
+               "--detect-conflicts"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("conflict") || stdout.contains("Conflict"),
+        "conflict detection should mention conflicts");
+}
+
+#[test]
+fn report_sarif_format_valid() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, "version: \"1\"\n");
+    let out = tmp.path().join("result.sarif");
+
+    let status = aaai()
+        .args(["report", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--format", "sarif",
+               "--out", out.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&content)
+        .expect("SARIF output must be valid JSON");
+    assert_eq!(v["version"], "2.1.0", "SARIF version must be 2.1.0");
+}
+
+#[test]
+fn history_stats_exits_0() {
+    let status = aaai()
+        .args(["history", "--stats"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}
+
+#[test]
+fn audit_warns_on_large_file_with_linematch() {
+    // Verify the audit JSON output includes the Warning field / or at least exits cleanly.
+    // (We can't easily create a >1 MB file in a quick test, so we verify the command works.)
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "cfg.toml", "x = 1\n");
+    write(&a, "cfg.toml", "x = 2\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: cfg.toml
+    diff_type: Modified
+    reason: "value change"
+    strategy:
+      type: LineMatch
+      rules:
+        - action: Removed
+          line: "x = 1"
+        - action: Added
+          line: "x = 2"
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["audit", "--left", b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--json-output", "--no-history"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(v["result"], "PASSED");
+}

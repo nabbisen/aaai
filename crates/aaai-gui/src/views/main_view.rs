@@ -10,7 +10,7 @@ use aaai_core::{AuditStatus, DiffType, FileAuditResult};
 use crate::app::{App, FilterMode, Message};
 use crate::style::panel_style;
 use crate::theme;
-use crate::views::{dashboard, diff_view, inspector};
+use crate::views::{diff_view, inspector};
 use rust_i18n::t;
 
 pub fn view(app: &App) -> Element<'_, Message> {

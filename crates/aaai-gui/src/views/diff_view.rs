@@ -95,7 +95,7 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 
 /// Stats bar shown above the side-by-side diff.
 fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
-    use aaai_core::diff::entry::fmt_size;
+    
 
     let mut parts: Vec<Element<'_, Message>> = Vec::new();
 

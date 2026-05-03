@@ -8,7 +8,7 @@ use clap::Args;
 use colored::Colorize;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use aaai_core::{AuditEngine, AuditStatus, DiffEngine, DiffType, IgnoreRules,
+use aaai_core::{AuditEngine, AuditStatus, DiffEngine, DiffType,
                 config::io as config_io};
 
 #[derive(Args)]

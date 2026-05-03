@@ -40,6 +40,10 @@ enum Commands {
     Diff(cmd::diff_cmd::DiffArgs),
     /// Merge two audit definition files.
     Merge(cmd::merge::MergeArgs),
+    /// Interactive project setup wizard.
+    Init(cmd::init::InitArgs),
+    /// Export audit entries to CSV or TSV.
+    Export(cmd::export::ExportArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -60,6 +64,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Completions(args) => cmd::completions::run(args),
         Commands::Diff(args)        => cmd::diff_cmd::run(args),
         Commands::Merge(args)       => cmd::merge::run(args),
+        Commands::Init(args)        => cmd::init::run(args),
+        Commands::Export(args)      => cmd::export::run(args),
     }
 }
 

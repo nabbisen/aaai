@@ -1,5 +1,8 @@
 //! File I/O for [`AuditDefinition`].
 //!
+//! The `save` function acquires a write lock (`.lock` file) to prevent
+//! concurrent modifications from two simultaneous aaai processes.
+//!
 //! Reads and writes the audit-definition YAML file with the following
 //! guarantees:
 //! * Atomic save: write to a `.tmp` sibling first, then rename.
@@ -34,6 +37,10 @@ pub fn load(path: &Path) -> Result<AuditDefinition> {
 /// * The actual write goes to `<path>.tmp` first, then `rename` is used for
 ///   an atomic swap so that a failed write never leaves a partial file.
 pub fn save(def: &AuditDefinition, path: &Path, backup: bool) -> Result<()> {
+    // Acquire write lock — released automatically when _lock is dropped.
+    let _lock = super::lock::acquire(path)
+        .with_context(|| format!("Cannot acquire lock for {}", path.display()))?;
+
     // Optional backup.
     if backup && path.exists() {
         let bak = path.with_extension("bak");

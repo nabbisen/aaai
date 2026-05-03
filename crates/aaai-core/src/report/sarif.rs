@@ -135,12 +135,14 @@ mod tests {
                 entry: None,
                 status: AuditStatus::Failed,
                 detail: Some("strategy failed".into()),
+                warnings: Vec::new(),
             },
             FileAuditResult {
                 diff: dummy_diff("ok.txt", DiffType::Added),
                 entry: None,
                 status: AuditStatus::Ok,
                 detail: None,
+                warnings: Vec::new(),
             },
         ];
         let audit_result = AuditResult::new(results);
@@ -163,6 +165,7 @@ mod tests {
             entry: None,
             status: AuditStatus::Pending,
             detail: Some("no rule".into()),
+            warnings: Vec::new(),
         }];
         let sarif = build_sarif(
             &AuditResult::new(results),

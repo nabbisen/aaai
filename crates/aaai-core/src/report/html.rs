@@ -10,7 +10,7 @@ pub fn build_html(
     before_root: &Path,
     after_root: &Path,
     definition_path: Option<&Path>,
-    masker: Option<&MaskingEngine>,
+    _masker: Option<&MaskingEngine>,
 ) -> String {
     let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
     let s = &result.summary;
@@ -28,7 +28,7 @@ pub fn build_html(
             AuditStatus::Ignored => "#e9ecef",
         };
         let reason = r.entry.as_ref().map(|e| {
-            masker.map(|m| m.mask(&e.reason)).unwrap_or_else(|| e.reason.clone())
+            _masker.map(|m| m.mask(&e.reason)).unwrap_or_else(|| e.reason.clone())
         }).unwrap_or_default();
         let ticket = r.entry.as_ref().and_then(|e| e.ticket.as_ref())
             .map(|t| format!("<span class=\"ticket\">[{t}]</span> "))

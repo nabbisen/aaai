@@ -14,8 +14,7 @@ use clap::Args;
 use colored::Colorize;
 
 use aaai_core::{
-    AuditEngine, AuditStatus, DiffEngine, DiffType, DiffStats, IgnoreRules, MaskingEngine,
-    DiffProgress, ChannelProgress,
+    AuditEngine, AuditStatus, DiffEngine, DiffType, IgnoreRules, MaskingEngine,
     config::io as config_io,
     history::{record::HistoryRecord, store as history_store},
     project::config::ProjectConfig,
@@ -87,7 +86,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
 
     // Diff + audit
     let diffs = if args.progress {
-        use aaai_core::{ChannelProgress, DiffProgress, NullProgress};
+        use aaai_core::{ChannelProgress, DiffProgress};
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel::<DiffProgress>();
         let sink = ChannelProgress::new(tx);
@@ -106,9 +105,8 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         for event in rx {
             match event {
                 DiffProgress::Started { total } => pb.set_length(total as u64),
-                DiffProgress::File { path, processed, total } => {
+                DiffProgress::File { path: _path, processed, total: _total } => {
                     pb.set_position(processed as u64);
-                    pb.set_message(path);
                 }
                 DiffProgress::Sorting => pb.set_message("Sorting…"),
                 DiffProgress::Done { total_files } => {

@@ -11,15 +11,14 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use iced::{Element, Subscription, Task};
-use iced::keyboard;
 use snora::{
-    AppLayout, Dialog, Sheet, SheetEdge, SheetSize,
-    Toast, ToastIntent, ToastLifetime, ToastPosition, render,
+    AppLayout, Sheet, SheetEdge, SheetSize,
+    Toast, ToastIntent, ToastPosition, render,
 };
 
 use aaai_core::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
-    AuditStatus, DiffType, IgnoreRules,
+    AuditStatus, DiffType,
     profile::store::{AuditProfile, ProfileStore},
     config::{
         definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
@@ -28,7 +27,6 @@ use aaai_core::{
 };
 
 use crate::views::{opening, main_view};
-use crate::i18n;
 use rust_i18n::t;
 
 // ── Screens ───────────────────────────────────────────────────────────────
@@ -47,6 +45,7 @@ pub enum FilterMode {
 }
 
 impl FilterMode {
+    #[allow(dead_code)]
     pub fn label(self) -> &'static str {
         match self {
             FilterMode::All           => "filter.all",
@@ -743,7 +742,7 @@ impl App {
     // ── Subscription ─────────────────────────────────────────────────────
 
     pub fn subscription(&self) -> Subscription<Message> {
-        use iced::keyboard::{self, Key, Modifiers};
+        
         let toast_sub = snora::toast::subscription(&self.toasts, || Message::ToastTick);
         let kb_sub = iced::keyboard::listen().map(|event| {
             use iced::keyboard::{Event as KbEvent, Key, Modifiers};
@@ -804,7 +803,7 @@ impl App {
         use crate::style::panel_style;
 
         let locale_label = {
-            use iced::widget::{button, pick_list};
+            use iced::widget::pick_list;
             let current = self.locale.as_str();
             let labels: Vec<&str> = crate::i18n::SUPPORTED_LOCALES.iter()
                 .map(|(_, label)| *label)

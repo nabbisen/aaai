@@ -11,7 +11,7 @@ use iced::{
 };
 
 use aaai_core::AuditStatus;
-use crate::app::{App, Message, strategy_from_label};
+use crate::app::{App, Message};
 use crate::theme;
 use rust_i18n::t;
 

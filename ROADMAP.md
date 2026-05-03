@@ -71,3 +71,15 @@
 - **Complete documentation** — all docs/src/ chapters populated (strategies, CI integration, FAQ)
 - **`aaai completions --install`** — auto-install completion script to shell config
 
+## Phase 7 — v1.0 Quality (v0.7.0)
+- **Non-blocking async diff** — tokio::spawn-based diff engine; GUI remains interactive during large scans
+- **GUI theme support** — light / dark / system-follow theme selection stored in ~/.aaai/prefs.yaml
+- **`aaai init` wizard** — interactive project setup: define before/after paths, create .aaai.yaml, generate starter definition
+- **History analytics** — `aaai history --stats` showing trend graphs (pass rate, pending counts over time)
+- **Large file warnings** — emit AuditWarning when Exact or LineMatch strategy applied to files >1 MB
+- **`aaai export`** — export audit entries to CSV / TSV for external review in spreadsheets
+- **Audit write locking** — `.aaai.lock` prevents concurrent definition file writes
+- **Zero-warning build** — all cargo fix suggestions applied; Clippy clean at -D warnings level
+- **`aaai snap --approver`** — pre-fill approver_name from project config or flag when generating entries
+- **GUI: resizable panes** — drag handles between file tree / diff view / inspector
+
