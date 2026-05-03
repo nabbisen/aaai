@@ -1,24 +1,27 @@
-//! Inspector panel (panel 3) — edit reason, strategy, and approve.
+//! Inspector panel (Phase 2: i18n).
 
 use iced::{
     Color, Element, Length, Padding,
-    widget::{button, column, container, pick_list, row, rule, scrollable, space, text, text_input},
+    widget::{button, column, container, pick_list,
+             row, scrollable, space, text, text_input},
 };
 
 use aaai_core::{
-    FileAuditResult, AuditStatus,
+    AuditStatus, FileAuditResult,
     config::definition::{AuditStrategy, LineAction, RegexTarget},
 };
 use crate::app::{App, InspectorState, Message};
 use crate::theme;
+use rust_i18n::t;
 
 const STRATEGIES: &[&str] = &["None", "Checksum", "LineMatch", "Regex", "Exact"];
 
 pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> {
     let ins = &app.inspector;
 
-    let path_text = text(&far.diff.path).size(13).font(iced::Font::MONOSPACE);
-    let diff_type_text = text(far.diff.diff_type.to_string()).size(12);
+    let path_text = text(&far.diff.path).size(12).font(iced::Font::MONOSPACE);
+    let diff_type_text = text(far.diff.diff_type.to_string()).size(11)
+        .color(Color::from_rgb(0.5, 0.5, 0.5));
 
     let status_color = match far.status {
         AuditStatus::Ok      => theme::OK_COLOR,
@@ -27,8 +30,15 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         AuditStatus::Ignored => theme::IGNORED_COLOR,
         AuditStatus::Error   => theme::ERROR_COLOR,
     };
+    let status_label = t!(match far.status {
+        AuditStatus::Ok      => "status.ok",
+        AuditStatus::Pending => "status.pending",
+        AuditStatus::Failed  => "status.failed",
+        AuditStatus::Ignored => "status.ignored",
+        AuditStatus::Error   => "status.error",
+    });
     let status_badge = container(
-        text(far.status.to_string()).size(12).color(Color::WHITE),
+        text(status_label).size(11).color(Color::WHITE),
     )
     .padding(Padding::from([2.0, 8.0]))
     .style(move |_| iced::widget::container::Style {
@@ -37,22 +47,15 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         ..Default::default()
     });
 
-    // Reason input
-    let reason_label = text("Reason").size(13).font(iced::Font {
-        weight: iced::font::Weight::Semibold,
-        ..Default::default()
+    let reason_label = text(t!("inspector.reason_label")).size(13).font(iced::Font {
+        weight: iced::font::Weight::Semibold, ..Default::default()
     });
-    let reason_input = text_input(
-        "Why is this change allowed? (required)",
-        &ins.reason,
-    )
-    .on_input(Message::ReasonChanged)
-    .padding(8);
+    let reason_input = text_input(&t!("inspector.reason_placeholder"), &ins.reason)
+        .on_input(Message::ReasonChanged)
+        .padding(8);
 
-    // Strategy picker
-    let strategy_label = text("Content Audit Strategy").size(13).font(iced::Font {
-        weight: iced::font::Weight::Semibold,
-        ..Default::default()
+    let strategy_label = text(t!("inspector.strategy_label")).size(13).font(iced::Font {
+        weight: iced::font::Weight::Semibold, ..Default::default()
     });
     let strategy_desc = text(ins.strategy.description()).size(11)
         .color(Color::from_rgb(0.45, 0.45, 0.45));
@@ -64,28 +67,22 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     )
     .padding(6);
 
-    // Strategy-specific form
     let strategy_form = build_strategy_form(ins);
 
-    // Validation error
     let val_err: Option<Element<'_, Message>> = ins.validation_error.as_ref().map(|e| {
         text(e.as_str()).size(12).color(Color::from_rgb(0.78, 0.10, 0.10)).into()
     });
 
-    // Note input
-    let note_label = text("Note (optional)").size(12);
-    let note_input = text_input("Additional context...", &ins.note)
+    let note_label = text(t!("inspector.note_label")).size(12);
+    let note_input = text_input(&t!("inspector.note_placeholder"), &ins.note)
         .on_input(Message::NoteChanged)
         .padding(6);
 
-    // Approve button — only enabled when reason non-empty and strategy valid
-    let can_approve = !ins.reason.trim().is_empty()
-        && ins.validation_error.is_none();
+    let can_approve = !ins.reason.trim().is_empty() && ins.validation_error.is_none();
 
     let approve_btn = button(
-        text("Approve & Apply").size(14).font(iced::Font {
-            weight: iced::font::Weight::Semibold,
-            ..Default::default()
+        text(t!("inspector.approve_button")).size(14).font(iced::Font {
+            weight: iced::font::Weight::Semibold, ..Default::default()
         }),
     )
     .on_press_maybe(if can_approve { Some(Message::ApproveEntry) } else { None })
@@ -97,9 +94,8 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
             space().width(Length::Fill),
             status_badge,
         ]
-        .spacing(8)
         .align_y(iced::Alignment::Start),
-        rule::horizontal(1),
+        iced::widget::rule::horizontal(1),
         reason_label,
         reason_input,
         strategy_label,
@@ -109,7 +105,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         note_label,
         note_input,
         space().height(Length::Fixed(4.0)),
-        row![approve_btn].spacing(8),
+        approve_btn,
     ]
     .spacing(10)
     .padding(Padding::from([16.0, 16.0]));
@@ -119,10 +115,9 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     }
 
     scrollable(
-        container(col)
-            .width(Length::Fill)
+        container(col).width(Length::Fill)
     )
-    .width(Length::Fixed(280.0))
+    .width(Length::Fixed(290.0))
     .height(Length::Fill)
     .into()
 }
@@ -134,11 +129,10 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
                 .color(Color::from_rgb(0.5, 0.5, 0.5))
                 .into()
         }
-
         AuditStrategy::Checksum { expected_sha256 } => {
             column![
-                text("Expected SHA-256").size(12),
-                text_input("64-char hex digest", expected_sha256)
+                text(t!("inspector.checksum_label")).size(12),
+                text_input(&t!("inspector.checksum_placeholder"), expected_sha256)
                     .on_input(Message::ChecksumChanged)
                     .padding(6)
                     .font(iced::Font::MONOSPACE),
@@ -146,10 +140,9 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             .spacing(4)
             .into()
         }
-
         AuditStrategy::LineMatch { rules } => {
             let mut col = column![
-                text("Expected line changes").size(12),
+                text(t!("inspector.linematch_label")).size(12),
             ]
             .spacing(6);
 
@@ -178,30 +171,31 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             }
 
             col = col.push(
-                button(text("+ Add rule").size(12))
+                button(text(t!("inspector.add_rule")).size(12))
                     .on_press(Message::AddLineRule)
                     .padding(Padding::from([4.0, 8.0])),
             );
-
             col.into()
         }
-
         AuditStrategy::Regex { pattern, target } => {
-            let target_display: &'static str = match target {
-                RegexTarget::AddedLines => "Added lines",
-                RegexTarget::RemovedLines => "Removed lines",
+            let target_opts: &[&str] = &["Added lines", "Removed lines", "All changed lines"];
+            let target_selected = match target {
+                RegexTarget::AddedLines     => "Added lines",
+                RegexTarget::RemovedLines   => "Removed lines",
                 RegexTarget::AllChangedLines => "All changed lines",
             };
+            let pat_label = t!("inspector.regex_pattern_label").to_string();
+            let tgt_label = t!("inspector.regex_target_label").to_string();
             column![
-                text("Pattern").size(12),
+                text(pat_label).size(12),
                 text_input("regular expression", pattern)
                     .on_input(Message::RegexPatternChanged)
                     .padding(6)
                     .font(iced::Font::MONOSPACE),
-                text("Apply to").size(12),
+                text(tgt_label).size(12),
                 pick_list(
-                    &["Added lines", "Removed lines", "All changed lines"][..],
-                    Some(target_display),
+                    target_opts,
+                    Some(target_selected),
                     |s: &str| Message::RegexTargetChanged(s.to_string()),
                 )
                 .padding(4),
@@ -209,10 +203,9 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             .spacing(4)
             .into()
         }
-
         AuditStrategy::Exact { expected_content } => {
             column![
-                text("Expected full content").size(12),
+                text(t!("inspector.exact_label")).size(12),
                 text_input("exact file content...", expected_content)
                     .on_input(Message::ExactContentChanged)
                     .padding(6)

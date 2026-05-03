@@ -1,4 +1,5 @@
-pub mod opening;
-pub mod main_view;
-pub mod inspector;
+pub mod batch;
 pub mod diff_view;
+pub mod inspector;
+pub mod main_view;
+pub mod opening;

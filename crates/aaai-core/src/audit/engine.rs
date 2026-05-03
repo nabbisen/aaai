@@ -1,7 +1,7 @@
 //! Audit engine: matches DiffEntries against AuditDefinition → AuditResult.
 
 use crate::config::definition::AuditDefinition;
-use crate::diff::entry::DiffEntry;
+use crate::diff::entry::{DiffEntry, DiffType};
 use super::result::{AuditResult, AuditStatus, FileAuditResult};
 use super::strategy;
 
@@ -31,6 +31,16 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             detail: diff.error_detail.clone().or_else(|| {
                 Some("File could not be read or compared.".into())
             }),
+        };
+    }
+
+    // Unchanged entries have no diff to audit — auto-OK regardless of rules.
+    if diff.diff_type == DiffType::Unchanged {
+        return FileAuditResult {
+            diff: diff.clone(),
+            entry: definition.find_entry(&diff.path).cloned(),
+            status: AuditStatus::Ok,
+            detail: None,
         };
     }
 

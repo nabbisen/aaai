@@ -1,56 +1,83 @@
-//! Top-level application state and message dispatcher.
+//! Top-level application state and message dispatcher (Phase 2).
+//!
+//! Changes from Phase 1:
+//! * Toast subscription properly wired (`App::subscription`).
+//! * `FilterMode` for file-tree filtering.
+//! * `BatchApproveState` for bulk approval.
+//! * `locale` field + `SwitchLocale` message.
+//! * `Instant` passed to `sweep_expired` correctly.
 
 use std::path::PathBuf;
+use std::time::Instant;
 
-use iced::{Subscription, Task};
-use snora::{AppLayout, Toast, ToastIntent, ToastPosition, render};
+use iced::{Element, Subscription, Task};
+use snora::{
+    AppLayout, Dialog, Sheet, SheetEdge, SheetSize,
+    Toast, ToastIntent, ToastLifetime, ToastPosition, render,
+};
 
 use aaai_core::{
-    AuditDefinition, AuditEngine, AuditResult, DiffEngine,
-    config::{definition::{AuditEntry, AuditStrategy}, io as config_io},
+    AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
+    AuditStatus, DiffType,
+    config::{
+        definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
+        io as config_io,
+    },
 };
 
 use crate::views::{opening, main_view};
+use crate::i18n;
+use rust_i18n::t;
 
-// ── Application state ─────────────────────────────────────────────────────
+// ── Screens ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Screen {
-    Opening,
-    Main,
+pub enum Screen { Opening, Main }
+
+// ── File-tree filter ─────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FilterMode {
+    All,
+    ChangedOnly,
+    PendingOnly,
+    FailedAndError,
 }
 
-pub struct App {
-    pub screen: Screen,
+impl FilterMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            FilterMode::All           => "filter.all",
+            FilterMode::ChangedOnly   => "filter.changed",
+            FilterMode::PendingOnly   => "filter.pending",
+            FilterMode::FailedAndError => "filter.errors",
+        }
+    }
 
-    // ── Opening screen fields
-    pub before_path: String,
-    pub after_path: String,
-    pub definition_path: String,
-    pub open_error: Option<String>,
-
-    // ── Main screen state
-    pub diffs: Vec<aaai_core::DiffEntry>,
-    pub audit_result: Option<AuditResult>,
-    pub definition: Option<AuditDefinition>,
-    pub selected_index: Option<usize>,
-
-    // ── Inspector / editing state
-    pub inspector: InspectorState,
-
-    // ── Unsaved changes
-    pub dirty: bool,
-
-    // ── Toasts
-    pub toasts: Vec<Toast<Message>>,
-    pub toast_id_counter: u64,
-
-    // ── Dialog
-    pub dialog: Option<DialogState>,
-
-    // ── Status bar message
-    pub status_msg: Option<String>,
+    pub fn passes(self, far: &FileAuditResult) -> bool {
+        match self {
+            FilterMode::All => true,
+            FilterMode::ChangedOnly =>
+                far.diff.diff_type != DiffType::Unchanged,
+            FilterMode::PendingOnly =>
+                far.status == AuditStatus::Pending,
+            FilterMode::FailedAndError =>
+                matches!(far.status, AuditStatus::Failed | AuditStatus::Error),
+        }
+    }
 }
+
+// ── Batch approve state ──────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default)]
+pub struct BatchApproveState {
+    pub selected: std::collections::HashSet<usize>,
+    pub shared_reason: String,
+    pub shared_strategy: AuditStrategy,
+    pub validation_error: Option<String>,
+}
+
+// ── Inspector state ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub struct InspectorState {
@@ -73,11 +100,40 @@ impl Default for InspectorState {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum DialogState {
-    ConfirmSave,
-    ConfirmClose,
-    ReportSaved(String),
+// ── App state ─────────────────────────────────────────────────────────────
+
+pub struct App {
+    pub screen: Screen,
+
+    // Opening
+    pub before_path: String,
+    pub after_path: String,
+    pub definition_path: String,
+    pub open_error: Option<String>,
+
+    // Main
+    pub diffs: Vec<aaai_core::DiffEntry>,
+    pub audit_result: Option<AuditResult>,
+    pub definition: Option<AuditDefinition>,
+    pub selected_index: Option<usize>,
+    pub filter_mode: FilterMode,
+
+    // Inspector
+    pub inspector: InspectorState,
+
+    // Batch
+    pub batch: BatchApproveState,
+    pub batch_sheet_open: bool,
+
+    // Unsaved
+    pub dirty: bool,
+
+    // Toasts
+    pub toasts: Vec<Toast<Message>>,
+    pub toast_id: u64,
+
+    // Locale
+    pub locale: String,
 }
 
 impl Default for App {
@@ -92,12 +148,14 @@ impl Default for App {
             audit_result: None,
             definition: None,
             selected_index: None,
+            filter_mode: FilterMode::ChangedOnly,
             inspector: InspectorState::default(),
+            batch: BatchApproveState::default(),
+            batch_sheet_open: false,
             dirty: false,
             toasts: Vec::new(),
-            toast_id_counter: 0,
-            dialog: None,
-            status_msg: None,
+            toast_id: 0,
+            locale: rust_i18n::locale().to_string(),
         }
     }
 }
@@ -106,44 +164,51 @@ impl Default for App {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    // Opening screen
+    // Opening
     BeforePathChanged(String),
     AfterPathChanged(String),
     DefinitionPathChanged(String),
     StartAudit,
-    NewDefinition,
 
     // File tree
     SelectEntry(usize),
+    SetFilter(FilterMode),
 
     // Inspector
     ReasonChanged(String),
     NoteChanged(String),
     StrategySelected(String),
-    // LineMatch rule editing
+    ChecksumChanged(String),
+    RegexPatternChanged(String),
+    RegexTargetChanged(String),
     AddLineRule,
     RemoveLineRule(usize),
     LineRuleActionChanged(usize, String),
     LineRuleLineChanged(usize, String),
-    // Checksum field
-    ChecksumChanged(String),
-    // Regex fields
-    RegexPatternChanged(String),
-    RegexTargetChanged(String),
-    // Exact field
     ExactContentChanged(String),
 
     // Actions
     ApproveEntry,
     RerunAudit,
     SaveDefinition,
-    ExportReport(String), // "markdown" or "json"
+    ExportReport(String),
 
-    // Dialog / modal
+    // Batch
+    ToggleBatchSelect(usize),
+    BatchReasonChanged(String),
+    BatchStrategySelected(String),
+    OpenBatchSheet,
+    CloseBatchSheet,
+    CommitBatchApprove,
+
+    // Locale
+    SwitchLocale(String),
+
+    // Overlays
     CloseModals,
     CloseMenus,
 
-    // Toast
+    // Toasts
     DismissToast(u64),
     ToastTick,
 }
@@ -153,18 +218,17 @@ pub enum Message {
 impl App {
     pub fn update(&mut self, msg: Message) -> Task<Message> {
         match msg {
-            // ── Opening screen ─────────────────────────────────────────
+            // ── Opening ───────────────────────────────────────────────
             Message::BeforePathChanged(s) => { self.before_path = s; }
-            Message::AfterPathChanged(s) => { self.after_path = s; }
+            Message::AfterPathChanged(s)  => { self.after_path = s; }
             Message::DefinitionPathChanged(s) => { self.definition_path = s; }
 
             Message::StartAudit => {
                 self.open_error = None;
                 let before = PathBuf::from(&self.before_path);
-                let after = PathBuf::from(&self.after_path);
+                let after  = PathBuf::from(&self.after_path);
                 let def_path = PathBuf::from(&self.definition_path);
 
-                // Validate
                 if !before.is_dir() {
                     self.open_error = Some(format!(
                         "Before folder not found: {}", before.display()
@@ -178,7 +242,6 @@ impl App {
                     return Task::none();
                 }
 
-                // Load or create definition
                 let definition = if def_path.exists() {
                     match config_io::load(&def_path) {
                         Ok(d) => d,
@@ -191,7 +254,6 @@ impl App {
                     AuditDefinition::new_empty()
                 };
 
-                // Run diff + audit
                 match DiffEngine::compare(&before, &after) {
                     Ok(diffs) => {
                         let result = AuditEngine::evaluate(&diffs, &definition);
@@ -208,33 +270,32 @@ impl App {
                 }
             }
 
-            Message::NewDefinition => {
-                self.definition_path = String::new();
-                self.open_error = None;
-            }
-
-            // ── File tree selection ────────────────────────────────────
+            // ── File tree ──────────────────────────────────────────────
             Message::SelectEntry(idx) => {
                 self.selected_index = Some(idx);
-                // Populate inspector from the selected entry.
-                if let Some(result) = self.audit_result.as_ref() {
-                    if let Some(far) = result.results.get(idx) {
-                        if let Some(entry) = &far.entry {
-                            self.inspector = InspectorState {
-                                reason: entry.reason.clone(),
-                                strategy_label: entry.strategy.label().into(),
-                                strategy: entry.strategy.clone(),
-                                note: entry.note.clone().unwrap_or_default(),
-                                validation_error: None,
-                            };
-                        } else {
-                            self.inspector = InspectorState::default();
+                if let Some(far) = self.audit_result.as_ref()
+                    .and_then(|r| r.results.get(idx))
+                {
+                    self.inspector = if let Some(entry) = &far.entry {
+                        InspectorState {
+                            reason: entry.reason.clone(),
+                            strategy_label: entry.strategy.label().into(),
+                            strategy: entry.strategy.clone(),
+                            note: entry.note.clone().unwrap_or_default(),
+                            validation_error: None,
                         }
-                    }
+                    } else {
+                        InspectorState::default()
+                    };
                 }
             }
 
-            // ── Inspector edits ────────────────────────────────────────
+            Message::SetFilter(f) => {
+                self.filter_mode = f;
+                self.selected_index = None;
+            }
+
+            // ── Inspector ──────────────────────────────────────────────
             Message::ReasonChanged(s) => {
                 self.inspector.reason = s;
                 self.validate_inspector();
@@ -243,78 +304,50 @@ impl App {
 
             Message::StrategySelected(label) => {
                 self.inspector.strategy_label = label.clone();
-                self.inspector.strategy = match label.as_str() {
-                    "None"      => AuditStrategy::None,
-                    "Checksum"  => AuditStrategy::Checksum { expected_sha256: String::new() },
-                    "LineMatch" => AuditStrategy::LineMatch { rules: Vec::new() },
-                    "Regex"     => AuditStrategy::Regex {
-                        pattern: String::new(),
-                        target: aaai_core::config::definition::RegexTarget::AddedLines,
-                    },
-                    "Exact"     => AuditStrategy::Exact { expected_content: String::new() },
-                    _           => AuditStrategy::None,
-                };
+                self.inspector.strategy = strategy_from_label(&label);
                 self.validate_inspector();
             }
-
             Message::ChecksumChanged(s) => {
                 if let AuditStrategy::Checksum { expected_sha256 } = &mut self.inspector.strategy {
                     *expected_sha256 = s;
                 }
                 self.validate_inspector();
             }
-
             Message::RegexPatternChanged(s) => {
                 if let AuditStrategy::Regex { pattern, .. } = &mut self.inspector.strategy {
                     *pattern = s;
                 }
                 self.validate_inspector();
             }
-
             Message::RegexTargetChanged(s) => {
                 if let AuditStrategy::Regex { target, .. } = &mut self.inspector.strategy {
-                    use aaai_core::config::definition::RegexTarget;
-                    *target = match s.as_str() {
-                        "Added lines"       => RegexTarget::AddedLines,
-                        "Removed lines"     => RegexTarget::RemovedLines,
-                        "All changed lines" => RegexTarget::AllChangedLines,
-                        _                   => RegexTarget::AddedLines,
-                    };
+                    *target = regex_target_from_str(&s);
                 }
             }
-
             Message::AddLineRule => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
-                    rules.push(aaai_core::config::definition::LineRule {
-                        action: aaai_core::config::definition::LineAction::Added,
-                        line: String::new(),
-                    });
+                    rules.push(LineRule { action: LineAction::Added, line: String::new() });
                 }
             }
-
             Message::RemoveLineRule(i) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
                     if i < rules.len() { rules.remove(i); }
                 }
                 self.validate_inspector();
             }
-
             Message::LineRuleActionChanged(i, s) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
                     if let Some(r) = rules.get_mut(i) {
-                        use aaai_core::config::definition::LineAction;
                         r.action = if s == "Removed" { LineAction::Removed } else { LineAction::Added };
                     }
                 }
             }
-
             Message::LineRuleLineChanged(i, s) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
                     if let Some(r) = rules.get_mut(i) { r.line = s; }
                 }
                 self.validate_inspector();
             }
-
             Message::ExactContentChanged(s) => {
                 if let AuditStrategy::Exact { expected_content } = &mut self.inspector.strategy {
                     *expected_content = s;
@@ -325,54 +358,119 @@ impl App {
             // ── Approve ───────────────────────────────────────────────
             Message::ApproveEntry => {
                 if let Some(idx) = self.selected_index {
-                    if let Some(result) = &self.audit_result {
-                        if let Some(far) = result.results.get(idx) {
-                            // Validate
-                            let entry = AuditEntry {
-                                path: far.diff.path.clone(),
-                                diff_type: far.diff.diff_type,
-                                reason: self.inspector.reason.trim().to_string(),
-                                strategy: self.inspector.strategy.clone(),
-                                enabled: true,
-                                note: {
-                                    let n = self.inspector.note.trim().to_string();
-                                    if n.is_empty() { None } else { Some(n) }
-                                },
-                            };
-                            match entry.is_approvable() {
-                                Ok(()) => {
-                                    if let Some(def) = &mut self.definition {
-                                        def.upsert_entry(entry);
-                                        self.dirty = true;
-                                        self.push_toast(
-                                            ToastIntent::Success,
-                                            "Approved",
-                                            &format!("Entry approved: {}", far.diff.path),
-                                        );
-                                        // Re-run audit in place.
-                                        self.rerun_audit();
-                                    }
+                    if let Some(far) = self.audit_result.as_ref()
+                        .and_then(|r| r.results.get(idx))
+                    {
+                        let entry = AuditEntry {
+                            path: far.diff.path.clone(),
+                            diff_type: far.diff.diff_type,
+                            reason: self.inspector.reason.trim().to_string(),
+                            strategy: self.inspector.strategy.clone(),
+                            enabled: true,
+                            note: {
+                                let n = self.inspector.note.trim().to_string();
+                                if n.is_empty() { None } else { Some(n) }
+                            },
+                        };
+                        match entry.is_approvable() {
+                            Ok(()) => {
+                                let path = far.diff.path.clone();
+                                if let Some(def) = &mut self.definition {
+                                    def.upsert_entry(entry);
+                                    self.dirty = true;
+                                    self.rerun_audit();
+                                    self.push_toast(
+                                        ToastIntent::Success,
+                                        t!("toast.approved").as_ref(),
+                                        &path,
+                                    );
                                 }
-                                Err(e) => {
-                                    self.inspector.validation_error = Some(e);
-                                }
+                            }
+                            Err(e) => {
+                                self.inspector.validation_error = Some(e);
                             }
                         }
                     }
                 }
             }
 
-            // ── Re-run ────────────────────────────────────────────────
-            Message::RerunAudit => {
+            // ── Batch ─────────────────────────────────────────────────
+            Message::ToggleBatchSelect(idx) => {
+                if self.batch.selected.contains(&idx) {
+                    self.batch.selected.remove(&idx);
+                } else {
+                    self.batch.selected.insert(idx);
+                }
+            }
+            Message::BatchReasonChanged(s) => {
+                self.batch.shared_reason = s;
+            }
+            Message::BatchStrategySelected(label) => {
+                self.batch.shared_strategy = strategy_from_label(&label);
+            }
+            Message::OpenBatchSheet => {
+                self.batch_sheet_open = true;
+            }
+            Message::CloseBatchSheet => {
+                self.batch_sheet_open = false;
+            }
+            Message::CommitBatchApprove => {
+                if self.batch.shared_reason.trim().is_empty() {
+                    self.batch.validation_error =
+                        Some("Reason must not be empty.".into());
+                    return Task::none();
+                }
+                let indices: Vec<usize> =
+                    self.batch.selected.iter().copied().collect();
+                let mut count = 0usize;
+
+                if let Some(result) = &self.audit_result {
+                    let entries: Vec<AuditEntry> = indices
+                        .iter()
+                        .filter_map(|&i| result.results.get(i))
+                        .map(|far| AuditEntry {
+                            path: far.diff.path.clone(),
+                            diff_type: far.diff.diff_type,
+                            reason: self.batch.shared_reason.trim().to_string(),
+                            strategy: self.batch.shared_strategy.clone(),
+                            enabled: true,
+                            note: None,
+                        })
+                        .collect();
+                    count = entries.len();
+                    if let Some(def) = &mut self.definition {
+                        for entry in entries {
+                            def.upsert_entry(entry);
+                        }
+                    }
+                }
+
+                self.dirty = true;
+                self.batch.selected.clear();
+                self.batch.shared_reason.clear();
+                self.batch_sheet_open = false;
                 self.rerun_audit();
-                self.push_toast(ToastIntent::Info, "Re-run", "Audit re-evaluated.");
+                self.push_toast(
+                    ToastIntent::Success,
+                    t!("toast.batch_approved").as_ref(),
+                    &format!("{} entries approved.", count),
+                );
             }
 
-            // ── Save ──────────────────────────────────────────────────
+            // ── Re-run / save / report ────────────────────────────────
+            Message::RerunAudit => {
+                self.rerun_audit();
+                self.push_toast(ToastIntent::Info, t!("toast.rerun").as_ref(), "Audit re-evaluated.");
+            }
+
             Message::SaveDefinition => {
                 let path = PathBuf::from(&self.definition_path);
                 if path.as_os_str().is_empty() {
-                    self.push_toast(ToastIntent::Error, "Save failed", "No definition file path set.");
+                    self.push_toast(
+                        ToastIntent::Error,
+                        t!("toast.save_failed").as_ref(),
+                        "No definition file path set.",
+                    );
                     return Task::none();
                 }
                 if let Some(def) = &self.definition {
@@ -381,14 +479,14 @@ impl App {
                             self.dirty = false;
                             self.push_toast(
                                 ToastIntent::Success,
-                                "Saved",
+                                t!("toast.saved").as_ref(),
                                 &format!("Saved to {}", path.display()),
                             );
                         }
                         Err(e) => {
                             self.push_toast(
                                 ToastIntent::Error,
-                                "Save failed",
+                                t!("toast.save_failed").as_ref(),
                                 &e.to_string(),
                             );
                         }
@@ -396,21 +494,15 @@ impl App {
                 }
             }
 
-            // ── Report export ─────────────────────────────────────────
             Message::ExportReport(fmt) => {
                 if let Some(result) = &self.audit_result {
                     let before = PathBuf::from(&self.before_path);
-                    let after = PathBuf::from(&self.after_path);
-                    let def_path_str = &self.definition_path;
-                    let def_path = if def_path_str.is_empty() {
-                        None
-                    } else {
-                        Some(PathBuf::from(def_path_str))
-                    };
-
+                    let after  = PathBuf::from(&self.after_path);
+                    let def_path =
+                        if self.definition_path.is_empty() { None }
+                        else { Some(PathBuf::from(&self.definition_path)) };
                     let ext = if fmt == "json" { "json" } else { "md" };
                     let out = PathBuf::from(format!("aaai-report.{ext}"));
-
                     let res = match fmt.as_str() {
                         "json" => aaai_core::report::generator::ReportGenerator::write_json(
                             result, &before, &after, def_path.as_deref(), &out,
@@ -422,20 +514,26 @@ impl App {
                     match res {
                         Ok(()) => self.push_toast(
                             ToastIntent::Success,
-                            "Report exported",
+                            t!("toast.export_ok").as_ref(),
                             &format!("Saved to {}", out.display()),
                         ),
                         Err(e) => self.push_toast(
                             ToastIntent::Error,
-                            "Export failed",
+                            t!("toast.export_failed").as_ref(),
                             &e.to_string(),
                         ),
                     }
                 }
             }
 
-            // ── Modals / menus ────────────────────────────────────────
-            Message::CloseModals => { self.dialog = None; }
+            // ── Locale ────────────────────────────────────────────────
+            Message::SwitchLocale(code) => {
+                rust_i18n::set_locale(&code);
+                self.locale = code;
+            }
+
+            // ── Overlays ──────────────────────────────────────────────
+            Message::CloseModals => { self.batch_sheet_open = false; }
             Message::CloseMenus  => {}
 
             // ── Toasts ────────────────────────────────────────────────
@@ -443,37 +541,21 @@ impl App {
                 self.toasts.retain(|t| t.id != id);
             }
             Message::ToastTick => {
-                snora::toast::sweep_expired(&mut self.toasts, std::time::Instant::now());
+                snora::toast::sweep_expired(&mut self.toasts, Instant::now());
             }
         }
         Task::none()
     }
 
-    fn validate_inspector(&mut self) {
-        self.inspector.validation_error = self.inspector.strategy.validate().err();
+    // ── Subscription ─────────────────────────────────────────────────────
+
+    pub fn subscription(&self) -> Subscription<Message> {
+        snora::toast::subscription(&self.toasts, || Message::ToastTick)
     }
 
-    fn rerun_audit(&mut self) {
-        if let (Some(def), diffs) = (&self.definition, &self.diffs) {
-            let result = AuditEngine::evaluate(diffs, def);
-            self.audit_result = Some(result);
-        }
-    }
+    // ── View ─────────────────────────────────────────────────────────────
 
-    fn push_toast(&mut self, intent: ToastIntent, title: &str, body: &str) {
-        let id = self.toast_id_counter;
-        self.toast_id_counter += 1;
-        self.toasts.push(Toast::new(
-            id, intent,
-            title.to_string(),
-            body.to_string(),
-            Message::DismissToast(id),
-        ));
-    }
-
-    // ── View ──────────────────────────────────────────────────────────────
-
-    pub fn view(&self) -> iced::Element<'_, Message> {
+    pub fn view(&self) -> Element<'_, Message> {
         let body = match self.screen {
             Screen::Opening => opening::view(self),
             Screen::Main    => main_view::view(self),
@@ -481,52 +563,122 @@ impl App {
 
         let footer = self.view_footer();
 
-        let layout = AppLayout::new(body)
+        let mut layout = AppLayout::new(body)
             .footer(footer)
             .toasts(self.toasts.clone())
             .toast_position(ToastPosition::BottomEnd)
             .on_close_modals(Message::CloseModals)
             .on_close_menus(Message::CloseMenus);
 
+        // Batch approve sheet
+        if self.batch_sheet_open {
+            let sheet_content = crate::views::batch::view(self);
+            layout = layout.sheet(
+                Sheet::new(sheet_content)
+                    .at(SheetEdge::End)
+                    .with_size(SheetSize::Pixels(380.0)),
+            );
+        }
+
         render(layout)
     }
 
-    fn view_footer(&self) -> iced::Element<'_, Message> {
+    fn view_footer(&self) -> Element<'_, Message> {
         use iced::{Alignment::Center, Length, widget::{container, row, space, text}};
         use crate::style::panel_style;
 
-        let left: iced::Element<'_, Message> = if self.dirty {
-            text("● Unsaved changes").size(12)
+        let locale_label = {
+            use iced::widget::{button, pick_list};
+            let current = self.locale.as_str();
+            let labels: Vec<&str> = crate::i18n::SUPPORTED_LOCALES.iter()
+                .map(|(_, label)| *label)
+                .collect();
+            let current_label = crate::i18n::SUPPORTED_LOCALES
+                .iter()
+                .find(|(c, _)| *c == current)
+                .map(|(_, l)| *l)
+                .unwrap_or("English");
+            pick_list(
+                labels,
+                Some(current_label),
+                |label: &str| {
+                    let code = crate::i18n::SUPPORTED_LOCALES
+                        .iter()
+                        .find(|(_, l)| *l == label)
+                        .map(|(c, _)| c.to_string())
+                        .unwrap_or_default();
+                    Message::SwitchLocale(code)
+                },
+            )
+            .text_size(11)
+            .padding(2)
+        };
+
+        let left: Element<'_, Message> = if self.dirty {
+            text(t!("footer.unsaved")).size(12)
                 .color(iced::Color::from_rgb(0.85, 0.45, 0.10))
                 .into()
         } else {
             text("").size(12).into()
         };
 
-        let right: iced::Element<'_, Message> =
-            text("aaai v0.1.0").size(12).into();
-
         container(
             row![
                 left,
                 space().width(Length::Fill),
-                right,
+                locale_label,
+                text(t!("app.version")).size(11),
             ]
             .align_y(Center)
-            .spacing(8),
+            .spacing(12),
         )
         .width(Length::Fill)
         .padding(iced::Padding::from([4.0, 16.0]))
         .style(panel_style)
         .into()
     }
-}
 
-impl App {
-    /// Subscription for toast TTL ticks.
-    #[allow(dead_code)]
-    pub fn subscription(&self) -> Subscription<Message> {
-        snora::toast::subscription(&self.toasts, || Message::ToastTick)
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    fn validate_inspector(&mut self) {
+        self.inspector.validation_error = self.inspector.strategy.validate().err();
+    }
+
+    pub fn rerun_audit(&mut self) {
+        if let Some(def) = &self.definition {
+            let result = AuditEngine::evaluate(&self.diffs, def);
+            self.audit_result = Some(result);
+        }
+    }
+
+    pub fn push_toast(&mut self, intent: ToastIntent, title: &str, body: &str) {
+        let id = self.toast_id;
+        self.toast_id += 1;
+        self.toasts.push(Toast::new(
+            id, intent,
+            title.to_string(),
+            body.to_string(),
+            Message::DismissToast(id),
+        ));
     }
 }
-// suppress false-positive dead_code for fields reserved for future use
+
+// ── pure functions ────────────────────────────────────────────────────────
+
+pub fn strategy_from_label(label: &str) -> AuditStrategy {
+    match label {
+        "Checksum"  => AuditStrategy::Checksum { expected_sha256: String::new() },
+        "LineMatch" => AuditStrategy::LineMatch { rules: Vec::new() },
+        "Regex"     => AuditStrategy::Regex { pattern: String::new(), target: RegexTarget::AddedLines },
+        "Exact"     => AuditStrategy::Exact { expected_content: String::new() },
+        _           => AuditStrategy::None,
+    }
+}
+
+pub fn regex_target_from_str(s: &str) -> RegexTarget {
+    match s {
+        "Removed lines"     => RegexTarget::RemovedLines,
+        "All changed lines" => RegexTarget::AllChangedLines,
+        _                   => RegexTarget::AddedLines,
+    }
+}
