@@ -9,14 +9,16 @@ pub struct ReportGenerator;
 
 impl ReportGenerator {
     /// Generate a Markdown report and write to `output_path`.
+    /// Pass `Some(masker)` to redact secrets from reason / content fields.
     pub fn write_markdown(
         result: &AuditResult,
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
         output_path: &Path,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> anyhow::Result<()> {
-        let md = Self::build_markdown(result, before_root, after_root, definition_path);
+        let md = Self::build_markdown(result, before_root, after_root, definition_path, masker);
         std::fs::write(output_path, md.as_bytes())?;
         log::info!("Markdown report written to {}", output_path.display());
         Ok(())
@@ -29,8 +31,9 @@ impl ReportGenerator {
         after_root: &Path,
         definition_path: Option<&Path>,
         output_path: &Path,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> anyhow::Result<()> {
-        let json = Self::build_json(result, before_root, after_root, definition_path)?;
+        let json = Self::build_json(result, before_root, after_root, definition_path, masker)?;
         std::fs::write(output_path, json.as_bytes())?;
         log::info!("JSON report written to {}", output_path.display());
         Ok(())
@@ -41,6 +44,7 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> String {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
         let s = &result.summary;
@@ -87,12 +91,18 @@ impl ReportGenerator {
                 md.push_str(&format!("- **Status:** {}\n", r.status));
                 md.push_str(&format!("- **Diff type:** {}\n", r.diff.diff_type));
                 if let Some(entry) = &r.entry {
-                    md.push_str(&format!("- **Reason:** {}\n", entry.reason));
+                    let reason = masker.map(|m| m.mask(&entry.reason)).unwrap_or_else(|| entry.reason.clone());
+                    md.push_str(&format!("- **Reason:** {}\n", reason));
                     md.push_str(&format!("- **Strategy:** {}\n", entry.strategy.label()));
-                    if let Some(note) = &entry.note {
-                        md.push_str(&format!("- **Note:** {note}\n"));
-                    }
+                    if let Some(t) = &entry.ticket { md.push_str(&format!("- **Ticket:** {t}\n")); }
+                    if let Some(ab) = &entry.approved_by { md.push_str(&format!("- **Approved by:** {ab}\n")); }
+                    if let Some(at) = &entry.approved_at { md.push_str(&format!("- **Approved at:** {}\n", at.format("%Y-%m-%d %H:%M UTC"))); }
+                    if let Some(exp) = &entry.expires_at { md.push_str(&format!("- **Expires at:** {exp}\n")); }
+                    if let Some(note) = &entry.note { md.push_str(&format!("- **Note:** {note}\n")); }
                 }
+                if r.diff.is_binary { md.push_str("- **Type:** Binary file\n"); }
+                if let Some(label) = r.diff.size_change_label() { md.push_str(&format!("- **Size:** {label}\n")); }
+                if let Some(stats) = &r.diff.stats { md.push_str(&format!("- **Lines:** +{} -{}\n", stats.lines_added, stats.lines_removed)); }
                 if let Some(detail) = &r.detail {
                     md.push_str(&format!("- **Detail:** {detail}\n"));
                 }
@@ -108,6 +118,7 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
     ) -> anyhow::Result<String> {
         use serde_json::{json, Value};
         let now = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();

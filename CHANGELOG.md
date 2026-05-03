@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.0] — Phase 4: Advanced
+
+### Core 新モジュール (69 テスト全通過)
+- **`diff/entry.rs` 強化** — `is_binary` フラグ・`before_size`/`after_size`・`before_sha256`・`DiffStats`（lines_added/removed/unchanged）フィールドを追加
+- **並列差分エンジン** — `rayon` による `par_iter` で大規模フォルダの並列ファイル比較を実現。ソート済み出力を保証
+- **バイナリ検出** — ヌルバイト検査によるバイナリ判定。バイナリファイルは hash/size のみ追跡、テキスト戦略の適用を防止
+- **`diff/entry::fmt_size()`** — バイト数を人間可読文字列 (B/KB/MB/GB) にフォーマット
+- **`masking/`** — `MaskingEngine` + 9 種のビルトインパターン（API キー、パスワード、AWS キー、GitHub トークン、Slack トークン、Bearer トークン、接続文字列パスワード、秘密鍵ヘッダー）。カスタムパターン追加可能
+- **`project/config.rs`** — `.aaai.yaml` の読み込み・保存・上位ディレクトリへのオートディスカバリー
+
+### CLI 追加
+- **`aaai config`** — `.aaai.yaml` を現在ディレクトリ付近から検索・表示。`--init` でスターターテンプレート生成
+- **`aaai audit --mask-secrets`** — Verbose 出力の reason フィールドをマスキング。プロジェクト設定の `mask_secrets: true` でも有効化
+- **`aaai audit --verbose`** — バイナリファイルの (binary file) 表示、差分統計 (+N -N lines)、サイズ変化を追加
+- **レポートへのマスキング対応** — `write_markdown` / `write_json` に `Option<&MaskingEngine>` 引数を追加
+
+### GUI 追加
+- **バイナリファイルパネル** — バイナリ差分選択時に専用パネルを表示。ファイル種別・サイズ変化・before/after SHA-256 ハッシュ・一致/不一致の視覚的表示
+- **差分統計バー** — テキスト差分ビューアの上部に `+N lines` / `−N lines` と サイズ変化を表示
+
 ## [0.3.0] — Phase 3: Integrations
 
 ### Core 追加

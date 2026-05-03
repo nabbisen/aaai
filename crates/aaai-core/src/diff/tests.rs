@@ -127,3 +127,82 @@ fn before_root_must_be_directory() {
     );
     assert!(result.is_err());
 }
+
+// ── Phase 4 tests ─────────────────────────────────────────────────────────
+
+#[test]
+fn binary_file_detected() {
+    let before = tmp_dir();
+    let after  = tmp_dir();
+    // Write a file with null bytes (binary marker).
+    let binary_content: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE];
+    std::fs::write(after.path().join("data.bin"), &binary_content).unwrap();
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+    let e = find(&diffs, "data.bin");
+    assert_eq!(e.diff_type, DiffType::Added);
+    assert!(e.is_binary, "null bytes should mark file as binary");
+    assert!(e.after_text.is_none(), "binary file should have no text");
+    assert!(e.after_sha256.is_some(), "binary file should still have hash");
+    assert!(e.after_size.is_some(), "binary file should have size");
+}
+
+#[test]
+fn diff_stats_computed_for_modified_text() {
+    let before = tmp_dir();
+    let after  = tmp_dir();
+    write(before.path(), "lines.txt", "line1\nline2\nline3\n");
+    write(after.path(),  "lines.txt", "line1\nline2_changed\nline3\nline4\n");
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+    let e = find(&diffs, "lines.txt");
+    assert_eq!(e.diff_type, DiffType::Modified);
+    let stats = e.stats.as_ref().expect("stats should be present for modified text");
+    assert!(stats.lines_added   >= 1, "should have added lines");
+    assert!(stats.lines_removed >= 1, "should have removed lines");
+}
+
+#[test]
+fn size_tracking_for_modified_file() {
+    let before = tmp_dir();
+    let after  = tmp_dir();
+    write(before.path(), "f.txt", "short");
+    write(after.path(),  "f.txt", "much longer content here");
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+    let e = find(&diffs, "f.txt");
+    assert!(e.before_size.is_some());
+    assert!(e.after_size.is_some());
+    assert!(e.after_size.unwrap() > e.before_size.unwrap());
+}
+
+#[test]
+fn parallel_compare_produces_sorted_output() {
+    use crate::diff::ignore::IgnoreRules;
+    let before = tmp_dir();
+    let after  = tmp_dir();
+    for name in ["z.txt", "a.txt", "m.txt", "b.txt"] {
+        write(after.path(), name, name);
+    }
+    let diffs = DiffEngine::compare_with_ignore(
+        before.path(), after.path(), &IgnoreRules::default()
+    ).unwrap();
+    let paths: Vec<_> = diffs.iter().map(|d| d.path.as_str()).collect();
+    let mut sorted = paths.clone();
+    sorted.sort();
+    assert_eq!(paths, sorted, "parallel output must be sorted");
+}
+
+#[test]
+fn before_sha256_tracked() {
+    let before = tmp_dir();
+    let after  = tmp_dir();
+    write(before.path(), "f.txt", "content");
+    write(after.path(),  "f.txt", "different");
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+    let e = find(&diffs, "f.txt");
+    assert!(e.before_sha256.is_some(), "before_sha256 must be present for modified files");
+    assert!(e.after_sha256.is_some());
+    assert_ne!(e.before_sha256, e.after_sha256, "hashes must differ for modified file");
+}

@@ -1,24 +1,25 @@
-//! Folder diff engine with optional ignore-pattern support.
+//! Folder diff engine — Phase 4: parallel processing + binary detection + diff stats.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 use walkdir::WalkDir;
 
-use super::entry::{DiffEntry, DiffType};
+use super::entry::{DiffEntry, DiffStats, DiffType};
 use super::ignore::IgnoreRules;
 
 pub struct DiffEngine;
 
 impl DiffEngine {
-    /// Compare two directory trees.
-    /// Paths matching `ignore` rules are excluded from the result.
+    /// Compare two directory trees (sequential — for small trees).
     pub fn compare(before_root: &Path, after_root: &Path) -> anyhow::Result<Vec<DiffEntry>> {
         Self::compare_with_ignore(before_root, after_root, &IgnoreRules::default())
     }
 
-    /// Compare with explicit ignore rules.
+    /// Compare with ignore rules.
+    /// Uses parallel processing for the per-file comparison step.
     pub fn compare_with_ignore(
         before_root: &Path,
         after_root: &Path,
@@ -32,25 +33,32 @@ impl DiffEngine {
             .cloned()
             .collect();
 
-        let mut entries = Vec::new();
-        for rel_path in all_paths {
-            if ignore.is_ignored(&rel_path) {
-                log::debug!("ignored: {rel_path}");
-                continue;
-            }
-            let entry = match (before_map.get(&rel_path), after_map.get(&rel_path)) {
-                (None,    Some(a)) => build_added(rel_path, a),
-                (Some(b), None)    => build_removed(rel_path, b),
-                (Some(b), Some(a)) => build_compared(rel_path, b, a),
-                (None,    None)    => unreachable!(),
-            };
-            entries.push(entry);
-        }
+        // Filter ignored paths eagerly.
+        let paths_to_compare: Vec<String> = all_paths
+            .into_iter()
+            .filter(|p| !ignore.is_ignored(p))
+            .collect();
 
+        // ── Parallel per-file comparison ───────────────────────────────────
+        let mut entries: Vec<DiffEntry> = paths_to_compare
+            .into_par_iter()
+            .map(|rel_path| {
+                match (before_map.get(&rel_path), after_map.get(&rel_path)) {
+                    (None,    Some(a)) => build_added(rel_path, a),
+                    (Some(b), None)    => build_removed(rel_path, b),
+                    (Some(b), Some(a)) => build_compared(rel_path, b, a),
+                    (None,    None)    => unreachable!(),
+                }
+            })
+            .collect();
+
+        // Restore deterministic sort (parallel iter may reorder).
         entries.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(entries)
     }
 }
+
+// ── Path collection ───────────────────────────────────────────────────────
 
 fn collect_paths(root: &Path) -> anyhow::Result<BTreeMap<String, PathBuf>> {
     if !root.is_dir() {
@@ -69,72 +77,142 @@ fn collect_paths(root: &Path) -> anyhow::Result<BTreeMap<String, PathBuf>> {
     Ok(map)
 }
 
+// ── Per-file builders ─────────────────────────────────────────────────────
+
 fn build_added(rel: String, after: &Path) -> DiffEntry {
-    let is_dir = after.is_dir();
-    let (after_text, after_sha256, error_detail) =
-        if is_dir { (None, None, None) } else { read_text_and_hash(after) };
-    DiffEntry { path: rel, diff_type: DiffType::Added, is_dir,
-                before_text: None, after_text, after_sha256, error_detail }
+    if after.is_dir() {
+        return dir_entry(rel, DiffType::Added);
+    }
+    let (bytes, sha, size, error) = read_file(after);
+    let (text, is_binary) = classify_bytes(&bytes);
+    DiffEntry {
+        path: rel, diff_type: DiffType::Added, is_dir: false,
+        before_text: None, after_text: text.clone(),
+        is_binary,
+        before_size: None, after_size: size,
+        before_sha256: None, after_sha256: sha,
+        stats: None, // no before to diff against
+        error_detail: error,
+    }
 }
 
 fn build_removed(rel: String, before: &Path) -> DiffEntry {
-    let is_dir = before.is_dir();
-    let (before_text, _, error_detail) =
-        if is_dir { (None, None, None) } else { read_text_and_hash(before) };
-    DiffEntry { path: rel, diff_type: DiffType::Removed, is_dir,
-                before_text, after_text: None, after_sha256: None, error_detail }
+    if before.is_dir() {
+        return dir_entry(rel, DiffType::Removed);
+    }
+    let (bytes, sha, size, error) = read_file(before);
+    let (text, is_binary) = classify_bytes(&bytes);
+    DiffEntry {
+        path: rel, diff_type: DiffType::Removed, is_dir: false,
+        before_text: text, after_text: None,
+        is_binary,
+        before_size: size, after_size: None,
+        before_sha256: sha, after_sha256: None,
+        stats: None,
+        error_detail: error,
+    }
 }
 
 fn build_compared(rel: String, before: &Path, after: &Path) -> DiffEntry {
-    let before_is_dir = before.is_dir();
-    let after_is_dir  = after.is_dir();
-    if before_is_dir != after_is_dir {
+    if before.is_dir() != after.is_dir() {
         return DiffEntry {
             path: rel, diff_type: DiffType::TypeChanged, is_dir: false,
-            before_text: None, after_text: None, after_sha256: None,
+            before_text: None, after_text: None,
+            is_binary: false,
+            before_size: None, after_size: None,
+            before_sha256: None, after_sha256: None,
+            stats: None,
             error_detail: Some("Path kind changed (file ↔ directory).".into()),
         };
     }
-    if before_is_dir {
-        return DiffEntry { path: rel, diff_type: DiffType::Unchanged, is_dir: true,
-                           before_text: None, after_text: None, after_sha256: None,
-                           error_detail: None };
+    if before.is_dir() {
+        return dir_entry(rel, DiffType::Unchanged);
     }
 
-    let before_bytes = match std::fs::read(before) {
-        Ok(b) => b,
-        Err(e) => return DiffEntry {
-            path: rel, diff_type: DiffType::Unreadable, is_dir: false,
-            before_text: None, after_text: None, after_sha256: None,
-            error_detail: Some(format!("Cannot read before-file: {e}")),
-        },
-    };
-    let after_bytes = match std::fs::read(after) {
-        Ok(b) => b,
-        Err(e) => return DiffEntry {
-            path: rel, diff_type: DiffType::Unreadable, is_dir: false,
-            before_text: None, after_text: None, after_sha256: None,
-            error_detail: Some(format!("Cannot read after-file: {e}")),
-        },
+    let (before_bytes, before_sha, before_size, before_err) = read_file(before);
+    if let Some(e) = before_err {
+        return unreadable(rel, format!("Cannot read before-file: {e}"));
+    }
+    let (after_bytes, after_sha, after_size, after_err) = read_file(after);
+    if let Some(e) = after_err {
+        return unreadable(rel, format!("Cannot read after-file: {e}"));
+    }
+
+    let diff_type = if before_bytes == after_bytes { DiffType::Unchanged } else { DiffType::Modified };
+
+    let (before_text, before_is_binary) = classify_bytes(&before_bytes);
+    let (after_text,  after_is_binary)  = classify_bytes(&after_bytes);
+    let is_binary = before_is_binary || after_is_binary;
+
+    // Compute line stats for text-Modified files.
+    let stats = if diff_type == DiffType::Modified && !is_binary {
+        let bt = before_text.as_deref().unwrap_or("");
+        let at = after_text.as_deref().unwrap_or("");
+        Some(DiffStats::compute(bt, at))
+    } else {
+        None
     };
 
-    let after_sha256 = hex::encode(Sha256::digest(&after_bytes));
-    let diff_type = if before_bytes == after_bytes { DiffType::Unchanged } else { DiffType::Modified };
     DiffEntry {
         path: rel, diff_type, is_dir: false,
-        before_text: String::from_utf8(before_bytes).ok(),
-        after_text: String::from_utf8(after_bytes).ok(),
-        after_sha256: Some(after_sha256),
+        before_text, after_text,
+        is_binary,
+        before_size, after_size,
+        before_sha256: before_sha, after_sha256: after_sha,
+        stats,
         error_detail: None,
     }
 }
 
-fn read_text_and_hash(path: &Path) -> (Option<String>, Option<String>, Option<String>) {
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+fn dir_entry(rel: String, diff_type: DiffType) -> DiffEntry {
+    DiffEntry {
+        path: rel, diff_type, is_dir: true,
+        before_text: None, after_text: None,
+        is_binary: false,
+        before_size: None, after_size: None,
+        before_sha256: None, after_sha256: None,
+        stats: None, error_detail: None,
+    }
+}
+
+fn unreadable(rel: String, detail: String) -> DiffEntry {
+    DiffEntry {
+        path: rel, diff_type: DiffType::Unreadable, is_dir: false,
+        before_text: None, after_text: None,
+        is_binary: false,
+        before_size: None, after_size: None,
+        before_sha256: None, after_sha256: None,
+        stats: None, error_detail: Some(detail),
+    }
+}
+
+/// Read a file returning (bytes, sha256_hex, size_bytes, error).
+fn read_file(path: &Path) -> (Vec<u8>, Option<String>, Option<u64>, Option<String>) {
     match std::fs::read(path) {
         Ok(bytes) => {
-            let sha = hex::encode(Sha256::digest(&bytes));
-            (String::from_utf8(bytes).ok(), Some(sha), None)
+            let sha  = hex::encode(Sha256::digest(&bytes));
+            let size = bytes.len() as u64;
+            (bytes, Some(sha), Some(size), None)
         }
-        Err(e) => (None, None, Some(format!("Cannot read file: {e}"))),
+        Err(e) => (Vec::new(), None, None, Some(e.to_string())),
+    }
+}
+
+/// Classify bytes as text or binary.
+/// Returns (text_content, is_binary).
+fn classify_bytes(bytes: &[u8]) -> (Option<String>, bool) {
+    if bytes.is_empty() {
+        return (Some(String::new()), false);
+    }
+    // Heuristic: if any of the first 8 KB contains a null byte, treat as binary.
+    let sample = &bytes[..bytes.len().min(8192)];
+    if sample.contains(&0u8) {
+        return (None, true);
+    }
+    match String::from_utf8(bytes.to_vec()) {
+        Ok(text) => (Some(text), false),
+        Err(_)   => (None, true),
     }
 }

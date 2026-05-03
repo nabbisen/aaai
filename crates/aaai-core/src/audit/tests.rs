@@ -14,14 +14,25 @@ use super::strategy;
 
 fn make_diff(path: &str, diff_type: DiffType, before: Option<&str>, after: Option<&str>) -> DiffEntry {
     use sha2::{Digest, Sha256};
-    let after_sha256 = after.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
+    let before_sha256 = before.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
+    let after_sha256  = after.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
+    let stats = match (diff_type, before, after) {
+        (DiffType::Modified, Some(b), Some(a)) =>
+            Some(crate::diff::entry::DiffStats::compute(b, a)),
+        _ => None,
+    };
     DiffEntry {
         path: path.to_string(),
         diff_type,
         is_dir: false,
         before_text: before.map(String::from),
-        after_text: after.map(String::from),
+        after_text:  after.map(String::from),
+        is_binary: false,
+        before_size: before.map(|t| t.len() as u64),
+        after_size:  after.map(|t| t.len() as u64),
+        before_sha256,
         after_sha256,
+        stats,
         error_detail: None,
     }
 }

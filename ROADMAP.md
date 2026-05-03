@@ -35,9 +35,22 @@
 - **GUI: rule template picker** — "Apply template" dropdown in inspector
 - **GUI: profile manager** — Opening screen shows saved profiles for quick reload
 
-## Phase 4 — Advanced (v0.4.0)
-- Image diff review
-- Binary diff summary
-- Secret / sensitive value masking in reports
-- Large folder progress display with cancellation
-- Project-level config (per-repo .aaai.yaml)
+## Phase 4 — Advanced ✅ (v0.4.0)
+- **Binary diff summary** — is_binary flag + file size tracking; binary-specific diff viewer panel
+- **Secret masking** — regex-based masking applied to CLI output, report generator, and diff viewer
+- **Project-level config** — .aaai.yaml auto-discovery: default_definition, default_ignore, approver_name, mask_patterns
+- **Parallel diff engine** — rayon-based parallel file reading for large folder performance
+- **Diff statistics** — lines_added / lines_removed / lines_changed per DiffEntry, shown in CLI and GUI
+- **Content size warnings** — warn when Exact / LineMatch strategies are applied to large files (>1 MB)
+- **CLI: aaai config** — init / show .aaai.yaml project config
+- **CLI: --mask-secrets** flag on audit and report commands
+- **GUI: binary file info panel** — show type, size, before/after hash for binary diffs
+- **GUI: diff statistics bar** — lines changed count shown in diff viewer header
+
+## Phase 5 — Polish (v0.5.0)
+- Image diff preview (side-by-side pixel diff)
+- Interactive progress bar for large folder scans
+- Audit dashboard / summary view
+- Watch mode (re-run on file change)
+- Shell completion (bash / zsh / fish)
+

@@ -46,6 +46,7 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
                 &args.right,
                 Some(&args.config),
                 &args.out,
+                None,
             )?;
         }
         ReportFormat::Json => {
@@ -55,6 +56,7 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
                 &args.right,
                 Some(&args.config),
                 &args.out,
+                None,
             )?;
         }
     }

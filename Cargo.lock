@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aaai-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "aaai-core",
  "anyhow",
@@ -18,7 +18,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -26,6 +26,7 @@ dependencies = [
  "glob",
  "hex",
  "log",
+ "rayon",
  "regex",
  "serde",
  "serde_json",
@@ -39,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-gui"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "aaai-core",
  "anyhow",
@@ -3030,6 +3031,26 @@ name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+
+[[package]]
+name = "rayon"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb39b166781f92d482534ef4b4b1b2568f42613b53e5b6c160e24cfbfa30926d"
+dependencies = [
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
+dependencies = [
+ "crossbeam-deque",
+ "crossbeam-utils",
+]
 
 [[package]]
 name = "read-fonts"

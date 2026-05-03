@@ -20,6 +20,7 @@ similar    = { workspace = true }
 regex      = { workspace = true }
 chrono     = { workspace = true }
 log        = { workspace = true }
+rayon      = { workspace = true }
 dirs       = { workspace = true }
 
 [dev-dependencies]

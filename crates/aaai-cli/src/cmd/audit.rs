@@ -14,9 +14,10 @@ use clap::Args;
 use colored::Colorize;
 
 use aaai_core::{
-    AuditEngine, AuditStatus, DiffEngine, DiffType, IgnoreRules,
+    AuditEngine, AuditStatus, DiffEngine, DiffType, DiffStats, IgnoreRules, MaskingEngine,
     config::io as config_io,
     history::{record::HistoryRecord, store as history_store},
+    project::config::ProjectConfig,
 };
 
 #[derive(Args)]
@@ -45,6 +46,12 @@ pub struct AuditArgs {
     /// Do not record this run in the history file.
     #[arg(long)]
     pub no_history: bool,
+    /// Mask secrets (API keys, passwords, tokens) in output.
+    #[arg(long)]
+    pub mask_secrets: bool,
+    /// Approver name to stamp on auto-approved entries (CLI approval not currently implemented).
+    #[arg(long, value_name = "NAME")]
+    pub approver: Option<String>,
 }
 
 pub fn run(args: AuditArgs) -> anyhow::Result<()> {
@@ -52,6 +59,20 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     let ignore_path = args.ignore.clone()
         .unwrap_or_else(|| args.left.join(".aaaiignore"));
     let ignore = IgnoreRules::load(&ignore_path)?;
+
+    // Discover project config (for mask_secrets and approver defaults).
+    let proj_cfg = ProjectConfig::discover(&args.left)
+        .unwrap_or(None)
+        .map(|(c, _)| c);
+    let use_masking = args.mask_secrets || proj_cfg.as_ref().map_or(false, |c| c.mask_secrets);
+    let masker: Option<MaskingEngine> = if use_masking {
+        let custom = proj_cfg.as_ref()
+            .map(|c| c.custom_mask_patterns.clone())
+            .unwrap_or_default();
+        Some(MaskingEngine::with_custom(&custom))
+    } else {
+        None
+    };
 
     // Load definition
     let definition = config_io::load(&args.config)?;
@@ -169,11 +190,25 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
             if args.verbose {
                 if let Some(entry) = &r.entry {
                     if !entry.reason.is_empty() {
-                        println!("         Reason: {}", entry.reason.dimmed());
+                        let reason = masker.as_ref()
+                            .map(|m| m.mask(&entry.reason))
+                            .unwrap_or_else(|| entry.reason.clone());
+                        println!("         Reason: {}", reason.dimmed());
                     }
                     if let Some(ab) = &entry.approved_by {
                         println!("         Approved by: {}", ab.dimmed());
                     }
+                }
+                // Phase 4: diff stats and size
+                if let Some(stats) = &r.diff.stats {
+                    println!("         Lines: +{} -{} (={} unchanged)",
+                        stats.lines_added, stats.lines_removed, stats.lines_unchanged);
+                }
+                if let Some(label) = r.diff.size_change_label() {
+                    println!("         Size: {}", label.dimmed());
+                }
+                if r.diff.is_binary {
+                    println!("         {}", "(binary file)".dimmed());
                 }
             }
         }

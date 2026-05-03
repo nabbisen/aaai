@@ -28,6 +28,8 @@ enum Commands {
     Check(cmd::check::CheckArgs),
     /// Show recent audit runs from the history file.
     History(cmd::history::HistoryArgs),
+    /// Initialise or display the project .aaai.yaml config.
+    Config(cmd::config::ConfigArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -42,5 +44,6 @@ fn main() -> anyhow::Result<()> {
         Commands::Report(args)  => cmd::report::run(args),
         Commands::Check(args)   => cmd::check::run(args),
         Commands::History(args) => cmd::history::run(args),
+        Commands::Config(args)   => cmd::config::run(args),
     }
 }

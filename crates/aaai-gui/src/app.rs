@@ -551,10 +551,10 @@ impl App {
                     let out = PathBuf::from(format!("aaai-report.{ext}"));
                     let res = match fmt.as_str() {
                         "json" => aaai_core::report::generator::ReportGenerator::write_json(
-                            result, &before, &after, def_path.as_deref(), &out,
+                            result, &before, &after, def_path.as_deref(), &out, None,
                         ),
                         _ => aaai_core::report::generator::ReportGenerator::write_markdown(
-                            result, &before, &after, def_path.as_deref(), &out,
+                            result, &before, &after, def_path.as_deref(), &out, None,
                         ),
                     };
                     match res {
