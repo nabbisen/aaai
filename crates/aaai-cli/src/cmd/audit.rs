@@ -89,8 +89,11 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         None
     };
 
-    // Load definition
-    let definition = config_io::load(&args.config)?;
+    // Load definition — config parse errors → exit 4 (CONFIG_ERROR)
+    let definition = config_io::load(&args.config).unwrap_or_else(|e| {
+        eprintln!("Error: {e}");
+        process::exit(4);
+    });
 
     // Diff + audit
     let diffs = if args.progress {

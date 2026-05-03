@@ -683,3 +683,538 @@ fn version_plain_exits_0() {
     let status = aaai().args(["version"]).status().unwrap();
     assert_eq!(status.code(), Some(0));
 }
+
+// ── Phase 11: coverage補完 ───────────────────────────────────────────────────
+
+// ── audit: 追加フラグ ─────────────────────────────────────────────────────────
+
+#[test]
+fn audit_exit_4_on_config_error() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    let bad_yaml = tmp.path().join("bad.yaml");
+    write_audit(&bad_yaml, "not: valid: yaml: [[[\n");
+
+    let status = aaai()
+        .args(["audit",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", bad_yaml.to_str().unwrap(),
+               "--no-history"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(4), "invalid YAML config must exit 4");
+}
+
+#[test]
+fn audit_verbose_shows_reason() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old\n");
+    write(&a, "f.txt", "new\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "verbose reason text"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["audit",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--verbose", "--no-history"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("verbose reason text"),
+        "verbose mode should print the reason");
+}
+
+#[test]
+fn audit_mask_secrets_redacts_output() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "x\n");
+    write(&a, "f.txt", "y\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "api_key=sk-abcdefghijklmnop12345678 changed"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["audit",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--verbose", "--mask-secrets", "--no-history"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(!stdout.contains("sk-abcdefghijklmnop"),
+        "--mask-secrets must redact secret values from output");
+    assert!(stdout.contains("MASKED"),
+        "--mask-secrets should replace with MASKED marker");
+}
+
+#[test]
+fn audit_suppress_warnings_flag() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old\n");
+    write(&a, "f.txt", "new\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "change"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let status = aaai()
+        .args(["audit",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--suppress-warnings", "no-approver",
+               "--no-history"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}
+
+// ── snap: 追加フラグ ─────────────────────────────────────────────────────────
+
+#[test]
+fn snap_list_templates_exits_0() {
+    let out = aaai()
+        .args(["snap",
+               "--left", "/tmp", "--right", "/tmp",
+               "--out", "/tmp/x.yaml",
+               "--list-templates"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("version_bump") || stdout.contains("port_change"),
+        "list-templates should show template IDs");
+}
+
+#[test]
+fn snap_template_applied() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "app.toml", "version = \"1.0.0\"\n");
+    write(&a, "app.toml", "version = \"1.1.0\"\n");
+    let out_path = tmp.path().join("audit.yaml");
+
+    let status = aaai()
+        .args(["snap",
+               "--left",     b.to_str().unwrap(),
+               "--right",    a.to_str().unwrap(),
+               "--out",      out_path.to_str().unwrap(),
+               "--template", "version_bump"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out_path).unwrap();
+    assert!(content.contains("Regex") || content.contains("regex"),
+        "version_bump template should set Regex strategy");
+}
+
+#[test]
+fn snap_approver_flag_sets_approved_by() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&a, "new.txt", "content\n");
+    let out_path = tmp.path().join("audit.yaml");
+
+    let status = aaai()
+        .args(["snap",
+               "--left",     b.to_str().unwrap(),
+               "--right",    a.to_str().unwrap(),
+               "--out",      out_path.to_str().unwrap(),
+               "--approver", "alice"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out_path).unwrap();
+    assert!(content.contains("alice"),
+        "--approver should set approved_by in generated entries");
+}
+
+#[test]
+fn snap_merge_adds_only_new_entries() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "existing.txt", "old\n");
+    write(&a, "existing.txt", "new\n");
+    write(&a, "added.txt",    "hello\n");
+
+    let out_path = tmp.path().join("audit.yaml");
+    // First snap
+    aaai().args(["snap",
+                 "--left",  b.to_str().unwrap(),
+                 "--right", a.to_str().unwrap(),
+                 "--out",   out_path.to_str().unwrap()])
+          .status().unwrap();
+    // Set reason on existing entry so --merge should skip it
+    let content = fs::read_to_string(&out_path).unwrap();
+    let with_reason = content.replace("reason: ''", "reason: 'already approved'");
+    fs::write(&out_path, with_reason).unwrap();
+
+    // Second snap with --merge should not overwrite existing reason
+    let status = aaai()
+        .args(["snap",
+               "--left",  b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--out",   out_path.to_str().unwrap(),
+               "--merge"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let final_content = fs::read_to_string(&out_path).unwrap();
+    assert!(final_content.contains("already approved"),
+        "--merge should not overwrite entries that already have a reason");
+}
+
+// ── report: 追加フォーマット ───────────────────────────────────────────────────
+
+#[test]
+fn report_json_format_creates_valid_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, "version: \"1\"\n");
+    let out = tmp.path().join("report.json");
+
+    let status = aaai()
+        .args(["report",
+               "--left",   b.to_str().unwrap(),
+               "--right",  a.to_str().unwrap(),
+               "--config", yaml.to_str().unwrap(),
+               "--format", "json",
+               "--out",    out.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    assert!(out.exists());
+    let v: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    assert!(v.get("result").is_some(), "JSON report must have 'result' field");
+}
+
+#[test]
+fn report_include_diff_embeds_diff_block() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "line1\n");
+    write(&a, "f.txt", "line2\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "changed"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = tmp.path().join("report.md");
+
+    let status = aaai()
+        .args(["report",
+               "--left",         b.to_str().unwrap(),
+               "--right",        a.to_str().unwrap(),
+               "--config",       yaml.to_str().unwrap(),
+               "--include-diff",
+               "--out",          out.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out).unwrap();
+    assert!(content.contains("```diff") || content.contains("-line1") || content.contains("+line2"),
+        "--include-diff should embed actual diff text");
+}
+
+// ── history: 追加フラグ ────────────────────────────────────────────────────────
+
+#[test]
+fn history_prune_exits_0() {
+    // prune は履歴ファイルが存在しなくても 0 で終了する
+    let status = aaai()
+        .args(["history", "--prune", "100"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}
+
+#[test]
+fn history_n_flag_limits_output() {
+    let out = aaai()
+        .args(["history", "-n", "3"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+}
+
+#[test]
+fn history_json_output_is_array() {
+    let out = aaai()
+        .args(["history", "--json-output", "-n", "5"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("history --json-output must be valid JSON");
+    assert!(v.is_array(), "history --json-output must be a JSON array");
+}
+
+// ── lint: 追加フラグ ──────────────────────────────────────────────────────────
+
+#[test]
+fn lint_detects_duplicate_path() {
+    let tmp = tempfile::tempdir().unwrap();
+    let yaml = tmp.path().join("dup.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "first"
+    strategy:
+      type: None
+    enabled: true
+  - path: f.txt
+    diff_type: Modified
+    reason: "duplicate"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["lint", yaml.to_str().unwrap(), "--json-output"])
+        .output().unwrap();
+    // duplicate-path is an error → exit 1
+    assert_eq!(out.status.code(), Some(1));
+    let issues: serde_json::Value =
+        serde_json::from_str(&String::from_utf8(out.stdout).unwrap()).unwrap();
+    let has_dup = issues.as_array().unwrap()
+        .iter().any(|i| i["kind"] == "duplicate-path");
+    assert!(has_dup, "lint should detect duplicate-path entries");
+}
+
+#[test]
+fn lint_require_ticket_warns_missing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "change without ticket"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["lint", yaml.to_str().unwrap(),
+               "--require-ticket", "--json-output"])
+        .output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let has_ticket_warn = issues.as_array().unwrap()
+        .iter().any(|i| i["kind"] == "missing-ticket");
+    assert!(has_ticket_warn, "--require-ticket should warn when ticket is absent");
+}
+
+#[test]
+fn lint_min_reason_len_warns_short() {
+    let tmp = tempfile::tempdir().unwrap();
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "ok"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    let out = aaai()
+        .args(["lint", yaml.to_str().unwrap(),
+               "--min-reason-len", "20", "--json-output"])
+        .output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    let has_short = issues.as_array().unwrap()
+        .iter().any(|i| i["kind"] == "short-reason");
+    assert!(has_short, "--min-reason-len should warn when reason is shorter than threshold");
+}
+
+// ── merge: 実際のマージ動作 ────────────────────────────────────────────────────
+
+#[test]
+fn merge_actually_merges_entries() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base = tmp.path().join("base.yaml");
+    let overlay = tmp.path().join("overlay.yaml");
+    let merged = tmp.path().join("merged.yaml");
+
+    write_audit(&base, r#"version: "1"
+entries:
+  - path: base.txt
+    diff_type: Added
+    reason: "from base"
+    strategy:
+      type: None
+    enabled: true
+"#);
+    write_audit(&overlay, r#"version: "1"
+entries:
+  - path: overlay.txt
+    diff_type: Added
+    reason: "from overlay"
+    strategy:
+      type: None
+    enabled: true
+"#);
+
+    let status = aaai()
+        .args(["merge",
+               base.to_str().unwrap(),
+               overlay.to_str().unwrap(),
+               "--out", merged.to_str().unwrap()])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    assert!(merged.exists(), "merge should create output file");
+    let content = fs::read_to_string(&merged).unwrap();
+    assert!(content.contains("base.txt"),    "merged file should contain base entries");
+    assert!(content.contains("overlay.txt"), "merged file should contain overlay entries");
+}
+
+#[test]
+fn merge_dry_run_does_not_write() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base = tmp.path().join("base.yaml");
+    let overlay = tmp.path().join("overlay.yaml");
+    let out = tmp.path().join("out.yaml");
+
+    write_audit(&base,    "version: \"1\"\n");
+    write_audit(&overlay, "version: \"1\"\n");
+
+    let status = aaai()
+        .args(["merge",
+               base.to_str().unwrap(),
+               overlay.to_str().unwrap(),
+               "--out", out.to_str().unwrap(),
+               "--dry-run"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+    assert!(!out.exists(), "merge --dry-run must NOT write the output file");
+}
+
+// ── diff: 追加フラグ ──────────────────────────────────────────────────────────
+
+#[test]
+fn diff_content_flag_shows_diff_text() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old line\n");
+    write(&a, "f.txt", "new line\n");
+
+    let out = aaai()
+        .args(["diff",
+               "--left",    b.to_str().unwrap(),
+               "--right",   a.to_str().unwrap(),
+               "--content"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("+new line") || stdout.contains("-old line"),
+        "--content should show inline diff text");
+}
+
+#[test]
+fn diff_all_flag_includes_unchanged() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "same.txt", "same\n");
+    write(&a, "same.txt", "same\n");
+    write(&a, "added.txt", "new\n");
+
+    let out = aaai()
+        .args(["diff",
+               "--left",  b.to_str().unwrap(),
+               "--right", a.to_str().unwrap(),
+               "--all"])
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("same.txt"),
+        "--all should include Unchanged files in output");
+}
+
+// ── config: discover ==========================================================
+
+#[test]
+fn config_show_when_no_config_found() {
+    // Run from a temp dir with no .aaai.yaml
+    let tmp = tempfile::tempdir().unwrap();
+    let out = aaai()
+        .args(["config"])
+        .current_dir(tmp.path())
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("No") || stdout.contains("not found"),
+        "config with no .aaai.yaml should report not found");
+}
+
+// ── watch: smoke test =========================================================
+
+#[test]
+fn watch_help_exits_0() {
+    let status = aaai()
+        .args(["watch", "--help"])
+        .status().unwrap();
+    assert_eq!(status.code(), Some(0));
+}
+
+// ── completions: fish/powershell ──────────────────────────────────────────────
+
+#[test]
+fn completions_fish_exits_0() {
+    let out = aaai().args(["completions", "fish"]).output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    assert!(!String::from_utf8(out.stdout).unwrap().is_empty(),
+        "fish completion output should not be empty");
+}
+
+#[test]
+fn completions_powershell_exits_0() {
+    let out = aaai().args(["completions", "powershell"]).output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+}
