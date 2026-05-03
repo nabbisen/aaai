@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.10.5"
+version = "0.10.6"
 edition = "2024"
 authors = ["nabbisen"]
 license = "Apache-2.0"
@@ -42,7 +42,7 @@ regex = "1"
 
 # CLI
 clap    = { version = "4", features = ["derive", "color"] }
-colored = "2"
+colored = "3"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
@@ -52,7 +52,7 @@ iced  = { version = "0.14", features = ["tokio"] }
 snora = { version = "0.8" }
 
 # i18n (Phase 2)
-rust-i18n = "3"
+rust-i18n = "4"
 
 # Parallel processing
 rayon = "1"
@@ -70,7 +70,7 @@ clap_complete = "4"
 proptest = "1"
 
 # Benchmarking
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.8", features = ["html_reports"] }
 
 # Home directory (for history / profiles)
 dirs = "6"

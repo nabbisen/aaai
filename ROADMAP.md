@@ -18,7 +18,7 @@
 - Path pattern matching — glob-based audit rules (logs/*.log, build/**)
 - CLI: --verbose / --quiet / --json-output
 
-## Phase 3 — Integrations (v0.3.0)
+## Phase 3 — Integrations ✅ (v0.3.0)
 - **Approver tracking** — approved_by / approved_at stamped on each AuditEntry at approval time
 - **Expiry dates** — expires_at field; expired entries shown as warnings in CLI and GUI
 - **Ticket linkage** — ticket field on AuditEntry (JIRA-123, INF-42, etc.) shown in reports
@@ -47,7 +47,7 @@
 - **GUI: binary file info panel** — show type, size, before/after hash for binary diffs
 - **GUI: diff statistics bar** — lines changed count shown in diff viewer header
 
-## Phase 5 — Polish (v0.5.0)
+## Phase 5 — Polish ✅ (v0.5.0)
 - **Shell completion** — `aaai completions <shell>` for bash/zsh/fish/powershell via clap_complete
 - **Watch mode** — `aaai watch` re-runs audit when before/after/definition files change (notify crate)
 - **Progress tracking** — channel-based DiffProgress events; CLI progress bar via indicatif
@@ -59,7 +59,7 @@
 - **CLI integration tests** — end-to-end tests driving the real binary
 - **Image diff (basic)** — detect image type for binary panel (PNG/JPEG/GIF/WebP) and show metadata
 
-## Phase 6 — Production Readiness (v0.6.0)
+## Phase 6 — Production Readiness ✅ (v0.6.0)
 - **Entry versioning** — created_at / updated_at auto-stamped on AuditEntry at approval time
 - **`aaai diff`** — raw folder diff without an audit definition (plain change listing)
 - **`aaai merge`** — merge two audit definition files with conflict detection
@@ -71,7 +71,7 @@
 - **Complete documentation** — all docs/src/ chapters populated (strategies, CI integration, FAQ)
 - **`aaai completions --install`** — auto-install completion script to shell config
 
-## Phase 7 — v1.0 Quality (v0.7.0)
+## Phase 7 — v1.0 Quality ✅ (v0.7.0)
 - **Non-blocking async diff** — tokio::spawn-based diff engine; GUI remains interactive during large scans
 - **GUI theme support** — light / dark / system-follow theme selection stored in ~/.aaai/prefs.yaml
 - **`aaai init` wizard** — interactive project setup: define before/after paths, create .aaai.yaml, generate starter definition
@@ -83,7 +83,7 @@
 - **`aaai snap --approver`** — pre-fill approver_name from project config or flag when generating entries
 - **GUI: resizable panes** — drag handles between file tree / diff view / inspector
 
-## Phase 8 — v1.0 comes closer (v0.8.0)
+## Phase 8 — v1.0 comes closer ✅ (v0.8.0)
 - **`aaai snap --approver`** — pre-fill approved_by from project config or --approver flag
 - **Async GUI diff** — tokio-based non-blocking diff in aaai-gui; spinner during scan
 - **`aaai version`** — detailed version info: crate version, build profile, Rust toolchain
@@ -94,7 +94,7 @@
 - **README badges** — test count, version, license, CI status shields
 - **v1.0.0 release prep** — full Apache-2.0 LICENSE text, AUTHORS, Cargo.lock finalised
 
-## Phase 9 — Documentation & Test Completeness (v0.9.0)
+## Phase 9 — Documentation & Test Completeness ✅ (v0.9.0)
 - **Complete docs** — gui.md (full 3-pane walkthrough), cli.md (all 15 commands with examples), getting-started.md updated with aaai init
 - **CLI test coverage** — integration tests for: completions, config --init, dashboard, init --non-interactive, lint --json-output, version --json-output
 - **AuditWarning suppression** — suppress_warnings: list in .aaai.yaml; CLI --suppress-warnings flag on audit
@@ -102,7 +102,7 @@
 - **report --no-history** — --no-history flag for report command (already on audit)
 - **aaai audit --warn-only** — exit 0 even with warnings (do not fail on warning-only conditions)
 
-## Phase 10 — GUI Polish (v0.10.0)
+## Phase 10 — GUI Polish ✅ (v0.10.0)
 - **Resizable panes** — replace fixed widths with iced PaneGrid; user can drag dividers between file tree / diff view / inspector
 - **Dark / Light theme** — toggle via footer picker; persisted to ~/.aaai/prefs.yaml
 - **Directory collapse** — click directory entries in file tree to fold/unfold children

@@ -1,6 +1,7 @@
 //! Criterion benchmarks for the diff engine.
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
 use std::fs;
 use aaai_core::DiffEngine;
 
