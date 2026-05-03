@@ -69,7 +69,7 @@ pub fn prune(max_entries: usize) -> anyhow::Result<usize> {
     }
     let keep = &all[..max_entries];
     // Reverse to oldest-first for writing
-    let mut lines: Vec<String> = keep.iter().rev()
+    let lines: Vec<String> = keep.iter().rev()
         .map(|r| serde_json::to_string(r))
         .collect::<Result<Vec<_>, _>>()?;
     let path = history_path()?;

@@ -11,7 +11,7 @@ name = "aaai"
 path = "src/main.rs"
 
 [dependencies]
-aaai-core  = { path = "../aaai-core", version = "0.9.0" }
+aaai-core  = { path = "../aaai-core", version = "0.10.0" }
 clap       = { workspace = true }
 colored    = { workspace = true }
 anyhow     = { workspace = true }

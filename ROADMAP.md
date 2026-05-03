@@ -102,3 +102,10 @@
 - **report --no-history** — --no-history flag for report command (already on audit)
 - **aaai audit --warn-only** — exit 0 even with warnings (do not fail on warning-only conditions)
 
+## Phase 10 — GUI Polish (v0.10.0)
+- **Resizable panes** — replace fixed widths with iced PaneGrid; user can drag dividers between file tree / diff view / inspector
+- **Dark / Light theme** — toggle via footer picker; persisted to ~/.aaai/prefs.yaml
+- **Directory collapse** — click directory entries in file tree to fold/unfold children
+- **Unchanged files toggle** — show/hide Unchanged entries separately from the filter bar
+- **Inspector: auto-focus reason field** — focus the reason text input when an entry is selected
+

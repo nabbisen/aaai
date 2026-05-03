@@ -9,6 +9,7 @@ mod style;
 mod theme;
 mod views;
 use rust_i18n::t;
+use aaai_core::profile::prefs::Theme as AppTheme;
 
 // Initialise rust-i18n. Locale files live in `locales/`.
 rust_i18n::i18n!("locales", fallback = "en");
@@ -30,6 +31,11 @@ fn main() -> iced::Result {
     )
     .subscription(app::App::subscription)
     .title(|_: &app::App| t!("app.title").to_string())
+    .theme(|app: &app::App| match app.theme {
+        AppTheme::Dark   => iced::Theme::Dark,
+        AppTheme::Light  => iced::Theme::Light,
+        AppTheme::System => iced::Theme::Light, // fallback
+    })
     .run()
 }
 

@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use iced::{Element, Subscription, Task};
+use iced::widget::pane_grid;
 use snora::{
     AppLayout, Sheet, SheetEdge, SheetSize,
     Toast, ToastIntent, ToastPosition, render,
@@ -20,6 +21,7 @@ use aaai_core::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
     AuditStatus, DiffType, IgnoreRules,
     profile::store::{AuditProfile, ProfileStore},
+    profile::prefs::{Theme as AppTheme, UserPrefs},
     config::{
         definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
         io as config_io,
@@ -28,6 +30,11 @@ use aaai_core::{
 
 use crate::views::{opening, main_view};
 use rust_i18n::t;
+
+// ── Pane identifiers ──────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PaneKind { FileTree, Diff, Inspector }
 
 // ── Screens ───────────────────────────────────────────────────────────────
 
@@ -150,6 +157,14 @@ pub struct App {
     // Locale
     pub locale: String,
 
+    // Phase 10: theme
+    pub theme: AppTheme,
+    pub prefs: UserPrefs,
+
+    // Phase 10: resizable pane layout
+    pub panes: pane_grid::State<PaneKind>,
+    pub focus: Option<pane_grid::Pane>,
+
     // Phase 3: profiles
     pub profiles: ProfileStore,
     pub profile_name_input: String,
@@ -159,6 +174,9 @@ pub struct App {
 
     // Phase 5: file tree search
     pub search_query: String,
+
+    // Phase 10: directory collapse state
+    pub collapsed_dirs: std::collections::HashSet<String>,
 
     // Phase 6: undo stack (stores path of last upserted entry)
     pub undo_stack: Vec<String>,
@@ -187,17 +205,27 @@ impl Default for App {
             toasts: Vec::new(),
             toast_id: 0,
             locale: rust_i18n::locale().to_string(),
+            prefs: UserPrefs::load(),
+            theme: UserPrefs::load().theme,
             profiles: ProfileStore::load().unwrap_or_default(),
             profile_name_input: String::new(),
             ignore_path: String::new(),
             search_query: String::new(),
+            collapsed_dirs: std::collections::HashSet::new(),
             undo_stack: Vec::new(),
+            panes: {
+let (tree, _) = pane_grid::State::new(PaneKind::FileTree);
+                // We'll rebuild panes in rerun_audit/DiffReady; use placeholder here.
+                tree
+            },
+            focus: None,
         }
     }
 }
 
 // ── Messages ─────────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Message {
     // Opening
@@ -240,8 +268,11 @@ pub enum Message {
     // Phase 5: search
     SearchQueryChanged(String),
 
+    // Phase 10: directory collapse
+    ToggleDir(String),
+
     // Phase 8: async diff loading
-    DiffLoading(String),   // progress message
+    DiffLoading(String),   // progress message (reserved for future channel-based progress)
     DiffReady(Vec<aaai_core::DiffEntry>, aaai_core::AuditDefinition, IgnoreRules),
     DiffFailed(String),
 
@@ -262,6 +293,13 @@ pub enum Message {
     SaveProfile,
     LoadProfile(usize),
     DeleteProfile(usize),
+
+    // Phase 10: theme
+    SetTheme(AppTheme),
+
+    // Phase 10: pane resize
+    PaneResized(pane_grid::ResizeEvent),
+    PaneFocused(pane_grid::Pane),
 
     // Locale
     SwitchLocale(String),
@@ -633,6 +671,15 @@ impl App {
             // ── Phase 5: search ───────────────────────────────────────
             Message::SearchQueryChanged(s) => { self.search_query = s; }
 
+            // ── Phase 10: directory collapse ──────────────────────────────
+            Message::ToggleDir(dir) => {
+                if self.collapsed_dirs.contains(&dir) {
+                    self.collapsed_dirs.remove(&dir);
+                } else {
+                    self.collapsed_dirs.insert(dir);
+                }
+            }
+
             // ── Phase 8: async diff results ───────────────────────────────
             Message::DiffLoading(msg) => {
                 self.load_progress = Some(msg);
@@ -640,6 +687,18 @@ impl App {
             Message::DiffReady(diffs, definition, ignore) => {
                 self.is_loading = false;
                 self.load_progress = None;
+                // (Re)initialize 3-pane layout: FileTree | Diff | Inspector
+                let (pane_state, pane_file_tree) = pane_grid::State::new(PaneKind::FileTree);
+                self.panes = pane_state;
+                // Split FileTree | right-column (Diff + Inspector)
+                if let Some((right_pane, _)) = self.panes.split(
+                    pane_grid::Axis::Vertical, pane_file_tree, PaneKind::Diff
+                ) {
+                    // Split Diff | Inspector
+                    let _ = self.panes.split(
+                        pane_grid::Axis::Vertical, right_pane, PaneKind::Inspector
+                    );
+                }
                 let result = aaai_core::AuditEngine::evaluate(&diffs, &definition);
                 self.diffs = diffs;
                 self.audit_result = Some(result);
@@ -716,6 +775,17 @@ impl App {
                     }
                 }
             }
+
+            // ── Phase 10: theme ───────────────────────────────────────
+            Message::SetTheme(t) => {
+                self.theme = t;
+                self.prefs.theme = t;
+                self.prefs.save();
+            }
+
+            // ── Phase 10: pane resize ─────────────────────────────────
+            Message::PaneResized(e) => { self.panes.resize(e.split, e.ratio); }
+            Message::PaneFocused(p) => { self.focus = Some(p); }
 
             // ── Phase 3: inspector fields ─────────────────────────────
             Message::TicketChanged(s)     => { self.inspector.ticket = s; }

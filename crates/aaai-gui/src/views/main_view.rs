@@ -1,342 +1,413 @@
-//! Main 3-pane screen (Phase 2: filter bar, batch select, i18n).
+//! Main 3-pane view — Phase 10: PaneGrid (resizable) + directory collapse.
 
 use iced::{
     Color, Element, Length, Padding,
-    widget::{button, checkbox, column, container,
-             row, scrollable, space, text},
+    widget::{
+        button, checkbox, column, container, pane_grid,
+        row, scrollable, space, text, text_input,
+    },
 };
-
-use aaai_core::{AuditStatus, DiffType, FileAuditResult};
-use crate::app::{App, FilterMode, Message};
-use crate::style::panel_style;
-use crate::theme;
-use crate::views::{diff_view, inspector};
 use rust_i18n::t;
 
+use aaai_core::{AuditStatus, DiffType, FileAuditResult};
+use crate::app::{App, FilterMode, Message, PaneKind};
+use crate::theme;
+use crate::views::{dashboard, diff_view, inspector};
+
+// ── Top-level view ───────────────────────────────────────────────────────────
+
 pub fn view(app: &App) -> Element<'_, Message> {
-    let toolbar = build_toolbar(app);
+    let toolbar  = build_toolbar(app);
     let filter_bar = build_filter_bar(app);
-    let file_tree = build_file_tree(app);
-
-    // Search bar
     let search_bar = build_search_bar(app);
+    // ── PaneGrid ──────────────────────────────────────────────────────────
+    let pg = pane_grid::PaneGrid::new(&app.panes, |_pane, kind, _is_maximized| {
+        let content: Element<'_, Message> = match kind {
+            PaneKind::FileTree => build_file_tree(app),
+            PaneKind::Diff     => build_diff_panel(app),
+            PaneKind::Inspector => build_inspector_panel(app),
+        };
+        pane_grid::Content::new(content)
+    })
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .spacing(2)
+    .on_resize(6, Message::PaneResized);
 
-    let center_and_inspector: Element<'_, Message> =
-        if let Some(idx) = app.selected_index {
-            if let Some(far) = app.audit_result.as_ref()
-                .and_then(|r| r.results.get(idx))
-            {
-                let diff_panel = container(diff_view::view(&far.diff))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(panel_style);
-                let insp = inspector::view(app, far);
-                row![diff_panel, insp]
-                    .spacing(1)
-                    .height(Length::Fill)
-                    .into()
-            } else { empty_center() }
-        } else { empty_center() };
-
-    let body = column![
+    column![
         toolbar,
         filter_bar,
         search_bar,
-        row![file_tree, center_and_inspector]
-            .spacing(1)
-            .height(Length::Fill),
+        pg,
     ]
     .spacing(0)
-    .height(Length::Fill);
-
-    container(body).width(Length::Fill).height(Length::Fill).into()
-}
-
-fn empty_center<'a>() -> Element<'a, Message> {
-    container(
-        text("Select a file from the left panel to inspect it.")
-            .size(13)
-            .color(Color::from_rgb(0.5, 0.5, 0.5)),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_x(Length::Fill)
-    .center_y(Length::Fill)
     .into()
 }
 
+// ── Toolbar ──────────────────────────────────────────────────────────────────
+
 fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
-    let batch_count = app.batch.selected.len();
+    use crate::style::panel_style;
 
-    let save_btn = button(text(t!("toolbar.save")).size(13))
+    let save_btn = button(text(t!("toolbar.save").to_string()).size(12))
         .on_press(Message::SaveDefinition)
-        .padding(Padding::from([5.0, 12.0]));
-
-    let rerun_btn = button(text(t!("toolbar.rerun")).size(13))
+        .padding(Padding::from([4.0, 10.0]));
+    let rerun_btn = button(text(t!("toolbar.rerun").to_string()).size(12))
         .on_press(Message::RerunAudit)
-        .padding(Padding::from([5.0, 12.0]));
+        .padding(Padding::from([4.0, 10.0]));
+    let batch_btn = button(text(t!("toolbar.batch_approve").to_string()).size(12))
+        .on_press(Message::OpenBatchSheet)
+        .padding(Padding::from([4.0, 10.0]));
 
-    let report_md_btn = button(text(t!("toolbar.export_md")).size(13))
-        .on_press(Message::ExportReport("markdown".into()))
-        .padding(Padding::from([5.0, 12.0]));
-
-    let report_json_btn = button(text(t!("toolbar.export_json")).size(13))
-        .on_press(Message::ExportReport("json".into()))
-        .padding(Padding::from([5.0, 12.0]));
-
-    let batch_label = format!("{} ({})", t!("toolbar.batch_approve"), batch_count);
-    let batch_btn = button(text(batch_label).size(13))
-        .on_press_maybe(
-            if batch_count > 0 { Some(Message::OpenBatchSheet) } else { None },
-        )
-        .padding(Padding::from([5.0, 12.0]));
-
-    let summary_text: Element<'_, Message> =
-        if let Some(r) = &app.audit_result {
-            let s = &r.summary;
-            let verdict_color = if s.is_passing() { theme::OK_COLOR } else { theme::FAILED_COLOR };
-            let verdict_str: String = if s.is_passing() {
-                t!("status.passed").to_string()
-            } else {
-                t!("status.result_failed").to_string()
-            };
-            {
-                let warn_str = if s.warning_count > 0 {
-                    format!("  ⚠ {} warning(s)", s.warning_count)
-                } else {
-                    String::new()
-                };
-                row![
-                    colored_badge(verdict_str, verdict_color),
-                    text(format!(
-                        "  OK: {}  Pending: {}  Failed: {}  Error: {}{}",
-                        s.ok, s.pending, s.failed, s.error, warn_str
-                    )).size(12),
-                ]
-                .align_y(iced::Alignment::Center)
-                .spacing(4)
-                .into()
-            }
+    let verdict_section: Element<'_, Message> = if let Some(result) = &app.audit_result {
+        let s = &result.summary;
+        let verdict_str = if s.is_passing() {
+            t!("toolbar.passed").to_string()
         } else {
-            text("").size(12).into()
+            t!("toolbar.failed").to_string()
         };
+        let verdict_color = if s.is_passing() { theme::OK_COLOR } else { theme::FAILED_COLOR };
+        let warn_str = if s.warning_count > 0 {
+            format!("  ⚠ {}", s.warning_count)
+        } else {
+            String::new()
+        };
+        row![
+            colored_badge(verdict_str, verdict_color),
+            text(format!(
+                "  OK: {}  Pending: {}  Failed: {}  Error: {}{}",
+                s.ok, s.pending, s.failed, s.error, warn_str
+            )).size(12),
+        ]
+        .align_y(iced::Alignment::Center)
+        .spacing(4)
+        .into()
+    } else {
+        space().width(Length::Fill).into()
+    };
+
+    let report_md  = button(text("Export MD").size(11))
+        .on_press(Message::ExportReport("markdown".into()))
+        .padding(Padding::from([3.0, 7.0]));
+    let report_json = button(text("Export JSON").size(11))
+        .on_press(Message::ExportReport("json".into()))
+        .padding(Padding::from([3.0, 7.0]));
 
     container(
         row![
-            summary_text,
+            save_btn, rerun_btn, batch_btn,
+            space().width(Length::Fixed(8.0)),
+            verdict_section,
             space().width(Length::Fill),
-            batch_btn,
-            save_btn,
-            rerun_btn,
-            report_md_btn,
-            report_json_btn,
+            report_md, report_json,
         ]
-        .spacing(6)
-        .align_y(iced::Alignment::Center),
+        .spacing(4)
+        .align_y(iced::Alignment::Center)
+        .padding(Padding::from([4.0, 8.0])),
     )
     .width(Length::Fill)
-    .padding(Padding::from([6.0, 12.0]))
     .style(panel_style)
     .into()
 }
 
+// ── Filter bar ───────────────────────────────────────────────────────────────
+
 fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
-    let filter_data: Vec<(FilterMode, String)> = vec![
-        (FilterMode::ChangedOnly,    t!("filter.changed").to_string()),
-        (FilterMode::All,            t!("filter.all").to_string()),
-        (FilterMode::PendingOnly,    t!("filter.pending").to_string()),
-        (FilterMode::FailedAndError, t!("filter.errors").to_string()),
-    ];
+    use crate::style::panel_style;
 
-    let mut btns = row![].spacing(4);
-    for (mode, label) in &filter_data {
-        let is_active = app.filter_mode == *mode;
-        let btn = button(text(label.clone()).size(12))
-            .on_press(Message::SetFilter(*mode))
-            .padding(Padding::from([3.0, 10.0]))
-            .style(if is_active {
-                iced::widget::button::primary
-            } else {
-                iced::widget::button::secondary
-            });
-        btns = btns.push(btn);
-    }
-
-    container(btns)
-        .width(Length::Fill)
-        .padding(Padding::from([4.0, 12.0]))
-        .style(|_| iced::widget::container::Style {
-            background: Some(iced::Background::Color(
-                Color::from_rgb(0.93, 0.94, 0.96),
-            )),
-            ..Default::default()
-        })
-        .into()
-}
-
-fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
-    let results: &[FileAuditResult] = app.audit_result
-        .as_ref()
-        .map(|r| r.results.as_slice())
-        .unwrap_or(&[]);
-
-    let mut items: Vec<Element<'_, Message>> = Vec::new();
-
-    for (idx, far) in results.iter().enumerate() {
-        if !app.filter_mode.passes(far) {
-            continue;
-        }
-        // Search filter
-        if !app.search_query.is_empty() {
-            let q = app.search_query.to_lowercase();
-            if !far.diff.path.to_lowercase().contains(&q) {
-                continue;
-            }
-        }
-
-        let is_selected = app.selected_index == Some(idx);
-        let is_batch_selected = app.batch.selected.contains(&idx);
-
-        let status_color = match far.status {
-            AuditStatus::Ok      => theme::OK_COLOR,
-            AuditStatus::Pending => theme::PENDING_COLOR,
-            AuditStatus::Failed  => theme::FAILED_COLOR,
-            AuditStatus::Ignored => theme::IGNORED_COLOR,
-            AuditStatus::Error   => theme::ERROR_COLOR,
-        };
-
-        let diff_icon = match far.diff.diff_type {
-            DiffType::Added        => "+",
-            DiffType::Removed      => "-",
-            DiffType::Modified     => "~",
-            DiffType::TypeChanged  => "T",
-            DiffType::Unreadable   => "!",
-            DiffType::Incomparable => "?",
-            DiffType::Unchanged    => " ",
-        };
-
-        let status_badge = colored_badge(diff_icon.to_string(), status_color);
-
-        // Warning badge — shown when the entry has advisory warnings.
-        let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
-            Some(
-                container(
-                    text(format!("⚠{}", far.warnings.len())).size(9)
-                        .color(iced::Color::from_rgb(0.60, 0.40, 0.00))
-                )
-                .padding(Padding::from([1.0, 3.0]))
+    let make_btn = |label: &'static str, mode: FilterMode| {
+        let active = app.filter_mode == mode;
+        let btn = button(text(t!(label).to_string()).size(11))
+            .on_press(Message::SetFilter(mode))
+            .padding(Padding::from([3.0, 8.0]));
+        if active {
+            container(btn)
                 .style(|_| iced::widget::container::Style {
                     background: Some(iced::Background::Color(
-                        iced::Color::from_rgba(0.95, 0.85, 0.20, 0.25)
+                        Color::from_rgba(0.20, 0.45, 0.85, 0.18)
                     )),
-                    border: iced::Border {
-                        color: iced::Color::from_rgba(0.85, 0.65, 0.10, 0.50),
-                        width: 1.0,
-                        radius: 3.0.into(),
-                    },
+                    border: iced::Border { radius: 4.0.into(), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
-            )
         } else {
-            None
-        };
+            container(btn)
+        }
+    };
 
-        let parts: Vec<&str> = far.diff.path.split('/').collect();
-        let parts: Vec<&str> = far.diff.path.split('/').collect();
-        let short = parts.last().copied().unwrap_or(&far.diff.path);
-        let indent = (parts.len().saturating_sub(1)) as f32 * 12.0;
+    let undo_btn = button(text(t!("toolbar.undo").to_string()).size(11))
+        .on_press(Message::UndoApproval)
+        .padding(Padding::from([3.0, 8.0]));
 
-        // Batch checkbox
-        let batch_cb = checkbox(is_batch_selected)
-            .on_toggle(move |_| Message::ToggleBatchSelect(idx))
-            .size(14);
-
-        let mut name_row = row![
-            space().width(Length::Fixed(indent)),
-            status_badge,
-            text(short).size(12).font(iced::Font::MONOSPACE),
+    container(
+        row![
+            make_btn("filter.all",           FilterMode::All),
+            make_btn("filter.changed",        FilterMode::ChangedOnly),
+            make_btn("filter.pending",        FilterMode::PendingOnly),
+            make_btn("filter.errors",         FilterMode::FailedAndError),
+            space().width(Length::Fill),
+            undo_btn,
         ]
         .spacing(4)
-        .align_y(iced::Alignment::Center);
-        if let Some(wb) = warn_badge {
-            name_row = name_row.push(wb);
-        }
-
-        let full_row = row![batch_cb, name_row].spacing(4).align_y(iced::Alignment::Center);
-
-        let row_bg = move |_: &iced::Theme| -> iced::widget::container::Style {
-            iced::widget::container::Style {
-                background: if is_selected {
-                    Some(iced::Background::Color(Color::from_rgba(0.15, 0.45, 0.85, 0.18)))
-                } else {
-                    None
-                },
-                ..Default::default()
-            }
-        };
-
-        let item = button(
-            container(full_row)
-                .width(Length::Fill)
-                .padding(Padding::from([3.0, 6.0]))
-                .style(row_bg),
-        )
-        .on_press(Message::SelectEntry(idx))
-        .width(Length::Fill)
-        .padding(0)
-        .style(|_theme, _status| iced::widget::button::Style {
-            background: None,
-            ..Default::default()
-        });
-
-        items.push(item.into());
-    }
-
-    scrollable(
-        container(column(items).spacing(0).width(Length::Fill))
-            .width(Length::Fixed(260.0))
-            .padding(Padding::from([4.0, 0.0])),
+        .align_y(iced::Alignment::Center)
+        .padding(Padding::from([3.0, 8.0])),
     )
-    .width(Length::Fixed(260.0))
-    .height(Length::Fill)
+    .width(Length::Fill)
+    .style(panel_style)
     .into()
 }
 
-fn build_search_bar<'a>(app: &'a crate::app::App) -> Element<'a, Message> {
-    use iced::widget::{container, text_input};
-    use crate::app::Message;
+// ── Search bar ───────────────────────────────────────────────────────────────
+
+fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     if app.audit_result.is_none() {
-        return space().height(Length::Fixed(0.0)).into();
+        return space().height(0).into();
     }
     container(
         row![
             text("🔍").size(12),
             text_input("Search paths…", &app.search_query)
                 .on_input(Message::SearchQueryChanged)
-                .padding(Padding::from([4.0, 8.0]))
+                .padding(Padding::from([3.0, 6.0]))
                 .size(12)
                 .width(Length::Fixed(220.0)),
         ]
         .spacing(6)
         .align_y(iced::Alignment::Center),
     )
-    .padding(Padding::from([3.0, 8.0]))
+    .padding(Padding::from([2.0, 8.0]))
     .width(Length::Fill)
     .style(|_| iced::widget::container::Style {
-        background: Some(iced::Background::Color(iced::Color::from_rgb(0.95, 0.96, 0.97))),
+        background: Some(iced::Background::Color(Color::from_rgb(0.95, 0.96, 0.97))),
         ..Default::default()
     })
     .into()
 }
 
+// ── File tree pane ───────────────────────────────────────────────────────────
+
+fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
+    let result = match &app.audit_result {
+        Some(r) => r,
+        None    => return container(
+            text("No audit result. Press \"Re-run\".").size(12)
+                .color(Color::from_rgb(0.5, 0.5, 0.5))
+        ).padding(12).into(),
+    };
+
+    let q = app.search_query.to_lowercase();
+
+    // Collect visible entries with directory collapse support
+    let mut items: Vec<Element<'_, Message>> = Vec::new();
+    let mut prev_dir = String::new();
+
+    for (idx, far) in result.results.iter().enumerate() {
+        // Filter
+        if !app.filter_mode.passes(far) { continue; }
+        if far.diff.diff_type == DiffType::Unchanged { continue; }
+        if !q.is_empty() && !far.diff.path.to_lowercase().contains(&q) { continue; }
+
+        // Directory collapse
+        let parts: Vec<&str> = far.diff.path.split('/').collect();
+        let short = parts.last().copied().unwrap_or(&far.diff.path);
+        let dir   = if parts.len() > 1 {
+            parts[..parts.len()-1].join("/")
+        } else {
+            String::new()
+        };
+        let indent = (parts.len().saturating_sub(1)) as f32 * 14.0;
+
+        // Insert directory header when dir changes
+        if !dir.is_empty() && dir != prev_dir {
+            let is_collapsed = app.collapsed_dirs.contains(&dir);
+            let icon = if is_collapsed { "▶" } else { "▼" };
+            let dir_clone = dir.clone();
+            let dir_btn = button(
+                row![
+                    space().width(Length::Fixed((parts.len().saturating_sub(1)) as f32 * 14.0)),
+                    text(format!("{icon} {}", parts[parts.len()-2])).size(11)
+                        .color(Color::from_rgb(0.5, 0.5, 0.55))
+                        .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
+                ]
+                .spacing(4)
+                .align_y(iced::Alignment::Center),
+            )
+            .on_press(Message::ToggleDir(dir_clone))
+            .width(Length::Fill)
+            .padding(Padding::from([2.0, 6.0]))
+            .style(iced::widget::button::text);
+            items.push(dir_btn.into());
+            prev_dir = dir.clone();
+        }
+
+        // Skip collapsed children
+        if !dir.is_empty() && app.collapsed_dirs.contains(&dir) { continue; }
+
+        // Entry row
+        items.push(build_file_row(app, idx, far, short, indent));
+    }
+
+    if items.is_empty() {
+        return container(
+            text("No entries match the current filter.").size(12)
+                .color(Color::from_rgb(0.55, 0.55, 0.58))
+        ).padding(12).into();
+    }
+
+    scrollable(
+        column(items).spacing(0).width(Length::Fill)
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
+}
+
+fn build_file_row<'a>(
+    app: &'a App,
+    idx: usize,
+    far: &'a FileAuditResult,
+    short: &'a str,
+    indent: f32,
+) -> Element<'a, Message> {
+    let is_selected = app.selected_index == Some(idx);
+    let is_batch    = app.batch.selected.contains(&idx);
+
+    let status_color = match far.status {
+        AuditStatus::Ok      => theme::OK_COLOR,
+        AuditStatus::Pending => theme::PENDING_COLOR,
+        AuditStatus::Failed  => theme::FAILED_COLOR,
+        AuditStatus::Ignored => theme::IGNORED_COLOR,
+        AuditStatus::Error   => theme::ERROR_COLOR,
+    };
+    let diff_icon = match far.diff.diff_type {
+        DiffType::Added        => "+",
+        DiffType::Removed      => "−",
+        DiffType::Modified     => "~",
+        DiffType::TypeChanged  => "T",
+        DiffType::Unreadable   => "!",
+        DiffType::Incomparable => "?",
+        DiffType::Unchanged    => " ",
+    };
+
+    let status_badge = colored_badge(diff_icon.to_string(), status_color);
+
+    // Warning badge
+    let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
+        Some(
+            container(
+                text(format!("⚠{}", far.warnings.len())).size(9)
+                    .color(Color::from_rgb(0.60, 0.40, 0.00))
+            )
+            .padding(Padding::from([1.0, 3.0]))
+            .style(|_| iced::widget::container::Style {
+                background: Some(iced::Background::Color(
+                    Color::from_rgba(0.95, 0.85, 0.20, 0.25)
+                )),
+                border: iced::Border {
+                    color: Color::from_rgba(0.85, 0.65, 0.10, 0.50),
+                    width: 1.0,
+                    radius: 3.0.into(),
+                },
+                ..Default::default()
+            })
+            .into()
+        )
+    } else { None };
+
+    let batch_cb = checkbox(is_batch)
+        .on_toggle(move |_| Message::ToggleBatchSelect(idx))
+        .size(14);
+
+    let mut name_row = row![
+        space().width(Length::Fixed(indent)),
+        status_badge,
+        text(short).size(12).font(iced::Font::MONOSPACE),
+    ]
+    .spacing(4)
+    .align_y(iced::Alignment::Center);
+    if let Some(wb) = warn_badge {
+        name_row = name_row.push(wb);
+    }
+
+    let full_row = row![batch_cb, name_row].spacing(4).align_y(iced::Alignment::Center);
+
+    let bg = move |_: &iced::Theme| iced::widget::container::Style {
+        background: if is_selected {
+            Some(iced::Background::Color(Color::from_rgba(0.15, 0.45, 0.85, 0.18)))
+        } else { None },
+        ..Default::default()
+    };
+
+    button(
+        container(full_row)
+            .width(Length::Fill)
+            .padding(Padding::from([3.0, 6.0]))
+            .style(bg),
+    )
+    .on_press(Message::SelectEntry(idx))
+    .width(Length::Fill)
+    .padding(0)
+    .style(iced::widget::button::text)
+    .into()
+}
+
+// ── Diff pane ────────────────────────────────────────────────────────────────
+
+fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
+    match app.selected_index {
+        Some(idx) => {
+            if let Some(result) = &app.audit_result {
+                if let Some(far) = result.results.get(idx) {
+                    return diff_view::view(&far.diff);
+                }
+            }
+        }
+        None => {}
+    }
+    match &app.audit_result {
+        Some(r) => dashboard::view(r),
+        None    => container(
+            text("No data. Start an audit from the Opening screen.")
+                .size(13).color(Color::from_rgb(0.5, 0.5, 0.5))
+        ).padding(20).into(),
+    }
+}
+
+// ── Inspector pane ───────────────────────────────────────────────────────────
+
+fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
+    match app.selected_index {
+        Some(idx) => {
+            if let Some(result) = &app.audit_result {
+                if let Some(far) = result.results.get(idx) {
+                    return inspector::view(app, far);
+                }
+            }
+        }
+        None => {}
+    }
+    container(
+        text("Select a file to inspect.").size(12)
+            .color(Color::from_rgb(0.55, 0.55, 0.60))
+    )
+    .padding(16)
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
-    container(text(label).size(10).color(Color::WHITE))
-        .padding(Padding::from([1.0, 4.0]))
-        .style(move |_| iced::widget::container::Style {
-            background: Some(iced::Background::Color(color)),
-            border: iced::Border { radius: 3.0.into(), ..Default::default() },
-            ..Default::default()
-        })
-        .into()
+    container(
+        text(label).size(11)
+            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() })
+            .color(Color::WHITE)
+    )
+    .padding(Padding::from([2.0, 5.0]))
+    .style(move |_| iced::widget::container::Style {
+        background: Some(iced::Background::Color(color)),
+        border: iced::Border { radius: 4.0.into(), ..Default::default() },
+        ..Default::default()
+    })
+    .into()
 }

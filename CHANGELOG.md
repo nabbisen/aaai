@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.10.0] — Phase 10: GUI Polish
+
+### テスト (92 unit + 30 CLI = 122 テスト全通過)
+- `profile/prefs.rs` の round_trip / default / display テスト追加（core unit 92 件）
+
+### GUI 新機能
+
+#### ペインリサイズ (PaneGrid)
+- `main_view.rs` を **`iced::widget::pane_grid::PaneGrid`** ベースに全面書き換え
+- ファイルツリー / 差分ビュー / インスペクターの 3 ペインをドラッグハンドルでリサイズ可能
+- `DiffReady` 時に初期比率（30% / 45% / 25%）で自動初期化
+- `Message::PaneResized(ResizeEvent)` で比率をライブ更新
+
+#### ダーク / ライトテーマ
+- `profile/prefs.rs` — `Theme` (Light / Dark / System) + `UserPrefs` を `~/.aaai/prefs.yaml` に永続化
+- `main.rs` に `.theme(|app| ...)` を追加して iced アプリに反映
+- フッターに **テーマピッカー** (Light / Dark) を追加
+- 起動時に前回のテーマを自動復元
+
+#### ディレクトリ折りたたみ
+- ファイルツリーにディレクトリヘッダー（▼ / ▶ アイコン）を追加
+- ヘッダークリックで配下エントリを折りたたみ / 展開
+- `App.collapsed_dirs: HashSet<String>` で状態を保持
+- `Message::ToggleDir(String)` で切り替え
+
+### コード品質
+- **全クレート警告ゼロ** — `cargo fix` 適用 + 不要インポート整理
+
 ## [0.9.0] — Phase 9: Documentation & Test Completeness
 
 ### ドキュメント充実
