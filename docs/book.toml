@@ -1,0 +1,5 @@
+[book]
+title       = "aaai Documentation"
+authors     = ["nabbisen"]
+language    = "en"
+src         = "src"

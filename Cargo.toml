@@ -1,0 +1,65 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aaai-core",
+    "crates/aaai-cli",
+    "crates/aaai-gui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["nabbisen"]
+license = "Apache-2.0"
+repository = "https://github.com/nabbisen/aaai"
+
+[workspace.dependencies]
+# Serialization
+serde       = { version = "1",    features = ["derive"] }
+serde_yaml  = "0.9"
+serde_json  = "1"
+
+# Error handling
+thiserror = "2"
+anyhow    = "1"
+
+# Filesystem / traversal
+walkdir = "2"
+
+# Hashing (Checksum strategy)
+sha2 = "0.10"
+hex  = "0.4"
+
+# Diff algorithm
+similar = { version = "2", features = ["unicode"] }
+
+# Regex (Regex strategy)
+regex = "1"
+
+# CLI
+clap    = { version = "4", features = ["derive", "color"] }
+colored = "2"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# GUI — iced + snora
+iced  = { version = "0.14", features = ["tokio"] }
+snora = "0.8"
+
+# Logging
+log        = "0.4"
+env_logger = "0.11"
+
+# Async (needed by iced/snora tokio feature)
+tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+opt-level   = "z"
+lto         = true
+strip       = true
+codegen-units = 1
+
+[profile.dev]
+opt-level   = 1
+incremental = false
