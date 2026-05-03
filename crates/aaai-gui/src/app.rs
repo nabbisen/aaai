@@ -18,7 +18,7 @@ use snora::{
 
 use aaai_core::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
-    AuditStatus, DiffType,
+    AuditStatus, DiffType, IgnoreRules,
     profile::store::{AuditProfile, ProfileStore},
     config::{
         definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
@@ -113,6 +113,13 @@ impl Default for InspectorState {
 pub struct App {
     pub screen: Screen,
 
+    // Phase 8: async diff state
+    pub is_loading: bool,
+    pub load_progress: Option<String>,
+
+    // 最後に使用した IgnoreRules（rerun 時に再利用）
+    pub active_ignore: IgnoreRules,
+
     // Opening
     pub before_path: String,
     pub after_path: String,
@@ -161,6 +168,9 @@ impl Default for App {
     fn default() -> Self {
         App {
             screen: Screen::Opening,
+            is_loading: false,
+            load_progress: None,
+            active_ignore: IgnoreRules::default(),
             before_path: String::new(),
             after_path: String::new(),
             definition_path: String::new(),
@@ -229,6 +239,11 @@ pub enum Message {
 
     // Phase 5: search
     SearchQueryChanged(String),
+
+    // Phase 8: async diff loading
+    DiffLoading(String),   // progress message
+    DiffReady(Vec<aaai_core::DiffEntry>, aaai_core::AuditDefinition, IgnoreRules),
+    DiffFailed(String),
 
     // Phase 6: undo + keyboard navigation
     UndoApproval,
@@ -301,20 +316,36 @@ impl App {
                     AuditDefinition::new_empty()
                 };
 
-                match DiffEngine::compare(&before, &after) {
-                    Ok(diffs) => {
-                        let result = AuditEngine::evaluate(&diffs, &definition);
-                        self.diffs = diffs;
-                        self.audit_result = Some(result);
-                        self.definition = Some(definition);
-                        self.screen = Screen::Main;
-                        self.selected_index = None;
-                        self.dirty = false;
-                    }
-                    Err(e) => {
-                        self.open_error = Some(format!("Diff failed: {e}"));
-                    }
-                }
+                // Resolve ignore rules from the ignore_path field.
+                let ignore_path_str = self.ignore_path.trim().to_string();
+                let ignore = if ignore_path_str.is_empty() {
+                    IgnoreRules::load(&before.join(".aaaiignore"))
+                        .unwrap_or_default()
+                } else {
+                    IgnoreRules::load(std::path::Path::new(&ignore_path_str))
+                        .unwrap_or_default()
+                };
+
+                // Phase 8: run diff on a background thread to keep the GUI responsive.
+                self.is_loading = true;
+                self.load_progress = Some("Comparing folders…".into());
+
+                let ignore_for_msg = ignore.clone();
+                return Task::perform(
+                    async move {
+                        tokio::task::spawn_blocking(move || {
+                            DiffEngine::compare_with_ignore(&before, &after, &ignore)
+                                .map(|diffs| (diffs, definition))
+                        })
+                        .await
+                        .map_err(|e| e.to_string())
+                        .and_then(|r| r.map_err(|e| e.to_string()))
+                    },
+                    |result| match result {
+                        Ok((diffs, def)) => Message::DiffReady(diffs, def, ignore_for_msg),
+                        Err(e) => Message::DiffFailed(e),
+                    },
+                );
             }
 
             // ── File tree ──────────────────────────────────────────────
@@ -602,6 +633,28 @@ impl App {
             // ── Phase 5: search ───────────────────────────────────────
             Message::SearchQueryChanged(s) => { self.search_query = s; }
 
+            // ── Phase 8: async diff results ───────────────────────────────
+            Message::DiffLoading(msg) => {
+                self.load_progress = Some(msg);
+            }
+            Message::DiffReady(diffs, definition, ignore) => {
+                self.is_loading = false;
+                self.load_progress = None;
+                let result = aaai_core::AuditEngine::evaluate(&diffs, &definition);
+                self.diffs = diffs;
+                self.audit_result = Some(result);
+                self.definition = Some(definition);
+                self.active_ignore = ignore;
+                self.screen = Screen::Main;
+                self.selected_index = None;
+                self.dirty = false;
+            }
+            Message::DiffFailed(err) => {
+                self.is_loading = false;
+                self.load_progress = None;
+                self.open_error = Some(err);
+            }
+
             // ── Phase 6: undo + navigation ───────────────────────────
             Message::UndoApproval => {
                 if let Some(path) = self.undo_stack.pop() {
@@ -861,6 +914,14 @@ impl App {
 
     pub fn rerun_audit(&mut self) {
         if let Some(def) = &self.definition {
+            // Re-run diff with the same ignore rules as the original scan.
+            let before = std::path::PathBuf::from(&self.before_path);
+            let after  = std::path::PathBuf::from(&self.after_path);
+            if before.is_dir() && after.is_dir() {
+                if let Ok(fresh_diffs) = DiffEngine::compare_with_ignore(&before, &after, &self.active_ignore) {
+                    self.diffs = fresh_diffs;
+                }
+            }
             let result = AuditEngine::evaluate(&self.diffs, def);
             self.audit_result = Some(result);
         }

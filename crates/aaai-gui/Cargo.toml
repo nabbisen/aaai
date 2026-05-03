@@ -11,7 +11,7 @@ name = "aaai-gui"
 path = "src/main.rs"
 
 [dependencies]
-aaai-core  = { path = "../aaai-core", version = "0.7.0" }
+aaai-core  = { path = "../aaai-core", version = "0.8.0" }
 iced       = { workspace = true }
 snora      = "0.8"
 anyhow     = { workspace = true }

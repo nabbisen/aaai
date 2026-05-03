@@ -129,6 +129,46 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         .on_input(Message::NoteChanged)
         .padding(6);
 
+    // ── Section: AuditWarnings ───────────────────────────────────────
+    let warning_section: Option<Element<'a, Message>> = if !far.warnings.is_empty() {
+        let warn_items: Vec<Element<'a, Message>> = far.warnings.iter().map(|w| {
+            let (icon, color) = match w.kind() {
+                "large-file"  => ("⚠", iced::Color::from_rgb(0.85, 0.55, 0.05)),
+                "no-strategy" => ("ℹ", iced::Color::from_rgb(0.30, 0.55, 0.90)),
+                "no-approver" => ("ℹ", iced::Color::from_rgb(0.55, 0.55, 0.60)),
+                _             => ("⚠", iced::Color::from_rgb(0.85, 0.55, 0.05)),
+            };
+            row![
+                text(icon).size(12).color(color),
+                text(w.message()).size(11).color(color),
+            ]
+            .spacing(4)
+            .align_y(iced::Alignment::Center)
+            .into()
+        }).collect();
+
+        Some(
+            container(column(warn_items).spacing(3))
+                .width(Length::Fill)
+                .padding(Padding::from([6.0, 8.0]))
+                .style(|_| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(
+                        iced::Color::from_rgba(0.95, 0.85, 0.20, 0.12)
+                    )),
+                    border: iced::Border {
+                        color: iced::Color::from_rgba(0.85, 0.70, 0.10, 0.40),
+                        width: 1.0,
+                        radius: 4.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .into()
+        )
+    } else {
+        None
+    };
+
+    // ── Column assembly ───────────────────────────────────────────────
     // ── Validation + approve button ───────────────────────────────────
     let val_err: Option<Element<'_, Message>> = ins.validation_error.as_ref().map(|e| {
         text(e.clone()).size(12).color(Color::from_rgb(0.78, 0.10, 0.10)).into()
@@ -141,30 +181,41 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     .on_press_maybe(if can_approve { Some(Message::ApproveEntry) } else { None })
     .padding(Padding::from([9.0, 20.0]));
 
-    let mut col = column![
-        header_row,
-        divider,
-        reason_label, reason_input,
-        iced::widget::rule::horizontal(1),
-        ticket_label, ticket_input,
-        approved_by_label, approved_by_input,
-        expires_label, expires_input,
-        iced::widget::rule::horizontal(1),
-        strategy_label,
-        row![strategy_pick, space().width(Length::Fill)].spacing(4),
-        strategy_desc,
-        tmpl_label, tmpl_pick,
+    // Collect all column children into a Vec so lifetimes are uniform.
+    let mut children: Vec<Element<'_, Message>> = vec![
+        header_row.into(),
+        divider.into(),
+    ];
+
+    // Warnings block (optional) immediately after the divider.
+    if let Some(ws) = warning_section {
+        children.push(ws);
+    }
+
+    children.extend([
+        reason_label.into(), reason_input.into(),
+        iced::widget::rule::horizontal(1).into(),
+        ticket_label.into(), ticket_input.into(),
+        approved_by_label.into(), approved_by_input.into(),
+        expires_label.into(), expires_input.into(),
+        iced::widget::rule::horizontal(1).into(),
+        strategy_label.into(),
+        row![strategy_pick, space().width(Length::Fill)].spacing(4).into(),
+        strategy_desc.into(),
+        tmpl_label.into(), tmpl_pick.into(),
         strategy_form,
-        note_label, note_input,
-        space().height(Length::Fixed(4.0)),
-        approve_btn,
-    ]
-    .spacing(8)
-    .padding(Padding::from([14.0, 14.0]));
+        note_label.into(), note_input.into(),
+        space().height(Length::Fixed(4.0)).into(),
+        approve_btn.into(),
+    ]);
 
     if let Some(err) = val_err {
-        col = col.push(err);
+        children.push(err);
     }
+
+    let col = column(children)
+        .spacing(8)
+        .padding(Padding::from([14.0, 14.0]));
 
     scrollable(container(col).width(Length::Fill))
         .width(Length::Fixed(300.0))

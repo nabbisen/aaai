@@ -1,5 +1,84 @@
 # Changelog
 
+## [0.8.0] — UI/UX テスト前 課題修正
+
+### バグ修正 (UI/UX テスト前に必須)
+
+#### 修正1・2: GUI — `ignore_path` → `IgnoreRules` 未接続
+- **`StartAudit`** の非同期 diff 実行に `ignore_path` フィールドの値を接続
+  - 空欄の場合は `<Before>/.aaaiignore` を自動検索（CLI と同動作に統一）
+  - 指定がある場合はそのパスから `IgnoreRules` を構築
+- **`rerun_audit()`** も同じ `IgnoreRules` で再スキャンするよう修正
+  - `App` に `active_ignore: IgnoreRules` を追加し `DiffReady` メッセージ経由で保存
+  - 「監査再実行」ボタンが以前のスキャンと異なるファイルを返す問題を解消
+- **`DiffReady` メッセージのシグネチャ変更**: `IgnoreRules` を第3引数として追加
+
+#### 修正3: GUI — `AuditWarning` 未表示
+- **インスペクターパネル** の divider 直下に警告セクションを追加
+  - `large-file` → 黄色背景ブロック ＋ `⚠` アイコン
+  - `no-strategy` → 青色系 `ℹ` アイコン
+  - `no-approver` → グレー系 `ℹ` アイコン
+  - 警告なしの場合はセクション自体を非表示（レイアウトに影響なし）
+
+#### 修正4: GUI — ファイルツリーの `AuditWarning` バッジ未表示
+- ファイルツリーの各行に `⚠N`（N = 警告数）バッジを追加
+  - 黄色系の小型バッジ（サイズ 9px）
+  - 警告ゼロのエントリには表示なし
+
+#### 修正5: GUI — ツールバーの `warning_count` 未表示
+- ツールバーの verdict バッジ横に `⚠ N warning(s)` テキストを追加
+  - `AuditSummary.warning_count > 0` の場合のみ表示
+
+#### 修正6: GUI — キーボードショートカット凡例未表示
+- フッターに `Ctrl+S: 保存  Ctrl+R: 再実行  Ctrl+Z: Undo  ↑↓: 移動` を表示
+  - Main 画面のみ表示（Opening 画面では非表示）
+
+#### 修正7: GUI — Opening 画面の UX 改善
+- `.aaaiignore` フィールドのプレースホルダーを「省略時: Before/.aaaiignore を自動検索」に更新
+- ローディングスピナーに Before/After フォルダ名を表示してスキャン対象を明示
+
+### バージョン
+- Cargo.toml のバージョンを `0.8.0` に設定（v1.0 は UI/UX テスト後）
+
+## [1.0.0] — Phase 8: v1.0 Release
+
+### テスト (109 テスト全通過)
+- core unit tests: **89 件** (proptest プロパティベーステスト 8 件追加: masking idempotency, ignore rules)
+- CLI integration tests: **20 件**
+
+### Core 追加
+- **プロパティベーステスト** — `proptest` によるランダム入力への堅牢性検証
+  - `masking/prop_tests.rs`: マスキングの非パニック保証・冪等性・`mask_if_needed` 一貫性
+  - `diff/prop_tests.rs`: IgnoreRules の非パニック保証・空ルール・グロブマッチング特性
+- **ベンチマーク** — `criterion` による性能計測 (`cargo bench -p aaai-core`)
+  - `diff_bench`: 100 / 1000 ファイルの並列差分エンジン
+  - `masking_bench`: 5 種の混合テキストに対するマスキング処理
+
+### CLI 追加
+- **`aaai version`** — 詳細バージョン情報 (version, authors, license, OS/arch, build profile)。`--json-output` 対応
+- **`aaai lint <FILE>`** — 定義ファイルのベストプラクティス全チェック
+  - duplicate-path: 同一パスの重複定義 (error)
+  - short-reason: 理由が短すぎる (warning, default 10 文字)
+  - missing-ticket: チケット未設定 (warning, `--require-ticket` 時)
+  - missing-approver: 承認者未設定 (warning, `--require-approver` 時)
+  - expired: 有効期限切れ (warning)
+  - empty-linematch / empty-line-rule: LineMatch ルール不備 (error)
+  - strategy-mismatch: Added/Removed に LineMatch (info)
+  - disabled: 無効化エントリ (info)
+  - `--json-output` 対応・error 存在時は exit 1
+- **`aaai snap --approver <NAME>`** — 生成エントリの `approved_by` を設定。プロジェクト設定の `approver_name` にフォールバック
+- **`aaai snap --suggest-glob`** — 同一ディレクトリのエントリをグロブパターンにまとめる提案を表示
+
+### GUI 追加 (Phase 8)
+- **非同期 diff** — `tokio::task::spawn_blocking` でフォルダ比較をバックグラウンドスレッドで実行。GUI は比較中もレスポンシブを維持
+- **ローディングスピナー** — Opening 画面にスキャン中の進捗メッセージを表示
+
+### v1.0 リリース準備
+- **LICENSE** — Apache-2.0 全文を記載
+- **AUTHORS** — 著者ファイル追加
+- **README バッジ** — version / tests / CI / license シールドを追加
+- **ROADMAP 更新** — Phase 8 を記録し、全フェーズの実績を確定
+
 ## [0.7.0] — Phase 7: v1.0 Quality
 
 ### テスト (101 テスト全通過)

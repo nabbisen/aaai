@@ -22,8 +22,8 @@ pub fn view(app: &App) -> Element<'_, Message> {
     let def_row = labeled_input(t!("opening.definition_label").to_string(),
         t!("opening.definition_placeholder").to_string(), &app.definition_path, Message::DefinitionPathChanged);
     let ignore_row = labeled_input(
-        ".aaaiignore file".to_string(),
-        "Path to ignore file (optional)".to_string(),
+        ".aaaiignore file (省略可)".to_string(),
+        "除外パターンファイルのパス（省略時: Before/.aaaiignore を自動検索）".to_string(),
         &app.ignore_path, Message::IgnorePathChanged);
 
     let can_start = !app.before_path.trim().is_empty() && !app.after_path.trim().is_empty();
@@ -113,6 +113,36 @@ pub fn view(app: &App) -> Element<'_, Message> {
     )
     .padding(Padding::from([36.0, 48.0]))
     .style(card_style);
+
+    // Phase 8: show loading overlay when diff is in progress
+    if app.is_loading {
+        let progress_msg = app.load_progress.as_deref().unwrap_or("フォルダを比較中…");
+        let before_short = std::path::Path::new(&app.before_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| app.before_path.clone());
+        let after_short = std::path::Path::new(&app.after_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| app.after_path.clone());
+
+        let spinner = container(
+            column![
+                text("⟳").size(40).color(iced::Color::from_rgb(0.3, 0.5, 0.9)),
+                text(progress_msg.to_owned()).size(15)
+                    .color(iced::Color::from_rgb(0.3, 0.3, 0.4)),
+                text(format!("{} → {}", before_short, after_short)).size(12)
+                    .color(iced::Color::from_rgb(0.55, 0.55, 0.60)),
+            ]
+            .spacing(10)
+            .align_x(iced::Alignment::Center),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill);
+        return spinner.into();
+    }
 
     container(card)
         .width(Length::Fill)

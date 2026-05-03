@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/github/license/nabbisen/aaai)](https://github.com/nabbisen/aaai/blob/main/LICENSE)
 [![Rust Documentation](https://docs.rs/aaai/badge.svg?version=latest)](https://docs.rs/aaai)
 [![Dependency Status](https://deps.rs/crate/aaai/latest/status.svg)](https://deps.rs/crate/aaai)
+[![CI](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml/badge.svg)](/.github/workflows/ci.yaml)
 
 **audit for asset integrity** — folder diff auditor with mandatory human-readable justification.
 

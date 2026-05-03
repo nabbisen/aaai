@@ -100,16 +100,23 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
             } else {
                 t!("status.result_failed").to_string()
             };
-            row![
-                colored_badge(verdict_str, verdict_color),
-                text(format!(
-                    "  OK: {}  Pending: {}  Failed: {}  Error: {}",
-                    s.ok, s.pending, s.failed, s.error
-                )).size(12),
-            ]
-            .align_y(iced::Alignment::Center)
-            .spacing(4)
-            .into()
+            {
+                let warn_str = if s.warning_count > 0 {
+                    format!("  ⚠ {} warning(s)", s.warning_count)
+                } else {
+                    String::new()
+                };
+                row![
+                    colored_badge(verdict_str, verdict_color),
+                    text(format!(
+                        "  OK: {}  Pending: {}  Failed: {}  Error: {}{}",
+                        s.ok, s.pending, s.failed, s.error, warn_str
+                    )).size(12),
+                ]
+                .align_y(iced::Alignment::Center)
+                .spacing(4)
+                .into()
+            }
         } else {
             text("").size(12).into()
         };
@@ -210,6 +217,32 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
 
         let status_badge = colored_badge(diff_icon.to_string(), status_color);
 
+        // Warning badge — shown when the entry has advisory warnings.
+        let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
+            Some(
+                container(
+                    text(format!("⚠{}", far.warnings.len())).size(9)
+                        .color(iced::Color::from_rgb(0.60, 0.40, 0.00))
+                )
+                .padding(Padding::from([1.0, 3.0]))
+                .style(|_| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(
+                        iced::Color::from_rgba(0.95, 0.85, 0.20, 0.25)
+                    )),
+                    border: iced::Border {
+                        color: iced::Color::from_rgba(0.85, 0.65, 0.10, 0.50),
+                        width: 1.0,
+                        radius: 3.0.into(),
+                    },
+                    ..Default::default()
+                })
+                .into()
+            )
+        } else {
+            None
+        };
+
+        let parts: Vec<&str> = far.diff.path.split('/').collect();
         let parts: Vec<&str> = far.diff.path.split('/').collect();
         let short = parts.last().copied().unwrap_or(&far.diff.path);
         let indent = (parts.len().saturating_sub(1)) as f32 * 12.0;
@@ -219,13 +252,16 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
             .on_toggle(move |_| Message::ToggleBatchSelect(idx))
             .size(14);
 
-        let name_row = row![
+        let mut name_row = row![
             space().width(Length::Fixed(indent)),
             status_badge,
             text(short).size(12).font(iced::Font::MONOSPACE),
         ]
         .spacing(4)
         .align_y(iced::Alignment::Center);
+        if let Some(wb) = warn_badge {
+            name_row = name_row.push(wb);
+        }
 
         let full_row = row![batch_cb, name_row].spacing(4).align_y(iced::Alignment::Center);
 

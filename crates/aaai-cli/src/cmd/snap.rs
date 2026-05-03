@@ -34,6 +34,13 @@ pub struct SnapArgs {
     /// Preview what would be generated without writing the file.
     #[arg(long)]
     pub dry_run: bool,
+    /// Set the approved_by field on generated entries.
+    /// If not given, falls back to the project config approver_name.
+    #[arg(long, value_name = "NAME")]
+    pub approver: Option<String>,
+    /// After generating, print suggestions to consolidate paths into glob patterns.
+    #[arg(long)]
+    pub suggest_glob: bool,
 }
 
 pub fn run(args: SnapArgs) -> anyhow::Result<()> {
@@ -75,6 +82,14 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
         AuditDefinition::new_empty()
     };
 
+    // Resolve approver from flag → project config → None
+    let proj_cfg = aaai_core::project::config::ProjectConfig::discover(&args.left)
+        .ok()
+        .flatten()
+        .map(|(c, _)| c);
+    let approver_name: Option<String> = args.approver.clone()
+        .or_else(|| proj_cfg.as_ref().and_then(|c| c.approver_name.clone()));
+
     let diffs = DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)?;
     let mut added = 0usize;
     let mut skipped = 0usize;
@@ -104,7 +119,7 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
             strategy,
             enabled: true,
             ticket: None,
-            approved_by: None,
+            approved_by: approver_name.clone(),
             approved_at: None,
             expires_at: None,
             note: None,
@@ -128,11 +143,49 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
     config_io::save(&definition, &args.out, false)?;
 
     println!("{} snapshot generated: {}", "✓".green(), args.out.display());
+    if let Some(name) = &approver_name {
+        println!("  Approver: {}", name.cyan());
+    }
     println!("  {} entries added, {} skipped (already have a reason)", added.to_string().yellow(), skipped);
+
+    if args.suggest_glob {
+        suggest_globs(&definition);
+    }
     if let Some(id) = &args.template {
         println!("  Template applied: {}", id.cyan());
     }
     println!();
     println!("{}", "Next: fill in the 'reason' field for each entry, then run `aaai audit`.".dimmed());
     Ok(())
+}
+
+fn suggest_globs(def: &aaai_core::AuditDefinition) {
+    use std::collections::HashMap;
+    // Group paths by directory and extension
+    let mut dir_counts: HashMap<String, Vec<String>> = HashMap::new();
+    for entry in &def.entries {
+        if let Some(slash) = entry.path.rfind('/') {
+            let dir = entry.path[..slash].to_string();
+            dir_counts.entry(dir).or_default().push(entry.path.clone());
+        }
+    }
+    let candidates: Vec<_> = dir_counts.iter()
+        .filter(|(_, paths)| paths.len() >= 2)
+        .collect();
+
+    if candidates.is_empty() { return; }
+
+    println!();
+    println!("{}", "💡 Glob consolidation suggestions:".cyan().bold());
+    for (dir, paths) in &candidates {
+        let exts: std::collections::HashSet<_> = paths.iter()
+            .filter_map(|p| p.rsplit('.').next())
+            .collect();
+        if exts.len() == 1 {
+            let ext = exts.into_iter().next().unwrap();
+            println!("  {} could be {}", paths.join(", ").dimmed(), format!("{dir}/*.{ext}").yellow());
+        } else {
+            println!("  {} could be {}/**", paths.join(", ").dimmed(), dir.yellow());
+        }
+    }
 }

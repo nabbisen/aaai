@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.8.0"
 edition = "2024"
 authors = ["nabbisen"]
 license = "Apache-2.0"
@@ -64,6 +64,12 @@ indicatif = "0.17"
 
 # Shell completion
 clap_complete = "4"
+
+# Property-based testing
+proptest = "1"
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
 
 # Home directory (for history / profiles)
 dirs = "6"

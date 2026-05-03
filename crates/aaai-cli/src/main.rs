@@ -44,6 +44,10 @@ enum Commands {
     Init(cmd::init::InitArgs),
     /// Export audit entries to CSV or TSV.
     Export(cmd::export::ExportArgs),
+    /// Show detailed version and build information.
+    Version(cmd::version_cmd::VersionArgs),
+    /// Lint an audit definition file for best-practice issues.
+    Lint(cmd::lint::LintArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -66,6 +70,8 @@ fn main() -> anyhow::Result<()> {
         Commands::Merge(args)       => cmd::merge::run(args),
         Commands::Init(args)        => cmd::init::run(args),
         Commands::Export(args)      => cmd::export::run(args),
+        Commands::Version(args)     => cmd::version_cmd::run(args),
+        Commands::Lint(args)        => cmd::lint::run(args),
     }
 }
 

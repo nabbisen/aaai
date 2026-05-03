@@ -83,3 +83,14 @@
 - **`aaai snap --approver`** — pre-fill approver_name from project config or flag when generating entries
 - **GUI: resizable panes** — drag handles between file tree / diff view / inspector
 
+## Phase 8 — Almost v1.0
+- **`aaai snap --approver`** — pre-fill approved_by from project config or --approver flag
+- **Async GUI diff** — tokio-based non-blocking diff in aaai-gui; spinner during scan
+- **`aaai version`** — detailed version info: crate version, build profile, Rust toolchain
+- **`aaai lint`** — best-practice linter for definition files; emits categorized warnings
+- **Property-based tests** — proptest fuzzing on masking engine, ignore rules, glob matching
+- **Benchmarks** — criterion benchmarks for diff engine and masking engine
+- **`aaai snap --suggest-glob`** — detect common path prefixes and suggest glob rules
+- **README badges** — test count, version, license, CI status shields
+- **v1.0.0 release prep** — full Apache-2.0 LICENSE text, AUTHORS, Cargo.lock finalised
+
