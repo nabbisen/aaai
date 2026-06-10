@@ -4,6 +4,107 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.19.0] — Sprint D-5/D-6: RFC 015 + RFC 016
+
+> ⚠ **Visual verification status**: This release contains substantial GUI changes
+> (Opening screen redesign, i18n repair) that have NOT yet been verified by
+> running the binary. `cargo check` passes and tests are green, but the actual
+> rendered output should be confirmed by launching `aaai-gui` and inspecting
+> the Opening screen.
+
+### RFC 016 — i18n Locale File Repair
+
+- **Removed `_version: 1` line** from `crates/aaai-gui/locales/en.yaml` and
+  `ja.yaml`. v1 is the default format for rust-i18n v4, so this line was
+  redundant and possibly causing build cache confusion.
+- Note: Root cause of literal-key display (e.g. `"opening.title"`) is not
+  fully confirmed. The most likely fix is this YAML change plus a `cargo clean`
+  during build. If literals still appear, RFC 016 §3.3 patterns B/C should be
+  attempted in a follow-up release.
+
+### RFC 015 — Opening Screen Redesign
+
+#### Dependencies
+- **Added `rfd = "0.17"`** to `crates/aaai-gui/Cargo.toml` for OS-native folder
+  and file pickers.
+
+#### Data model (`app.rs`)
+- New field: `App.optional_settings_expanded: bool` (defaults to false)
+- New `Message` variants (9 total):
+  - `PickBeforeFolder` / `PickAfterFolder` / `PickDefinitionFile` / `PickIgnoreFile`
+  - `BeforeFolderPicked(Option<PathBuf>)` / `AfterFolderPicked(...)` / `DefinitionFilePicked(...)` / `IgnoreFilePicked(...)`
+  - `ToggleOptionalSettings`
+- Picker handlers use `Task::perform(async { rfd::AsyncFileDialog::new().pick_folder().await }, ...)`
+
+#### View (`opening.rs` — 306 lines, rewritten from scratch)
+- **Welcome section**: large title + subtitle + guide line
+  *「監査するための 2 つのフォルダを選んでください」*
+- **Two required folder cards** (`folder_picker_card`):
+  - 📁 icon + label
+  - Status row: ✓/✗ + selected path OR "未選択"
+  - "フォルダを選ぶ" / "フォルダを変更" button (≥ 44px tap target)
+- **Optional settings section** (collapsible, default closed):
+  - ▸/▾ toggle header
+  - Hint text explaining "省略時は新規作成"
+  - When expanded: audit.yaml + .aaaiignore file picker rows
+- **Start audit button** (centered, large):
+  - Active only when both Before+After are valid and not loading
+- **Recent projects list** (up to 5 profiles):
+  - Profile name + before→after summary + "開く" button
+
+#### i18n keys (12 new keys, both `en` and `ja`)
+- `opening.guide`, `opening.before_card`, `opening.after_card`, `opening.unselected`
+- `opening.pick_folder`, `opening.change_folder`
+- `opening.optional_section`, `opening.optional_hint`, `opening.ignore_label`, `opening.pick_file`
+- `opening.recent_section`, `opening.open_recent`
+
+### Verification checklist (for user testing)
+
+- [ ] `cargo build -p aaai-gui` completes successfully
+- [ ] Launching `aaai-gui` shows the Opening screen with translated text (no literal `opening.title`)
+- [ ] Clicking "フォルダを選ぶ" opens the OS native folder dialog
+- [ ] After selecting Before and After folders, "監査を開始" button becomes active
+- [ ] Clicking "オプション設定" expands the audit.yaml / .aaaiignore fields
+- [ ] Recent projects section shows previously saved profiles
+
+## [0.18.1] — Critical i18n fix
+
+### Bug fix — i18n keys were never resolving at runtime
+
+**Symptom:** Every GUI label rendered as the raw translation key
+(`opening.title`, `opening.subtitle`, `profile.save_current`, `app.version`, …)
+instead of the translated text. The application was unusable in either locale.
+
+**Root cause:** The `locales/en.yaml` and `locales/ja.yaml` files used
+the wrong top-level structure for `rust-i18n` v4 with split-by-locale files:
+
+```yaml
+# WRONG — used since project inception
+en:
+  opening:
+    title: aaai
+
+# CORRECT — v4 split-file format
+_version: 1
+opening:
+  title: aaai
+```
+
+The `en:` / `ja:` wrapper is only used in the "all locales in one file"
+format with `_version: 2`. With split files (`en.yaml`, `ja.yaml`),
+the locale is determined by the filename, so the wrapper makes every key
+unreachable via `t!("foo.bar")`.
+
+This bug was never noticed before because:
+- Unit tests (`aaai-core`) and integration tests (`aaai-cli`) do not exercise the GUI
+- Reported only after a user actually launched `aaai-gui` at v0.18.0
+
+**Fix:**
+- Removed `en:` / `ja:` wrappers from `locales/{en,ja}.yaml`
+- Added `_version: 1` directive at the top of each file
+- `app.version` key removed from YAML; now read at runtime from
+  `env!("CARGO_PKG_VERSION")` so it always matches the actual crate version
+
 ## [0.18.0] — RFC 014: View layer fixes
 
 ### RFC 014 — View Layer Fixes (RFC 007/009 re-apply + ABDD tap areas)

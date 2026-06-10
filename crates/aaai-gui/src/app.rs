@@ -189,6 +189,8 @@ pub struct App {
     pub active_ignore: IgnoreRules,
 
     // Opening
+    /// RFC 015: optional settings (audit.yaml / .aaaiignore) section expansion
+    pub optional_settings_expanded: bool,
     pub before_path: String,
     pub after_path: String,
     pub definition_path: String,
@@ -254,6 +256,7 @@ impl Default for App {
     fn default() -> Self {
         App {
             screen: Screen::Opening,
+            optional_settings_expanded: false,
             is_loading: false,
             load_progress: None,
             active_ignore: IgnoreRules::default(),
@@ -376,6 +379,17 @@ pub enum Message {
     // Phase 10: pane resize
     PaneResized(pane_grid::ResizeEvent),
     PaneFocused(pane_grid::Pane),
+
+    // RFC 015: Opening screen folder/file picker messages
+    PickBeforeFolder,
+    PickAfterFolder,
+    PickDefinitionFile,
+    PickIgnoreFile,
+    BeforeFolderPicked(Option<std::path::PathBuf>),
+    AfterFolderPicked(Option<std::path::PathBuf>),
+    DefinitionFilePicked(Option<std::path::PathBuf>),
+    IgnoreFilePicked(Option<std::path::PathBuf>),
+    ToggleOptionalSettings,
 
     // RFC 007: navigation
     BackToOpening,
@@ -920,6 +934,85 @@ impl App {
                 self.diff_view_mode = mode;
             }
 
+
+            // ── RFC 015: Opening picker handlers ─────────────────────
+            Message::PickBeforeFolder => {
+                return Task::perform(
+                    async {
+                        rfd::AsyncFileDialog::new()
+                            .set_title("Pick the Before folder")
+                            .pick_folder()
+                            .await
+                            .map(|h| h.path().to_path_buf())
+                    },
+                    Message::BeforeFolderPicked,
+                );
+            }
+            Message::PickAfterFolder => {
+                return Task::perform(
+                    async {
+                        rfd::AsyncFileDialog::new()
+                            .set_title("Pick the After folder")
+                            .pick_folder()
+                            .await
+                            .map(|h| h.path().to_path_buf())
+                    },
+                    Message::AfterFolderPicked,
+                );
+            }
+            Message::PickDefinitionFile => {
+                return Task::perform(
+                    async {
+                        rfd::AsyncFileDialog::new()
+                            .set_title("Pick audit.yaml")
+                            .add_filter("YAML", &["yaml", "yml"])
+                            .pick_file()
+                            .await
+                            .map(|h| h.path().to_path_buf())
+                    },
+                    Message::DefinitionFilePicked,
+                );
+            }
+            Message::PickIgnoreFile => {
+                return Task::perform(
+                    async {
+                        rfd::AsyncFileDialog::new()
+                            .set_title("Pick .aaaiignore")
+                            .pick_file()
+                            .await
+                            .map(|h| h.path().to_path_buf())
+                    },
+                    Message::IgnoreFilePicked,
+                );
+            }
+            Message::BeforeFolderPicked(opt) => {
+                if let Some(path) = opt {
+                    self.before_path = path.display().to_string();
+                    self.validate_opening();
+                }
+            }
+            Message::AfterFolderPicked(opt) => {
+                if let Some(path) = opt {
+                    self.after_path = path.display().to_string();
+                    self.validate_opening();
+                }
+            }
+            Message::DefinitionFilePicked(opt) => {
+                if let Some(path) = opt {
+                    self.definition_path = path.display().to_string();
+                    self.validate_opening();
+                }
+            }
+            Message::IgnoreFilePicked(opt) => {
+                if let Some(path) = opt {
+                    self.ignore_path = path.display().to_string();
+                    self.validate_opening();
+                }
+            }
+            Message::ToggleOptionalSettings => {
+                self.optional_settings_expanded = !self.optional_settings_expanded;
+            }
+
             // ── RFC 007: navigation ───────────────────────────────────
             Message::BackToOpening => {
                 if self.dirty {
@@ -1157,7 +1250,7 @@ impl App {
                 left,
                 space().width(Length::Fill),
                 locale_label,
-                text(t!("app.version")).size(11),
+                text(format!("v{}", env!("CARGO_PKG_VERSION"))).size(11),
             ]
             .align_y(Center)
             .spacing(12),
