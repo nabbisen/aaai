@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.15.0] — Sprint D-1: RFC 009 + RFC 010
+
+### RFC 009 — Reason Field Multi-line Textarea
+- `InspectorState` に `reason_content: text_editor::Content` フィールドを追加
+- Inspector の理由フィールドを単行 `text_input` から **複数行 `text_editor`** (高さ 72px) に変更
+- `Message::ReasonAction(text_editor::Action)` を追加
+- `reason` String と `reason_content` を常に同期（`ReasonAction` ハンドラ内で `trim_end_matches('\n')` を適用）
+- `SelectEntry` 時に `reason_content` を選択エントリの reason で初期化
+
+### RFC 010 — Diff View Legend
+- テキスト差分ビューア（side-by-side）の下部に「差分ハイライト: [■削除] [■追加]」凡例を追加
+- `diff_legend()` 関数を `diff_view.rs` に追加
+- i18n キー追加: `diff.legend_label`, `diff.legend_removed`, `diff.legend_added` (EN + JA)
+
 ## [0.14.2] — Dependency updates
 
 ### Updated

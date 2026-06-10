@@ -10,6 +10,9 @@ en:
     selected: selected entries
     title: Batch Approve
   diff:
+    legend_label: "Diff highlight"
+    legend_removed: "Removed"
+    legend_added: "Added"
     after: After
     before: Before
     directory: (directory)

@@ -194,11 +194,55 @@ fn side_by_side<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
         header,
         stats_bar(diff),
         body,
+        diff_legend(),   // RFC 010: colour legend
     ]
     .spacing(0)
     .width(Length::Fill)
     .height(Length::Fill)
     .into()
+}
+
+/// RFC 010: Colour legend shown at the bottom of the diff view.
+fn diff_legend() -> Element<'static, Message> {
+    use iced::Background;
+
+    let removed_swatch: Element<'static, Message> =
+        iced::widget::container(iced::widget::text("  "))
+            .height(Length::Fixed(12.0))
+            .style(|_| iced::widget::container::Style {
+                background: Some(Background::Color(
+                    Color::from_rgba(0.85, 0.20, 0.20, 0.30))),
+                border: iced::Border { radius: 2.0.into(), ..Default::default() },
+                ..Default::default()
+            })
+            .into();
+
+    let added_swatch: Element<'static, Message> =
+        iced::widget::container(iced::widget::text("  "))
+            .height(Length::Fixed(12.0))
+            .style(|_| iced::widget::container::Style {
+                background: Some(Background::Color(
+                    Color::from_rgba(0.10, 0.65, 0.30, 0.30))),
+                border: iced::Border { radius: 2.0.into(), ..Default::default() },
+                ..Default::default()
+            })
+            .into();
+
+    let legend_row = iced::widget::row(vec![
+        text(t!("diff.legend_label").to_string()).size(11)
+            .color(Color::from_rgb(0.55, 0.55, 0.60)).into(),
+        removed_swatch,
+        text(t!("diff.legend_removed").to_string()).size(11)
+            .color(Color::from_rgb(0.55, 0.55, 0.60)).into(),
+        added_swatch,
+        text(t!("diff.legend_added").to_string()).size(11)
+            .color(Color::from_rgb(0.55, 0.55, 0.60)).into(),
+    ]).spacing(6).align_y(iced::Alignment::Center);
+
+    iced::widget::container(legend_row)
+        .padding(Padding::from([4.0, 12.0]))
+        .width(Length::Fill)
+        .into()
 }
 
 enum LineKind { Equal, Added, Removed }

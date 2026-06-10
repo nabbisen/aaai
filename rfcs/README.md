@@ -6,7 +6,15 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-_なし (全 RFC 実装済み)_
+| ID | タイトル | 優先度 | 概要 |
+|---|---|---|---|
+| [007](proposed/007-toolbar-navigation.md) | Toolbar & Navigation | v1.0 blocker | 「開く」追加・ツールバー再構成 |
+| [008](proposed/008-bottom-action-bar.md) | Bottom Action Bar | v1.0 blocker | 承認ボタンをボトムバーに固定・未解決件数 |
+| [009](done/009-reason-textarea.md) | Reason Field Textarea | v1.0 blocker → **v0.15.0** | 単行→複数行テキストエリア |
+| [010](done/010-diff-view-legend.md) | Diff View Legend | v1.0 blocker → **v0.15.0** | 差分ハイライト凡例 |
+| [011](proposed/011-diff-view-tabs.md) | Diff View Tabs | 重要改善 | 左右差分 \| 統合 \| 変更のみ タブ |
+| [012](proposed/012-linematch-rule-display.md) | LineMatch Rule Color Blocks | 重要改善 | ルールを色付きコードブロックで表示 |
+| [013](proposed/013-file-tree-icon-unification.md) | File Tree Icon Unification | 重要改善 | 行頭=statusアイコン・右端=diff-type記号 |
 
 ---
 

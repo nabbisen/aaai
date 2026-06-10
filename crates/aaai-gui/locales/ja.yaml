@@ -10,6 +10,9 @@ ja:
     selected: 件を選択中
     title: 一括承認
   diff:
+    legend_label: "差分ハイライト"
+    legend_removed: "削除"
+    legend_added: "追加"
     after: 変更後
     before: 変更前
     directory: （ディレクトリ）

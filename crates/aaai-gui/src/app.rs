@@ -134,6 +134,9 @@ impl InspectorValidation {
 #[derive(Debug, Clone)]
 pub struct InspectorState {
     pub reason: String,
+    /// RFC 009: multi-line text editor content backing the reason field.
+    /// `reason` is kept in sync via `ReasonAction` handler.
+    pub reason_content: iced::widget::text_editor::Content,
     pub strategy_label: String,
     pub strategy: AuditStrategy,
     pub note: String,
@@ -148,6 +151,7 @@ impl Default for InspectorState {
     fn default() -> Self {
         InspectorState {
             reason: String::new(),
+            reason_content: iced::widget::text_editor::Content::new(),
             strategy_label: "None".into(),
             strategy: AuditStrategy::None,
             note: String::new(),
@@ -290,6 +294,7 @@ pub enum Message {
 
     // Inspector
     ReasonChanged(String),
+    ReasonAction(iced::widget::text_editor::Action),  // RFC 009
     NoteChanged(String),
     StrategySelected(String),
     ChecksumChanged(String),
@@ -459,6 +464,7 @@ impl App {
                     self.inspector = if let Some(entry) = &far.entry {
                         InspectorState {
                             reason: entry.reason.clone(),
+                            reason_content: iced::widget::text_editor::Content::with_text(&entry.reason),
                             strategy_label: entry.strategy.label().into(),
                             strategy: entry.strategy.clone(),
                             note: entry.note.clone().unwrap_or_default(),
@@ -481,6 +487,17 @@ impl App {
             // ── Inspector ──────────────────────────────────────────────
             Message::ReasonChanged(s) => {
                 self.inspector.reason = s;
+                // Keep reason_content in sync when set programmatically
+                self.inspector.reason_content =
+                    iced::widget::text_editor::Content::with_text(&self.inspector.reason);
+                self.validate_inspector();
+            }
+
+            Message::ReasonAction(action) => {
+                // RFC 009: multi-line text editor for reason field
+                self.inspector.reason_content.perform(action);
+                self.inspector.reason = self.inspector.reason_content.text()
+                    .trim_end_matches('\n').to_string();
                 self.validate_inspector();
             }
             Message::NoteChanged(s) => { self.inspector.note = s; }
