@@ -256,22 +256,88 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             ].spacing(4).into()
         }
         AuditStrategy::LineMatch { rules } => {
-            let mut col = column![text(t!("inspector.linematch_label").to_string()).size(12)].spacing(6);
+            let editing_rule = ins.editing_rule;
+            let mut col = column![text(t!("inspector.linematch_label").to_string()).size(12)].spacing(5);
+
             for (i, rule) in rules.iter().enumerate() {
-                let action_pick = pick_list(
-                    &["Added", "Removed"][..],
-                    Some(if rule.action == LineAction::Added { "Added" } else { "Removed" }),
-                    move |s: &str| Message::LineRuleActionChanged(i, s.to_string()),
-                ).padding(4);
-                let line_input = text_input("line content", &rule.line)
-                    .on_input(move |s| Message::LineRuleLineChanged(i, s))
-                    .padding(6).font(iced::Font::MONOSPACE);
-                let del = button(text("✕").size(11)).on_press(Message::RemoveLineRule(i)).padding(4);
-                col = col.push(row![action_pick, line_input, del].spacing(4).align_y(iced::Alignment::Center));
+                let is_editing = editing_rule == Some(i);
+
+                if is_editing {
+                    // ── Edit form (expanded on click) ───────────────
+                    let action_pick = pick_list(
+                        &["Added", "Removed"][..],
+                        Some(if rule.action == LineAction::Added { "Added" } else { "Removed" }),
+                        move |s: &str| Message::LineRuleActionChanged(i, s.to_string()),
+                    ).padding(4);
+                    let line_input = text_input("line content", &rule.line)
+                        .on_input(move |s| Message::LineRuleLineChanged(i, s))
+                        .padding(6).font(iced::Font::MONOSPACE);
+                    let del = button(text("✕").size(11))
+                        .on_press(Message::RemoveLineRule(i)).padding(4);
+                    let done = button(text("✓").size(11))
+                        .on_press(Message::EditRule(i)).padding(4);
+                    let edit_row = container(
+                        column![
+                            row![action_pick, done, del].spacing(4).align_y(iced::Alignment::Center),
+                            line_input,
+                        ].spacing(4)
+                    )
+                    .padding(Padding::from([6.0, 8.0]))
+                    .width(Length::Fill)
+                    .style(|_| iced::widget::container::Style {
+                        border: iced::Border {
+                            color: iced::Color::from_rgb(0.70, 0.75, 0.85),
+                            width: 1.0,
+                            radius: 4.0.into(),
+                        },
+                        ..Default::default()
+                    });
+                    col = col.push(edit_row);
+                } else {
+                    // ── Display block (RFC 012: colour coded) ────────
+                    let (bg, label_color, action_label) = if rule.action == LineAction::Removed {
+                        (
+                            iced::Color::from_rgba(0.85, 0.20, 0.20, 0.10),
+                            iced::Color::from_rgb(0.70, 0.10, 0.10),
+                            "Removed",
+                        )
+                    } else {
+                        (
+                            iced::Color::from_rgba(0.10, 0.65, 0.30, 0.10),
+                            iced::Color::from_rgb(0.08, 0.50, 0.20),
+                            "Added",
+                        )
+                    };
+                    let block = button(
+                        container(
+                            column![
+                                text(format!("- action: {action_label}")).size(11)
+                                    .font(iced::Font::MONOSPACE).color(label_color),
+                                text(format!("  line: {:?}", rule.line)).size(11)
+                                    .font(iced::Font::MONOSPACE)
+                                    .color(iced::Color::from_rgb(0.20, 0.22, 0.28)),
+                            ]
+                            .spacing(1)
+                        )
+                        .padding(Padding::from([6.0, 10.0]))
+                        .width(Length::Fill)
+                        .style(move |_| iced::widget::container::Style {
+                            background: Some(iced::Background::Color(bg)),
+                            border: iced::Border { radius: 4.0.into(), ..Default::default() },
+                            ..Default::default()
+                        })
+                    )
+                    .on_press(Message::EditRule(i))
+                    .style(iced::widget::button::text)
+                    .width(Length::Fill);
+                    col = col.push(block);
+                }
             }
+
             col = col.push(
                 button(text(t!("inspector.add_rule").to_string()).size(12))
-                    .on_press(Message::AddLineRule).padding(Padding::from([4.0, 8.0]))
+                    .on_press(Message::AddLineRule)
+                    .padding(Padding::from([4.0, 8.0]))
             );
             col.into()
         }

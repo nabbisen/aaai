@@ -351,7 +351,7 @@ fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
         Some(idx) => {
             if let Some(result) = &app.audit_result {
                 if let Some(far) = result.results.get(idx) {
-                    return diff_view::view(&far.diff);
+                    return diff_view::view(&far.diff, app.diff_view_mode);
                 }
             }
         }

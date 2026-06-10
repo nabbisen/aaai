@@ -10,6 +10,11 @@ en:
     selected: selected entries
     title: Batch Approve
   diff:
+    no_changes: "No changed lines."
+    no_text_content: "No text content available."
+    tab_changed_only: "Changes only"
+    tab_unified: "Unified"
+    tab_side_by_side: "Side by side"
     legend_label: "Diff highlight"
     legend_removed: "Removed"
     legend_added: "Added"

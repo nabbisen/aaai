@@ -10,7 +10,9 @@ use similar::{ChangeTag, TextDiff};
 use aaai_core::{DiffType, diff::entry::DiffEntry};
 use crate::app::Message;
 
-pub fn view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode) -> Element<'a, Message> {
+    use crate::app::DiffViewMode;
+
     if diff.is_dir {
         return placeholder(t!("diff.directory").to_string());
     }
@@ -22,8 +24,87 @@ pub fn view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
             placeholder(msg)
         }
         _ if diff.is_binary => binary_panel(diff),
-        _ => side_by_side(diff),
+        _ => {
+            // RFC 011: tab bar + selected view
+            let has_text = diff.has_text_diff();
+            let tab_bar = build_tab_bar(mode, has_text);
+            let content = match mode {
+                DiffViewMode::SideBySide  => side_by_side(diff),
+                DiffViewMode::Unified     => unified_view(diff),
+                DiffViewMode::ChangedOnly => changed_only_view(diff),
+            };
+            column![tab_bar, content]
+                .spacing(0)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into()
+        }
     }
+}
+
+/// RFC 011: Tab selector for diff view modes.
+fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool) -> Element<'static, Message> {
+    use crate::app::DiffViewMode;
+
+    let tab = |label: String, target: DiffViewMode, active: bool| -> Element<'static, Message> {
+        let fg = if active {
+            iced::Color::from_rgb(0.10, 0.35, 0.80)
+        } else {
+            iced::Color::from_rgb(0.45, 0.47, 0.52)
+        };
+        let border_bottom = if active {
+            iced::Border {
+                color: iced::Color::from_rgb(0.10, 0.35, 0.80),
+                width: 2.0,
+                radius: 0.0.into(),
+            }
+        } else {
+            iced::Border::default()
+        };
+        iced::widget::button(
+            iced::widget::container(
+                text(label).size(12).color(fg)
+                    .font(if active {
+                        iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }
+                    } else {
+                        iced::Font::default()
+                    })
+            )
+            .padding(Padding::from([5.0, 12.0]))
+            .style(move |_| iced::widget::container::Style {
+                border: border_bottom,
+                ..Default::default()
+            })
+        )
+        .on_press_maybe(if active { None } else { Some(Message::SetDiffViewMode(target)) })
+        .style(iced::widget::button::text)
+        .into()
+    };
+
+    let tab_s1 = t!("diff.tab_side_by_side").to_string();
+    let tab_s2 = t!("diff.tab_unified").to_string();
+    let tab_s3 = t!("diff.tab_changed_only").to_string();
+    let tab_items: Vec<Element<'static, Message>> = vec![
+        tab(tab_s1, DiffViewMode::SideBySide,  mode == DiffViewMode::SideBySide),
+        tab(tab_s2, DiffViewMode::Unified,     mode == DiffViewMode::Unified),
+        tab(tab_s3, DiffViewMode::ChangedOnly, mode == DiffViewMode::ChangedOnly),
+    ];
+    iced::widget::container(
+        iced::widget::row(tab_items)
+        .spacing(0)
+        .align_y(iced::Alignment::Center)
+    )
+    .width(Length::Fill)
+    .style(|_| iced::widget::container::Style {
+        border: iced::Border {
+            color: iced::Color::from_rgb(0.85, 0.86, 0.88),
+            width: 0.0,
+            ..Default::default()
+        },
+        background: Some(iced::Background::Color(iced::Color::from_rgb(0.96, 0.97, 0.98))),
+        ..Default::default()
+    })
+    .into()
 }
 
 fn placeholder(msg: String) -> Element<'static, Message> {
@@ -281,4 +362,153 @@ fn diff_line(num: usize, content: String, kind: LineKind) -> Element<'static, Me
             .padding(Padding::from([1.0, 2.0]))
             .into()
     }
+}
+
+// ── RFC 011: Unified view ──────────────────────────────────────────────────────
+
+fn unified_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+    let before = diff.before_text.as_deref().unwrap_or("");
+    let after  = diff.after_text.as_deref().unwrap_or("");
+
+    if before.is_empty() && after.is_empty() {
+        return placeholder(t!("diff.no_text_content").to_string());
+    }
+
+    let td = similar::TextDiff::from_lines(before, after);
+    let mut rows: Vec<Element<'_, Message>> = Vec::new();
+
+    // Collect into owned data first to avoid borrow conflicts
+    let changes: Vec<(similar::ChangeTag, String)> = td.iter_all_changes()
+        .map(|c| (c.tag(), c.value().to_owned()))
+        .collect();
+    drop(td);
+
+    for (tag, value) in changes {
+        let line_str: String = value.trim_end_matches('\n').to_string();
+        let (prefix, bg) = match tag {
+            similar::ChangeTag::Delete =>
+                ("-", iced::Color::from_rgba(0.85, 0.20, 0.20, 0.12)),
+            similar::ChangeTag::Insert =>
+                ("+", iced::Color::from_rgba(0.10, 0.65, 0.30, 0.12)),
+            similar::ChangeTag::Equal  =>
+                (" ", iced::Color::from_rgba(0.0, 0.0, 0.0, 0.0)),
+        };
+        rows.push(
+            iced::widget::container(
+                row![
+                    text(prefix).size(11)
+                        .font(iced::Font::MONOSPACE)
+                        .color(if prefix == "-" {
+                            iced::Color::from_rgb(0.75, 0.15, 0.15)
+                        } else if prefix == "+" {
+                            iced::Color::from_rgb(0.10, 0.55, 0.25)
+                        } else {
+                            iced::Color::from_rgb(0.50, 0.50, 0.55)
+                        })
+                        .width(Length::Fixed(14.0)),
+                    text(line_str).size(11).font(iced::Font::MONOSPACE),
+                ]
+                .spacing(4)
+                .padding(Padding::from([1.0, 8.0]))
+            )
+            .width(Length::Fill)
+            .style(move |_| iced::widget::container::Style {
+                background: Some(iced::Background::Color(bg)),
+                ..Default::default()
+            })
+            .into()
+        );
+    }
+
+    column![
+        stats_bar(diff),
+        scrollable(column(rows).width(Length::Fill)).height(Length::Fill),
+        diff_legend(),
+    ]
+    .spacing(0)
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
+}
+
+// ── RFC 011: Changed-only view ────────────────────────────────────────────────
+
+fn changed_only_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+    let before = diff.before_text.as_deref().unwrap_or("");
+    let after  = diff.after_text.as_deref().unwrap_or("");
+
+    if before.is_empty() && after.is_empty() {
+        return placeholder(t!("diff.no_text_content").to_string());
+    }
+
+    let td = similar::TextDiff::from_lines(before, after);
+    let mut rows: Vec<Element<'_, Message>> = Vec::new();
+    let mut last_was_equal = false;
+
+    let co_changes: Vec<(similar::ChangeTag, String)> = td.iter_all_changes()
+        .map(|c| (c.tag(), c.value().to_owned()))
+        .collect();
+    drop(td);
+
+    for (tag, value) in co_changes {
+        match tag {
+            similar::ChangeTag::Equal => {
+                if !last_was_equal {
+                    rows.push(
+                        iced::widget::container(
+                            text("···").size(10)
+                                .color(iced::Color::from_rgb(0.65, 0.65, 0.70))
+                                .font(iced::Font::MONOSPACE)
+                        )
+                        .padding(Padding::from([2.0, 8.0]))
+                        .width(Length::Fill)
+                        .into()
+                    );
+                }
+                last_was_equal = true;
+            }
+            tag => {
+                last_was_equal = false;
+                let line_str: String = value.trim_end_matches('\n').to_string();
+                let (prefix, bg, fg) = if tag == similar::ChangeTag::Delete {
+                    ("-", iced::Color::from_rgba(0.85, 0.20, 0.20, 0.12),
+                          iced::Color::from_rgb(0.75, 0.15, 0.15))
+                } else {
+                    ("+", iced::Color::from_rgba(0.10, 0.65, 0.30, 0.12),
+                          iced::Color::from_rgb(0.10, 0.55, 0.25))
+                };
+                rows.push(
+                    iced::widget::container(
+                        row![
+                            text(prefix).size(11).font(iced::Font::MONOSPACE)
+                                .color(fg).width(Length::Fixed(14.0)),
+                            text(line_str).size(11).font(iced::Font::MONOSPACE),
+                        ]
+                        .spacing(4)
+                        .padding(Padding::from([1.0, 8.0]))
+                    )
+                    .width(Length::Fill)
+                    .style(move |_| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(bg)),
+                        ..Default::default()
+                    })
+                    .into()
+                );
+            }
+        }
+    }
+
+    if rows.is_empty() {
+        return placeholder(t!("diff.no_changes").to_string());
+    }
+
+    column![
+        stats_bar(diff),
+        scrollable(column(rows).width(Length::Fill)).height(Length::Fill),
+        diff_legend(),
+    ]
+    .spacing(0)
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
 }

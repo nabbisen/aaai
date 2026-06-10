@@ -37,6 +37,16 @@ use rust_i18n::t;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneKind { FileTree, Diff, Inspector }
 
+// ── Diff view mode (RFC 011) ─────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DiffViewMode {
+    #[default]
+    SideBySide,   // 左右差分
+    Unified,      // 統合
+    ChangedOnly,  // 変更のみ
+}
+
 // ── Keyboard focus (RFC 005) ──────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -134,6 +144,8 @@ impl InspectorValidation {
 #[derive(Debug, Clone)]
 pub struct InspectorState {
     pub reason: String,
+    /// RFC 012: index of the LineMatch rule currently in edit mode (None = all display mode)
+    pub editing_rule: Option<usize>,
     /// RFC 009: multi-line text editor content backing the reason field.
     /// `reason` is kept in sync via `ReasonAction` handler.
     pub reason_content: iced::widget::text_editor::Content,
@@ -151,6 +163,7 @@ impl Default for InspectorState {
     fn default() -> Self {
         InspectorState {
             reason: String::new(),
+            editing_rule: None,
             reason_content: iced::widget::text_editor::Content::new(),
             strategy_label: "None".into(),
             strategy: AuditStrategy::None,
@@ -209,6 +222,9 @@ pub struct App {
     // Phase 10: theme
     pub theme: AppTheme,
 
+    // RFC 011: diff view tab selection
+    pub diff_view_mode: DiffViewMode,
+
     // RFC 005: keyboard focus
     pub focus_target: FocusTarget,
     pub prefs: UserPrefs,
@@ -260,6 +276,7 @@ impl Default for App {
             locale: rust_i18n::locale().to_string(),
             prefs: UserPrefs::load(),
             theme: UserPrefs::load().theme,
+            diff_view_mode: DiffViewMode::default(),
             focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
             profile_name_input: String::new(),
@@ -301,6 +318,7 @@ pub enum Message {
     RegexPatternChanged(String),
     RegexTargetChanged(String),
     AddLineRule,
+    EditRule(usize),   // RFC 012: toggle rule edit mode
     RemoveLineRule(usize),
     LineRuleActionChanged(usize, String),
     LineRuleLineChanged(usize, String),
@@ -361,6 +379,9 @@ pub enum Message {
 
     // RFC 007: navigation
     BackToOpening,
+
+    // RFC 011: diff view tab
+    SetDiffViewMode(DiffViewMode),
 
     // RFC 005: keyboard focus messages
     DeselectEntry,
@@ -467,6 +488,7 @@ impl App {
                     self.inspector = if let Some(entry) = &far.entry {
                         InspectorState {
                             reason: entry.reason.clone(),
+                            editing_rule: None,
                             reason_content: iced::widget::text_editor::Content::with_text(&entry.reason),
                             strategy_label: entry.strategy.label().into(),
                             strategy: entry.strategy.clone(),
@@ -532,6 +554,15 @@ impl App {
                     rules.push(LineRule { action: LineAction::Added, line: String::new() });
                 }
             }
+            Message::EditRule(idx) => {
+                // RFC 012: toggle rule edit mode
+                self.inspector.editing_rule = if self.inspector.editing_rule == Some(idx) {
+                    None
+                } else {
+                    Some(idx)
+                };
+            }
+
             Message::RemoveLineRule(i) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
                     if i < rules.len() { rules.remove(i); }
@@ -883,6 +914,11 @@ impl App {
             // ── RFC 005: keyboard focus ───────────────────────────────────
             Message::Noop => {}
             Message::DeselectEntry => { self.selected_index = None; }
+
+            // ── RFC 011: diff view mode ───────────────────────────────
+            Message::SetDiffViewMode(mode) => {
+                self.diff_view_mode = mode;
+            }
 
             // ── RFC 007: navigation ───────────────────────────────────
             Message::BackToOpening => {

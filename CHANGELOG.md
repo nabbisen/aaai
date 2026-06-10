@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.17.0] — Sprint D-4: RFC 011 + RFC 012
+
+### RFC 011 — Diff View Tabs
+- `DiffViewMode` enum: `SideBySide` | `Unified` | `ChangedOnly` (default: SideBySide)
+- `App.diff_view_mode` フィールドと `Message::SetDiffViewMode` を追加
+- `diff_view::view()` にタブバーを追加: **左右差分 ｜ 統合 ｜ 変更のみ**
+  - アクティブタブに青アンダーライン・太字
+  - タブ切替で対応する差分ビューに即時反映
+- `unified_view()`: unified diff 形式（- 赤 / + 緑 / 空白行）をスクロール可能な縦長ビューで表示
+- `changed_only_view()`: Equal 行をスキップし `···` セパレーターで区切るビュー
+- i18n キー追加: `diff.tab_side_by_side`, `diff.tab_unified`, `diff.tab_changed_only`, `diff.no_text_content`, `diff.no_changes`
+
+### RFC 012 — LineMatch Rule Color Blocks
+- `InspectorState.editing_rule: Option<usize>` フィールドを追加（クリックで編集モードに切替）
+- `Message::EditRule(usize)` を追加（ルール行クリック → 編集フォーム展開 / 再クリックで閉じる）
+- **表示モード（デフォルト）**: 色付きコードブロックで表示
+  - Removed ルール: 薄い赤背景 + `- action: Removed / line: "..."` YAML 形式
+  - Added ルール: 薄い緑背景 + `- action: Added / line: "..."` YAML 形式
+  - ブロッククリックで編集フォームに展開
+- **編集モード（クリックで展開）**: action ピックリスト + テキスト入力 + ✓ 閉じる / ✕ 削除
+- `AddLineRule` 時は新しいルールを即座に編集モードで展開
+
 ## [0.16.0] — Sprint D-2: RFC 007 + RFC 008 + RFC 013
 
 ### RFC 007 — Toolbar & Navigation Restructure

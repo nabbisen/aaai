@@ -1,6 +1,6 @@
 # RFC 012 — LineMatch Rule Color Blocks
 
-**Status.** Proposed  
+**Status.** Implemented (v0.17.0)  
 **Priority.** 重要改善（v1.0 推奨）  
 **Tracks.** 設計書 p.5 インスペクター③ / p.7 監査戦略ごとの編集フォーム  
 **Touches.** `aaai-gui/src/views/inspector.rs`

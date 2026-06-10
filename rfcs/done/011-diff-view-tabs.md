@@ -1,6 +1,6 @@
 # RFC 011 — Diff View Tabs
 
-**Status.** Proposed  
+**Status.** Implemented (v0.17.0)  
 **Priority.** 重要改善（v1.0 推奨）  
 **Tracks.** 設計書 p.5 中央ペイン②「左右差分 ｜ 統合 ｜ 変更のみ」タブ  
 **Touches.** `aaai-gui/src/views/diff_view.rs` · `app.rs` (DiffViewMode, Message)
