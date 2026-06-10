@@ -20,6 +20,7 @@ _なし (全 RFC 実装済み)_
 | [003](done/003-abdd-status-display.md) | ABDD Status Display | v0.12.0 |
 | [004](done/004-opening-screen-validation.md) | Opening Screen Input Validation | v0.11.0 |
 | [005](done/005-keyboard-navigation.md) | Keyboard Navigation & Focus | v0.12.0 |
+| [006](done/006-report-output-ux.md) | Report Output UX | v0.14.0 |
 
 ---
 

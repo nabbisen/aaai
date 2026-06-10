@@ -27,9 +27,14 @@ pub fn build_html(
             AuditStatus::Error   => "#e2cbf7",
             AuditStatus::Ignored => "#e9ecef",
         };
-        let reason = r.entry.as_ref().map(|e| {
+        let reason_raw = r.entry.as_ref().map(|e| {
             _masker.map(|m| m.mask(&e.reason)).unwrap_or_else(|| e.reason.clone())
         }).unwrap_or_default();
+        let reason = if reason_raw.trim().is_empty() {
+            "<span class=\"no-reason\">(no reason)</span>".to_string()
+        } else {
+            html_escape(&reason_raw)
+        };
         let ticket = r.entry.as_ref().and_then(|e| e.ticket.as_ref())
             .map(|t| format!("<span class=\"ticket\">[{t}]</span> "))
             .unwrap_or_default();
@@ -51,11 +56,20 @@ pub fn build_html(
             path   = html_escape(&r.diff.path),
             dtype  = r.diff.diff_type,
             status = r.status,
-            reason = html_escape(&reason),
+            reason = reason,
         ));
     }
 
-    format!(r#"<!DOCTYPE html>
+    // Action Required banner
+    let attention_section = if !s.is_passing() {
+        format!(
+            "<div class=\"attention-banner\">\n             <strong>⚠ Action Required</strong> —              Failed: <strong>{}</strong>,              Pending: <strong>{}</strong>,              Error: <strong>{}</strong>\n             <br><small>Review the entries below before re-running the audit.</small>\n             </div>\n",
+            s.failed, s.pending, s.error
+        )
+    } else {
+        String::new()
+    };
+    let html_base = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -121,12 +135,13 @@ pub fn build_html(
         )).unwrap_or_default(),
         ok = s.ok, pending = s.pending, failed = s.failed,
         error = s.error, total = s.total,
-    )
+    );
+    html_base.replacen("<table>", &format!("{}\n<table>", attention_section), 1)
 }
-
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
      .replace('<', "&lt;")
      .replace('>', "&gt;")
      .replace('"', "&quot;")
+     .replace('\'', "&#39;")
 }

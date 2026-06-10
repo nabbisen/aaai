@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.14.0] — RFC 006: Report Output UX
+
+### RFC 006 — Report Output UX
+
+#### Markdown report restructured
+- **Result symbol added** — `✓ PASSED` / `✗ FAILED` at the top
+- **Summary table** — issues-first column order (Failed → Pending → Error → OK → Ignored)
+- **New "⚠ Action Required" section** — consolidates Failed + Pending + Error entries
+  at the top of the report, before OK entries
+- **Passed entries** moved to a dedicated `## ✓ Passed Entries` section below
+- **No-reason highlight** — empty `reason` shown as `*(no reason provided)*`
+- **Audit detail as blockquote** — `> ✗ Entry has no reason...` for visibility
+- **`md_entry()` helper extracted** — removes duplication across status sections
+
+#### HTML report improved
+- **`⚠ Action Required` banner** — shown above the entries table when audit fails;
+  lists Failed/Pending/Error counts with a review reminder
+- **`(no reason)` styling** — empty reason shown in red italic via `.no-reason` CSS class
+- `html_escape()` function restored (was missing from the module)
+- CSS additions: `.attention-banner`, `.no-reason`, `.detail-note`
+
 ## [0.13.1] — Technical debt cleanup
 
 ### Bug fixes

@@ -115,21 +115,26 @@ impl ReportGenerator {
     ) -> String {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
         let s = &result.summary;
-        let verdict = if s.is_passing() { "PASSED" } else { "FAILED" };
+        let (verdict_sym, verdict_word) =
+            if s.is_passing() { ("✓", "PASSED") } else { ("✗", "FAILED") };
 
         let mut md = String::new();
+        // ── Zone 1: Header ───────────────────────────────────────────
         md.push_str("# aaai Audit Report\n\n");
-        md.push_str(&format!("**Result: {verdict}**\n\n"));
+        md.push_str(&format!("**Result: {verdict_sym} {verdict_word}**\n\n"));
+
+        // ── Zone 2: Summary (issues-first column order) ──────────────
         md.push_str("## Summary\n\n");
-        md.push_str(&format!("| Item | Count |\n|------|-------|\n"));
-        md.push_str(&format!("| Total | {} |\n", s.total));
-        md.push_str(&format!("| OK | {} |\n", s.ok));
-        md.push_str(&format!("| Pending | {} |\n", s.pending));
-        md.push_str(&format!("| Failed | {} |\n", s.failed));
-        md.push_str(&format!("| Ignored | {} |\n", s.ignored));
-        md.push_str(&format!("| Error | {} |\n", s.error));
+        md.push_str("| Status | Count |\n|---|---:|\n");
+        if s.failed  > 0 { md.push_str(&format!("| ✗ Failed  | {} |\n", s.failed)); }
+        if s.pending > 0 { md.push_str(&format!("| ⚠ Pending | {} |\n", s.pending)); }
+        if s.error   > 0 { md.push_str(&format!("| ! Error   | {} |\n", s.error)); }
+        md.push_str(&format!("| ✓ OK      | {} |\n", s.ok));
+        if s.ignored > 0 { md.push_str(&format!("| — Ignored | {} |\n", s.ignored)); }
+        md.push_str(&format!("| **Total** | **{}** |\n", s.total));
         md.push('\n');
 
+        // ── Zone 3: Execution Details ────────────────────────────────
         md.push_str("## Execution Details\n\n");
         md.push_str(&format!("- **Run at:** {now}\n"));
         md.push_str(&format!("- **Before:** `{}`\n", before_root.display()));
@@ -139,45 +144,91 @@ impl ReportGenerator {
         }
         md.push('\n');
 
-        // Issues first
-        for status_header in [
-            (AuditStatus::Failed, "## Failed Entries"),
-            (AuditStatus::Pending, "## Pending Entries"),
-            (AuditStatus::Error, "## Error Entries"),
-            (AuditStatus::Ok, "## OK Entries"),
-            (AuditStatus::Ignored, "## Ignored Entries"),
-        ] {
-            let (status, header) = status_header;
-            let entries: Vec<_> = result.results.iter()
-                .filter(|r| r.status == status)
-                .collect();
-            if entries.is_empty() { continue; }
-            md.push_str(&format!("{header}\n\n"));
-            for r in &entries {
-                md.push_str(&format!("### `{}`\n\n", r.diff.path));
-                md.push_str(&format!("- **Status:** {}\n", r.status));
-                md.push_str(&format!("- **Diff type:** {}\n", r.diff.diff_type));
-                if let Some(entry) = &r.entry {
-                    let reason = masker.map(|m| m.mask(&entry.reason)).unwrap_or_else(|| entry.reason.clone());
-                    md.push_str(&format!("- **Reason:** {}\n", reason));
-                    md.push_str(&format!("- **Strategy:** {}\n", entry.strategy.label()));
-                    if let Some(t) = &entry.ticket { md.push_str(&format!("- **Ticket:** {t}\n")); }
-                    if let Some(ab) = &entry.approved_by { md.push_str(&format!("- **Approved by:** {ab}\n")); }
-                    if let Some(at) = &entry.approved_at { md.push_str(&format!("- **Approved at:** {}\n", at.format("%Y-%m-%d %H:%M UTC"))); }
-                    if let Some(exp) = &entry.expires_at { md.push_str(&format!("- **Expires at:** {exp}\n")); }
-                    if let Some(note) = &entry.note { md.push_str(&format!("- **Note:** {note}\n")); }
-                }
-                if r.diff.is_binary { md.push_str("- **Type:** Binary file\n"); }
-                if let Some(label) = r.diff.size_change_label() { md.push_str(&format!("- **Size:** {label}\n")); }
-                if let Some(stats) = &r.diff.stats { md.push_str(&format!("- **Lines:** +{} -{}\n", stats.lines_added, stats.lines_removed)); }
-                if let Some(detail) = &r.detail {
-                    md.push_str(&format!("- **Detail:** {detail}\n"));
-                }
-                md.push('\n');
+        // ── Zone 4: Action Required (Failed + Pending + Error) ───────
+        let attention: Vec<_> = result.results.iter()
+            .filter(|r| matches!(r.status,
+                AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error))
+            .collect();
+        if !attention.is_empty() {
+            let counts = format!("Failed: {}, Pending: {}, Error: {}",
+                s.failed, s.pending, s.error);
+            md.push_str(&format!("## ⚠ Action Required ({counts})\n\n"));
+            for r in &attention {
+                Self::md_entry(&mut md, r, masker);
+            }
+        }
+
+        // ── Zone 5: Passed entries ───────────────────────────────────
+        let ok_entries: Vec<_> = result.results.iter()
+            .filter(|r| r.status == AuditStatus::Ok)
+            .collect();
+        if !ok_entries.is_empty() {
+            md.push_str(&format!("## ✓ Passed Entries ({})\n\n", ok_entries.len()));
+            for r in &ok_entries {
+                Self::md_entry(&mut md, r, masker);
+            }
+        }
+
+        // ── Zone 6: Ignored entries ──────────────────────────────────
+        let ignored: Vec<_> = result.results.iter()
+            .filter(|r| r.status == AuditStatus::Ignored)
+            .collect();
+        if !ignored.is_empty() {
+            md.push_str(&format!("## — Ignored Entries ({})\n\n", ignored.len()));
+            for r in &ignored {
+                Self::md_entry(&mut md, r, masker);
             }
         }
 
         md
+    }
+
+    fn md_entry(
+        md: &mut String,
+        r: &crate::audit::result::FileAuditResult,
+        masker: Option<&crate::masking::engine::MaskingEngine>,
+    ) {
+        let sym = match r.status {
+            AuditStatus::Ok      => "✓",
+            AuditStatus::Pending => "⚠",
+            AuditStatus::Failed  => "✗",
+            AuditStatus::Error   => "!",
+            AuditStatus::Ignored => "—",
+        };
+        md.push_str(&format!("### `{}` — {} {}\n\n", r.diff.path, sym, r.status));
+        md.push_str(&format!("- **Diff type:** {}\n", r.diff.diff_type));
+
+        if let Some(entry) = &r.entry {
+            let raw_reason = entry.reason.trim();
+            let reason = if raw_reason.is_empty() {
+                "*(no reason provided)*".to_string()
+            } else {
+                masker.map(|m| m.mask(raw_reason))
+                    .unwrap_or_else(|| raw_reason.to_string())
+            };
+            md.push_str(&format!("- **Reason:** {}\n", reason));
+            md.push_str(&format!("- **Strategy:** {}\n", entry.strategy.label()));
+            if let Some(t)  = &entry.ticket      { md.push_str(&format!("- **Ticket:** {t}\n")); }
+            if let Some(ab) = &entry.approved_by { md.push_str(&format!("- **Approved by:** {ab}\n")); }
+            if let Some(at) = &entry.approved_at {
+                md.push_str(&format!("- **Approved at:** {}\n", at.format("%Y-%m-%d %H:%M UTC")));
+            }
+            if let Some(exp) = &entry.expires_at { md.push_str(&format!("- **Expires:** {exp}\n")); }
+            if let Some(note) = &entry.note      { md.push_str(&format!("- **Note:** {note}\n")); }
+        }
+        if r.diff.is_binary { md.push_str("- **Type:** Binary file\n"); }
+        if let Some(label) = r.diff.size_change_label() {
+            md.push_str(&format!("- **Size:** {label}\n"));
+        }
+        if let Some(stats) = &r.diff.stats {
+            md.push_str(&format!("- **Lines:** +{} −{}\n",
+                stats.lines_added, stats.lines_removed));
+        }
+        // Audit check detail — shown as blockquote for visibility
+        if let Some(detail) = &r.detail {
+            md.push_str(&format!("\n> {sym} {detail}\n"));
+        }
+        md.push('\n');
     }
 
     /// Generate an HTML report and write to `output_path`.
