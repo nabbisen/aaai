@@ -93,8 +93,8 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 5-1 | Approve an entry | Footer shows "Unsaved changes" |
-| 5-2 | Press Ctrl+S | Definition file saved; "Unsaved" indicator clears |
+| 5-1 | Approve an entry via bottom bar | Definition file saved automatically; no "Unsaved" indicator |
+| 5-2 | Press Ctrl+S | Definition file saved (can also save without approving) |
 | 5-3 | Press Ctrl+R | Audit re-runs; results refresh |
 | 5-4 | Modify before/after files externally, Ctrl+R | Updated diff shown |
 
@@ -115,8 +115,8 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 7-1 | Press "Export MD" | `aaai-report.md` created in current directory |
-| 7-2 | Press "Export JSON" | `aaai-report.json` created, valid JSON |
+| 7-1 | Press "Export Report" (toolbar) | `aaai-report.md` created in current directory |
+| 7-2 | `aaai report --format json` | `aaai-report.json` created, valid JSON |
 | 7-3 | `aaai report --format html` | Valid HTML file with summary cards |
 | 7-4 | `aaai report --format sarif` | Valid SARIF 2.1.0 JSON |
 

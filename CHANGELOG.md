@@ -4,6 +4,35 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.17.1] — Documentation & README sync
+
+### cargo outdated
+- All dependencies up to date (v0.14.2 state maintained)
+- `notify` 9.0.0-rc.4 (RC) — update deferred until stable
+- `serde_yaml` 0.9.x (deprecated) — no stable successor yet; held
+
+### README.md
+- **License section removed** — per project policy (LICENSE file + badge is sufficient)
+- **CI badge URL fixed** — `/.github/workflows/ci.yaml` → absolute GitHub Actions URL
+- **docs.rs badge fixed** — `aaai` → `aaai-core` (the correct published crate name)
+- **crates.io badge fixed** — `aaai` → `aaai-core`
+
+### docs/src/gui.md + docs/ja/src/gui.md
+- **"承認して適用"** updated to **"承認して保存"** (Approve & Save, bottom bar)
+- **Batch Approve button** description updated (removed toolbar reference)
+- **Export MD / Export JSON** → **レポート出力** (single button; JSON/HTML/SARIF via CLI)
+- **Keyboard shortcuts** expanded: `Ctrl+E`, `Enter`, `/`, `Tab`, `Escape` added
+
+### docs/src/testing.md + docs/ja/src/testing.md
+- Section 4 (Inspector): "Approve" → "Approve & Save" (bottom bar)
+- Section 5 (Save/Re-run): updated to reflect auto-save on approve
+- Section 7 (Export): "Export MD" / "Export JSON" → "Export Report" / `aaai report`
+
+### crates/aaai-gui/README.md
+- Features list updated with: Bottom action bar, Diff view tabs,
+  Reason textarea, LineMatch colour blocks, ABDD status icons,
+  expanded keyboard shortcuts
+
 ## [0.17.0] — Sprint D-4: RFC 011 + RFC 012
 
 ### RFC 011 — Diff View Tabs
