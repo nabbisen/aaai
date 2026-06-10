@@ -74,10 +74,15 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     let divider = iced::widget::rule::horizontal(1);
 
     // ── Section: reason ──────────────────────────────────────────────
-    let reason_label = semibold_text(t!("inspector.reason_label").to_string(), 13.0);
-    let reason_input = text_input(&t!("inspector.reason_placeholder"), &ins.reason)
-        .on_input(Message::ReasonChanged)
-        .padding(8);
+    // RFC 009 + RFC 014: multi-line text_editor for the reason field
+    let reason_label = semibold_text(
+        format!("{} *", t!("inspector.reason_label")),  // * = required marker
+        13.0,
+    );
+    let reason_input = iced::widget::text_editor(&ins.reason_content)
+        .on_action(Message::ReasonAction)
+        .height(Length::Fixed(72.0))
+        .padding(Padding::from([8.0, 10.0]));
 
     // ── Section: Phase 3 traceability ────────────────────────────────
     let ticket_label = semibold_text(t!("inspector.ticket_label").to_string(), 12.0);

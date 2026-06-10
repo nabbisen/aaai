@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.18.0] — RFC 014: View layer fixes
+
+### RFC 014 — View Layer Fixes (RFC 007/009 re-apply + ABDD tap areas)
+
+#### Toolbar re-implemented (RFC 007 view side — previously failed to apply)
+- Old toolbar (`save`, `rerun`, `Batch Approve`, `Export MD`, `Export JSON`, verdict badge) **removed**
+- New toolbar: `[ □ 開く ] [ □ 保存 ] [ ▶ 監査実行 ] [ ↑ レポート出力 ]` with right-aligned `監査ステータス: PASSED / FAILED`
+- `Message::BackToOpening` now correctly wired to "開く" button
+- `colored_badge()` function removed (no longer used after toolbar + file tree changes)
+
+#### Reason textarea applied (RFC 009 view side — previously failed to apply)
+- Inspector reason field changed from single-line `text_input` to **multi-line `text_editor`** (height 72px)
+- Reason label now shows `*` required marker: `理由(必須) *`
+- `ins.reason_content` (text_editor::Content) properly rendered
+
+#### ABDD tap area compliance (p.8)
+- Toolbar buttons: padding `[4.0, 10.0]` → `[10.0, 16.0]` (≥ 44px)
+- Filter bar buttons: padding `[3.0, 8.0]` → `[10.0, 14.0]`
+- Bottom bar approve button: padding `[6.0, 18.0]` → `[10.0, 20.0]`
+- Inspector add-rule button: padding `[4.0, 8.0]` → `[10.0, 14.0]`
+
 ## [0.17.1] — Documentation & README sync
 
 ### cargo outdated

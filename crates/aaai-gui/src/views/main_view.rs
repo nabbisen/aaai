@@ -49,63 +49,53 @@ pub fn view(app: &App) -> Element<'_, Message> {
 // ── Toolbar ──────────────────────────────────────────────────────────────────
 
 fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
+    // RFC 007 + RFC 014: Design-doc toolbar
+    //  [ □ 開く ] [ □ 保存 ] [ ▶ 監査実行 ] [ ↑ レポート出力 ]   監査ステータス: XX
     use crate::style::panel_style;
 
-    let save_btn = button(text(t!("toolbar.save").to_string()).size(12))
-        .on_press(Message::SaveDefinition)
-        .padding(Padding::from([4.0, 10.0]));
-    let rerun_btn = button(text(t!("toolbar.rerun").to_string()).size(12))
-        .on_press(Message::RerunAudit)
-        .padding(Padding::from([4.0, 10.0]));
-    let batch_btn = button(text(t!("toolbar.batch_approve").to_string()).size(12))
-        .on_press(Message::OpenBatchSheet)
-        .padding(Padding::from([4.0, 10.0]));
-
-    let verdict_section: Element<'_, Message> = if let Some(result) = &app.audit_result {
-        let s = &result.summary;
-        let verdict_str = if s.is_passing() {
-            t!("toolbar.passed").to_string()
-        } else {
-            t!("toolbar.failed").to_string()
-        };
-        let verdict_color = if s.is_passing() { theme::OK_COLOR } else { theme::FAILED_COLOR };
-        let warn_str = if s.warning_count > 0 {
-            format!("  ⚠ {}", s.warning_count)
-        } else {
-            String::new()
-        };
-        row![
-            colored_badge(verdict_str, verdict_color),
-            text(format!(
-                "  OK: {}  Pending: {}  Failed: {}  Error: {}{}",
-                s.ok, s.pending, s.failed, s.error, warn_str
-            )).size(12),
-        ]
-        .align_y(iced::Alignment::Center)
-        .spacing(4)
+    let toolbar_btn = |icon: String, label: String, msg: Message| -> Element<'_, Message> {
+        button(
+            row![
+                text(icon).size(12),
+                text(label).size(12),
+            ]
+            .spacing(4)
+            .align_y(iced::Alignment::Center)
+        )
+        .on_press(msg)
+        .padding(Padding::from([10.0, 16.0]))
         .into()
+    };
+
+    let open_btn   = toolbar_btn("□".into(), t!("toolbar.open").to_string(),          Message::BackToOpening);
+    let save_btn   = toolbar_btn("□".into(), t!("toolbar.save").to_string(),          Message::SaveDefinition);
+    let run_btn    = toolbar_btn("▶".into(), t!("toolbar.run_audit").to_string(),     Message::RerunAudit);
+    let report_btn = toolbar_btn("↑".into(), t!("toolbar.report_output").to_string(), Message::ExportReport("markdown".into()));
+
+    // Audit status label — right-aligned simple text
+    let status_label: Element<'_, Message> = if let Some(result) = &app.audit_result {
+        let s = &result.summary;
+        let (label, color) = if s.is_passing() {
+            (t!("toolbar.passed").to_string(), theme::OK_COLOR)
+        } else {
+            (t!("toolbar.failed").to_string(), theme::FAILED_COLOR)
+        };
+        text(format!("{}: {}", t!("toolbar.audit_status"), label))
+            .size(13).color(color)
+            .into()
     } else {
         space().width(Length::Fill).into()
     };
 
-    let report_md  = button(text("Export MD").size(11))
-        .on_press(Message::ExportReport("markdown".into()))
-        .padding(Padding::from([3.0, 7.0]));
-    let report_json = button(text("Export JSON").size(11))
-        .on_press(Message::ExportReport("json".into()))
-        .padding(Padding::from([3.0, 7.0]));
-
     container(
         row![
-            save_btn, rerun_btn, batch_btn,
-            space().width(Length::Fixed(8.0)),
-            verdict_section,
+            open_btn, save_btn, run_btn, report_btn,
             space().width(Length::Fill),
-            report_md, report_json,
+            status_label,
         ]
-        .spacing(4)
+        .spacing(6)
         .align_y(iced::Alignment::Center)
-        .padding(Padding::from([4.0, 8.0])),
+        .padding(Padding::from([4.0, 10.0])),
     )
     .width(Length::Fill)
     .style(panel_style)
@@ -121,7 +111,7 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         let active = app.filter_mode == mode;
         let btn = button(text(t!(label).to_string()).size(11))
             .on_press(Message::SetFilter(mode))
-            .padding(Padding::from([3.0, 8.0]));
+            .padding(Padding::from([10.0, 14.0]));  // ABDD ≥44px
         if active {
             container(btn)
                 .style(|_| iced::widget::container::Style {
@@ -138,7 +128,7 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
 
     let undo_btn = button(text(t!("toolbar.undo").to_string()).size(11))
         .on_press(Message::UndoApproval)
-        .padding(Padding::from([3.0, 8.0]));
+        .padding(Padding::from([10.0, 14.0]));  // ABDD ≥44px
 
     container(
         row![
@@ -183,7 +173,7 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
         .spacing(6)
         .align_y(iced::Alignment::Center),
     )
-    .padding(Padding::from([2.0, 8.0]))
+    .padding(Padding::from([10.0, 14.0]))  // ABDD ≥44px
     .width(Length::Fill)
     .style(|_| iced::widget::container::Style {
         background: Some(iced::Background::Color(Color::from_rgb(0.95, 0.96, 0.97))),
@@ -242,7 +232,7 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
             )
             .on_press(Message::ToggleDir(dir_clone))
             .width(Length::Fill)
-            .padding(Padding::from([2.0, 6.0]))
+            .padding(Padding::from([4.0, 6.0]))  // ABDD minimum
             .style(iced::widget::button::text);
             items.push(dir_btn.into());
             prev_dir = dir.clone();
@@ -421,20 +411,6 @@ fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
 }
 
 
-fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
-    container(
-        text(label).size(11)
-            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() })
-            .color(Color::WHITE)
-    )
-    .padding(Padding::from([2.0, 5.0]))
-    .style(move |_| iced::widget::container::Style {
-        background: Some(iced::Background::Color(color)),
-        border: iced::Border { radius: 4.0.into(), ..Default::default() },
-        ..Default::default()
-    })
-    .into()
-}
 
 // ── Bottom action bar (RFC 008) ───────────────────────────────────────────────
 
@@ -454,7 +430,7 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
             }),
     )
     .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
-    .padding(Padding::from([6.0, 18.0]));
+    .padding(Padding::from([10.0, 20.0]));  // ABDD ≥44px
 
     // Selected file label
     let selected_label: Element<'_, Message> = if let Some(idx) = app.selected_index {
