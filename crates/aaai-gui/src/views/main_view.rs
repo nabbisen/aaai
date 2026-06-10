@@ -3,7 +3,7 @@
 use iced::{
     Color, Element, Length, Padding,
     widget::{
-        button, checkbox, column, container, pane_grid,
+        button, column, container, pane_grid,
         row, scrollable, space, text, text_input,
     },
 };
@@ -17,9 +17,10 @@ use crate::views::{dashboard, diff_view, inspector};
 // ── Top-level view ───────────────────────────────────────────────────────────
 
 pub fn view(app: &App) -> Element<'_, Message> {
-    let toolbar  = build_toolbar(app);
+    let toolbar    = build_toolbar(app);
     let filter_bar = build_filter_bar(app);
     let search_bar = build_search_bar(app);
+    let bottom_bar = build_bottom_bar(app);   // RFC 008
     // ── PaneGrid ──────────────────────────────────────────────────────────
     let pg = pane_grid::PaneGrid::new(&app.panes, |_pane, kind, _is_maximized| {
         let content: Element<'_, Message> = match kind {
@@ -39,6 +40,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
         filter_bar,
         search_bar,
         pg,
+        bottom_bar,   // RFC 008: fixed bottom action bar
     ]
     .spacing(0)
     .into()
@@ -276,23 +278,9 @@ fn build_file_row<'a>(
     indent: f32,
 ) -> Element<'a, Message> {
     let is_selected = app.selected_index == Some(idx);
-    let is_batch    = app.batch.selected.contains(&idx);
+    let _is_batch   = app.batch.selected.contains(&idx);  // batch UI removed from toolbar (RFC 007)
 
-    let diff_icon = match far.diff.diff_type {
-        DiffType::Added        => "+",
-        DiffType::Removed      => "−",
-        DiffType::Modified     => "~",
-        DiffType::TypeChanged  => "T",
-        DiffType::Unreadable   => "!",
-        DiffType::Incomparable => "?",
-        DiffType::Unchanged    => " ",
-    };
-
-    // RFC 003: diff-type badge uses neutral color (status conveyed by status_badge)
-    let diff_badge_color = iced::Color::from_rgb(0.50, 0.52, 0.55);
-    let diff_badge = colored_badge(diff_icon.to_string(), diff_badge_color);
-
-    // Warning badge
+    // RFC 013: row layout — left: status_icon, middle: path, right: diff_type_tag
     let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
         Some(
             container(
@@ -315,28 +303,23 @@ fn build_file_row<'a>(
         )
     } else { None };
 
-    let batch_cb = checkbox(is_batch)
-        .on_toggle(move |_| Message::ToggleBatchSelect(idx))
-        .size(14);
-
+    let sicon = status_icon(far.status);
+    let dtype_tag = diff_type_tag(far.diff.diff_type);
     let mut name_row = row![
         space().width(Length::Fixed(indent)),
-        diff_badge,
+        sicon,
         text(short).size(12).font(iced::Font::MONOSPACE),
     ]
-    .spacing(4)
+    .spacing(5)
     .align_y(iced::Alignment::Center);
     if let Some(wb) = warn_badge {
         name_row = name_row.push(wb);
     }
 
-    // RFC 003: status badge (right-aligned) — symbol + text for ABDD
-    let sbadge = status_badge(far.status);
     let full_row = row![
-        batch_cb,
         name_row,
         space().width(Length::Fill),
-        sbadge,
+        dtype_tag,
     ]
     .spacing(4)
     .align_y(iced::Alignment::Center);
@@ -408,31 +391,33 @@ fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-// RFC 003: ABDD-compliant status badge — symbol + text, not color only.
-fn status_badge<'a>(status: AuditStatus) -> Element<'a, Message> {
-    let (sym, label, color) = match status {
-        AuditStatus::Ok      => ("✓", "OK     ", theme::OK_COLOR),
-        AuditStatus::Pending => ("⚠", "Pending", theme::PENDING_COLOR),
-        AuditStatus::Failed  => ("✗", "Failed ", theme::FAILED_COLOR),
-        AuditStatus::Error   => ("!", "Error  ", theme::ERROR_COLOR),
-        AuditStatus::Ignored => ("—", "Ignored", theme::IGNORED_COLOR),
+
+// RFC 013: single status icon — symbol + colour only, no text label.
+fn status_icon(status: AuditStatus) -> Element<'static, Message> {
+    let (sym, color) = match status {
+        AuditStatus::Ok      => ("✓", theme::OK_COLOR),
+        AuditStatus::Pending => ("⚠", theme::PENDING_COLOR),
+        AuditStatus::Failed  => ("✗", theme::FAILED_COLOR),
+        AuditStatus::Error   => ("!", theme::ERROR_COLOR),
+        AuditStatus::Ignored => ("—", iced::Color::from_rgb(0.65, 0.65, 0.68)),
     };
-    container(
-        row![
-            text(sym).size(10).color(Color::WHITE),
-            text(label).size(10).color(Color::WHITE)
-                .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
-        ]
-        .spacing(3)
-        .align_y(iced::Alignment::Center)
-    )
-    .padding(Padding::from([2.0, 6.0]))
-    .style(move |_| iced::widget::container::Style {
-        background: Some(iced::Background::Color(color)),
-        border: iced::Border { radius: 4.0.into(), ..Default::default() },
-        ..Default::default()
-    })
-    .into()
+    text(sym).size(13).color(color).into()
+}
+
+// RFC 013: diff-type tag — right-aligned subtle grey symbol.
+fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
+    let sym = match dtype {
+        DiffType::Added        => "+",
+        DiffType::Removed      => "−",
+        DiffType::Modified     => "~",
+        DiffType::TypeChanged  => "T",
+        DiffType::Unchanged    => " ",
+        DiffType::Unreadable   => "!",
+        DiffType::Incomparable => "?",
+    };
+    text(sym).size(11)
+        .color(iced::Color::from_rgb(0.60, 0.62, 0.66))
+        .into()
 }
 
 
@@ -448,5 +433,74 @@ fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
         border: iced::Border { radius: 4.0.into(), ..Default::default() },
         ..Default::default()
     })
+    .into()
+}
+
+// ── Bottom action bar (RFC 008) ───────────────────────────────────────────────
+
+fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
+    use crate::style::panel_style;
+
+    // "承認して保存" button — enabled only when an entry is selected and valid
+    let can_approve = app.selected_index.is_some()
+        && app.inspector.validation.can_approve();
+
+    let approve_btn = button(
+        text(t!("bottombar.approve_and_save").to_string())
+            .size(13)
+            .font(iced::Font {
+                weight: iced::font::Weight::Semibold,
+                ..Default::default()
+            }),
+    )
+    .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
+    .padding(Padding::from([6.0, 18.0]));
+
+    // Selected file label
+    let selected_label: Element<'_, Message> = if let Some(idx) = app.selected_index {
+        if let Some(r) = app.audit_result.as_ref().and_then(|r| r.results.get(idx)) {
+            text(format!("{}  {}", t!("bottombar.selected"), r.diff.path))
+                .size(12)
+                .color(iced::Color::from_rgb(0.40, 0.42, 0.48))
+                .into()
+        } else {
+            space().width(Length::Fill).into()
+        }
+    } else {
+        space().width(Length::Fill).into()
+    };
+
+    // Unresolved count label
+    let count_label: Element<'_, Message> = if let Some(s) =
+        app.audit_result.as_ref().map(|r| &r.summary)
+    {
+        let unresolved = s.failed + s.pending + s.error;
+        let color = if unresolved > 0 {
+            iced::Color::from_rgb(0.75, 0.30, 0.10)
+        } else {
+            iced::Color::from_rgb(0.15, 0.60, 0.25)
+        };
+        text(format!("{}件の差分中 {}件が未解決", s.total, unresolved))
+            .size(12)
+            .color(color)
+            .into()
+    } else {
+        space().width(Length::Fill).into()
+    };
+
+    container(
+        row![
+            approve_btn,
+            space().width(Length::Fixed(16.0)),
+            selected_label,
+            space().width(Length::Fill),
+            count_label,
+        ]
+        .spacing(6)
+        .align_y(iced::Alignment::Center)
+        .padding(Padding::from([5.0, 12.0])),
+    )
+    .width(Length::Fill)
+    .style(panel_style)
     .into()
 }

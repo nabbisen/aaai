@@ -359,6 +359,9 @@ pub enum Message {
     PaneResized(pane_grid::ResizeEvent),
     PaneFocused(pane_grid::Pane),
 
+    // RFC 007: navigation
+    BackToOpening,
+
     // RFC 005: keyboard focus messages
     DeselectEntry,
     FocusNext,
@@ -880,6 +883,24 @@ impl App {
             // ── RFC 005: keyboard focus ───────────────────────────────────
             Message::Noop => {}
             Message::DeselectEntry => { self.selected_index = None; }
+
+            // ── RFC 007: navigation ───────────────────────────────────
+            Message::BackToOpening => {
+                if self.dirty {
+                    self.push_toast(
+                        ToastIntent::Warning,
+                        t!("toast.unsaved_warning").as_ref(),
+                        t!("toast.save_before_leaving").as_ref(),
+                    );
+                } else {
+                    self.screen = Screen::Opening;
+                    self.audit_result = None;
+                    self.diffs.clear();
+                    self.definition = None;
+                    self.selected_index = None;
+                    self.inspector = InspectorState::default();
+                }
+            }
             Message::FocusNext => {
                 self.focus_target = match self.focus_target {
                     FocusTarget::FileTree  => FocusTarget::Inspector,

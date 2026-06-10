@@ -184,13 +184,9 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         let msg = all_errors.join(" · ");
         Some(text(msg).size(11).color(Color::from_rgb(0.78, 0.10, 0.10)).into())
     };
-    let can_approve = ins.validation.can_approve();
-    let approve_btn = button(
-        text(t!("inspector.approve_button").to_string()).size(14)
-            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
-    )
-    .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
-    .padding(Padding::from([9.0, 20.0]));
+    // RFC 008: approve button moved to bottom action bar
+    // can_approve is still computed for validation state reference (RFC 002)
+    let _can_approve = ins.validation.can_approve();
 
     // Collect all column children into a Vec so lifetimes are uniform.
     let mut children: Vec<Element<'_, Message>> = vec![
@@ -216,8 +212,6 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         tmpl_label.into(), tmpl_pick.into(),
         strategy_form,
         note_label.into(), note_input.into(),
-        space().height(Length::Fixed(4.0)).into(),
-        approve_btn.into(),
     ]);
 
     if let Some(err) = val_err {

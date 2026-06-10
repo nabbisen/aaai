@@ -84,6 +84,8 @@ en:
     pending: Pending
     result_failed: FAILED
   toast:
+    save_before_leaving: "Save before leaving or changes will be lost."
+    unsaved_warning: "Unsaved changes"
     approved: Approved
     batch_approved: Batch approved
     export_failed: Export failed
@@ -92,8 +94,15 @@ en:
     save_failed: Save failed
     saved: Saved
   toolbar:
+    audit_status: "Audit status"
+    report_output: "Export Report"
+    run_audit: "Run Audit"
+    open: "Open"
     batch_approve: Batch Approve
     export_json: Export JSON
     export_md: Export MD
     rerun: Re-run Audit
     save: Save
+  bottombar:
+    selected: "Selected:"
+    approve_and_save: "Approve & Save"

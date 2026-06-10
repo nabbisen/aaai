@@ -1,6 +1,6 @@
 # RFC 008 — Bottom Action Bar
 
-**Status.** Proposed  
+**Status.** Implemented (v0.16.0)  
 **Priority.** v1.0 blocker  
 **Tracks.** 設計書 p.5 下部バー / p.7「承認ボタンは reason + strategy + valid rule が揃ったときのみ有効」  
 **Touches.** `aaai-gui/src/views/main_view.rs` · `views/inspector.rs` · `app.rs`

@@ -1,6 +1,6 @@
 # RFC 007 — Toolbar & Navigation Restructure
 
-**Status.** Proposed  
+**Status.** Implemented (v0.16.0)  
 **Priority.** v1.0 blocker  
 **Tracks.** 設計書 p.5「GUI メイン画面」ツールバー / p.6 画面リレーション  
 **Touches.** `aaai-gui/src/views/main_view.rs` · `app.rs` (Message, Screen)

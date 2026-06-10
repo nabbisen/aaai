@@ -1,6 +1,6 @@
 # RFC 013 — File Tree Icon Unification
 
-**Status.** Proposed  
+**Status.** Implemented (v0.16.0)  
 **Priority.** 重要改善（v1.0 推奨）  
 **Tracks.** 設計書 p.5 ファイルツリー①  
 **Touches.** `aaai-gui/src/views/main_view.rs`

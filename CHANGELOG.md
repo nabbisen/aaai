@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.16.0] — Sprint D-2: RFC 007 + RFC 008 + RFC 013
+
+### RFC 007 — Toolbar & Navigation Restructure
+- **「開く」ボタン追加**: Opening 画面に戻れるように（未保存時はトーストで警告）
+- **ボタン再構成**: `[ □ 開く ]  [ □ 保存 ]  [ ▶ 監査実行 ]  [ ↑ レポート出力 ]`
+- **「Batch Approve」削除**: ツールバーから除去（バッチ状態は内部保持）
+- **「Export MD」「Export JSON」を「レポート出力」に統合**: Markdown をデフォルト出力
+- **監査ステータス表示**: 件数バッジ → `監査ステータス: PASSED / FAILED` テキストに変更
+- `Message::BackToOpening` 追加（未保存チェック付き）
+
+### RFC 008 — Bottom Action Bar
+- **ボトムバー新設**: 全ペインの外（最下部）に固定
+  - `[ 承認して保存 ]` ← 選択中エントリが有効な場合のみ有効
+  - `選択中: <filename>` ← 選択中ファイルパスを常時表示
+  - `N件の差分中 M件が未解決` ← 右端に常時表示（未解決時は赤橙色）
+- **インスペクターから承認ボタンを削除**: ボトムバーに一本化
+- i18n キー追加: `bottombar.approve_and_save`, `bottombar.selected`, `toolbar.open`, `toolbar.run_audit`, `toolbar.report_output`, `toolbar.audit_status`
+
+### RFC 013 — File Tree Icon Unification
+- **行頭**: `diff-type バッジ（灰色）` → **`status_icon()`**（✓ ⚠ ✗ ! — の色付き記号のみ）
+- **右端**: `status バッジ（テキストラベル付き）` → **`diff_type_tag()`**（+ − ~ T の控えめなグレー記号）
+- `status_badge()` 関数を廃止し `status_icon()` / `diff_type_tag()` に置換
+- `diff_icon` 計算・`diff_badge` を削除（不要になった）
+
 ## [0.15.0] — Sprint D-1: RFC 009 + RFC 010
 
 ### RFC 009 — Reason Field Multi-line Textarea
