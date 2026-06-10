@@ -302,6 +302,8 @@ pub enum Message {
     ExactContentChanged(String),
 
     // Actions
+    /// Internal approval step used by [`Message::ApproveAndSave`] and batch approval.
+    /// Prefer `ApproveAndSave` for direct user actions.
     ApproveEntry,
     ApproveAndSave,  // RFC 002: approve + save in one action
     RerunAudit,

@@ -1,23 +1,48 @@
-//! # aaai-core v0.4.0
+//! # aaai-core
 //!
 //! Core engine for **aaai** (audit for asset integrity).
 //!
-//! # Module map
+//! This crate provides all domain logic: folder diffing, audit evaluation,
+//! report generation, secret masking, audit history, profiles, and project config.
+//! It is consumed by [`aaai-cli`] (the CLI binary) and [`aaai-gui`] (the desktop GUI).
+//!
+//! ## Module map
 //!
 //! ```text
 //! aaai-core
-//!   ├── config    — AuditDefinition and its YAML I/O
-//!   ├── diff      — parallel folder walker, DiffEntry (binary + stats), ignore patterns
-//!   ├── audit     — match DiffEntries → AuditResult; large-file warnings
-//!   ├── report    — Markdown / JSON report generation (with optional masking)
-//!   ├── history   — append-only audit run log (~/.aaai/history.jsonl)
-//!   ├── masking   — regex-based secret masking engine
-//!   ├── project   — .aaai.yaml project-level config
-//!   ├── templates — built-in rule templates
-//!   └── profile   — named before/after/definition presets
+//!   ├── config      — AuditDefinition YAML, entry fields, lockfile, I/O
+//!   ├── diff        — parallel folder diff (rayon), DiffEntry, IgnoreRules (.aaaiignore)
+//!   ├── audit       — AuditEngine, AuditResult, AuditStatus, AuditWarning
+//!   ├── report      — Markdown / JSON / HTML / SARIF v2.1.0 output
+//!   ├── masking     — regex-based secret redaction (9 built-in patterns)
+//!   ├── history     — append-only audit run log (~/.aaai/history.jsonl)
+//!   ├── profile     — named before/after/definition combos + user prefs (theme)
+//!   ├── project     — .aaai.yaml auto-discovery and project-level defaults
+//!   └── templates   — 8 built-in rule templates (version_bump, port_change, …)
 //! ```
+//!
+//! ## Quick start
+//!
+//! ```rust,no_run
+//! use aaai_core::{DiffEngine, AuditEngine, AuditDefinition};
+//! use std::path::Path;
+//!
+//! let diffs = DiffEngine::compare(Path::new("./before"), Path::new("./after")).unwrap();
+//! let definition = AuditDefinition::new_empty();
+//! let result = AuditEngine::evaluate(&diffs, &definition);
+//! println!("PASSED: {}", result.summary.is_passing());
+//! ```
+//!
+//! ## Exit code contract (used by aaai-cli)
+//!
+//! | Code | Meaning |
+//! |---|---|
+//! | 0 | PASSED — all entries OK or Ignored |
+//! | 1 | FAILED — one or more audit failures |
+//! | 2 | PENDING — unresolved entries |
+//! | 3 | ERROR — file-level errors |
+//! | 4 | CONFIG_ERROR — definition parse error |
 
-// SPDX-License-Identifier: Apache-2.0
 
 pub mod audit;
 pub mod config;

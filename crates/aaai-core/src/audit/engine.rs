@@ -6,6 +6,22 @@ use crate::diff::entry::{DiffEntry, DiffType};
 use super::result::{AuditResult, AuditStatus, FileAuditResult};
 use super::strategy;
 
+/// The stateless audit evaluator.
+///
+/// Compares a list of [`DiffEntry`] items against an [`AuditDefinition`] and
+/// produces an [`AuditResult`] containing per-file verdicts and an overall summary.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use aaai_core::{DiffEngine, AuditEngine, AuditDefinition};
+/// use std::path::Path;
+///
+/// let diffs = DiffEngine::compare(Path::new("./before"), Path::new("./after")).unwrap();
+/// let definition = AuditDefinition::new_empty();
+/// let result = AuditEngine::evaluate(&diffs, &definition);
+/// assert!(result.summary.total >= 0);
+/// ```
 pub struct AuditEngine;
 
 /// Options for audit evaluation.
@@ -16,12 +32,18 @@ pub struct AuditOptions {
 }
 
 impl AuditEngine {
-    /// Judge every DiffEntry against the AuditDefinition.
+    /// Evaluate all diff entries against the audit definition.
+    ///
+    /// Returns an [`AuditResult`] with per-file [`FileAuditResult`] items and an
+    /// [`AuditSummary`] containing aggregated counts and the overall passing verdict.
     pub fn evaluate(diffs: &[DiffEntry], definition: &AuditDefinition) -> AuditResult {
         Self::evaluate_with_options(diffs, definition, &AuditOptions::default())
     }
 
-    /// Evaluate with custom options (warning suppression, etc.)
+    /// Evaluate with custom options.
+    ///
+    /// Use [`AuditOptions`] to suppress specific [`crate::audit::warning::AuditWarning`]
+    /// kinds (e.g. `no-approver`) without modifying the definition file.
     pub fn evaluate_with_options(
         diffs: &[DiffEntry],
         definition: &AuditDefinition,

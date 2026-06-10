@@ -11,6 +11,23 @@ use super::entry::{DiffEntry, DiffStats, DiffType};
 use super::ignore::IgnoreRules;
 use super::progress::{DiffProgress, NullProgress, ProgressSink};
 
+/// Parallel folder diff engine.
+///
+/// Walks two directory trees concurrently (using [`rayon`]) and produces a
+/// sorted list of [`DiffEntry`] items — one per file that differs between
+/// `before` and `after`.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use aaai_core::DiffEngine;
+/// use std::path::Path;
+///
+/// let entries = DiffEngine::compare(Path::new("./before"), Path::new("./after")).unwrap();
+/// for e in &entries {
+///     println!("{} — {}", e.path, e.diff_type);
+/// }
+/// ```
 pub struct DiffEngine;
 
 impl DiffEngine {
