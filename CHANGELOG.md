@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.13.1] — Technical debt cleanup
+
+### Bug fixes
+
+#### `ApproveAndSave` Task chain (GUI)
+- `Message::ApproveAndSave` was calling `let _ = self.update(...)` on both
+  `ApproveEntry` and `SaveDefinition`, silently discarding their `Task<Message>`
+  return values.
+- Fixed to use `Task::batch([t1, t2])` so that if either handler is ever made
+  async (e.g. large-file save), the resulting Task is correctly propagated.
+
+### Code quality
+
+#### `CloseMenus` documented
+- Added doc-comment to `Message::CloseMenus` explaining its role as the snora
+  `ToastLayer` callback, and why it is kept distinct from `Noop`.
+
 ## [0.13.0] — Pre-release cleanup (UI/UX test pending)
 
 ### Note

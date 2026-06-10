@@ -365,6 +365,9 @@ pub enum Message {
 
     // Overlays
     CloseModals,
+    /// Fired by the snora ToastLayer when an outside click should close open overlays.
+    /// Kept as a distinct variant (rather than aliasing `Noop`) so that
+    /// snora's `on_close_menus()` callback type is self-documenting.
     CloseMenus,
 
     // Toasts
@@ -535,9 +538,12 @@ impl App {
 
             // ── Approve ───────────────────────────────────────────────
             Message::ApproveAndSave => {
-                // RFC 002: atomic approve + save
-                let _ = self.update(Message::ApproveEntry);
-                let _ = self.update(Message::SaveDefinition);
+                // RFC 002: approve + save in one action.
+                // Both sub-handlers currently return Task::none(); batch them
+                // so that if either is ever made async the chain stays correct.
+                let t1 = self.update(Message::ApproveEntry);
+                let t2 = self.update(Message::SaveDefinition);
+                return Task::batch([t1, t2]);
             }
 
             Message::ApproveEntry => {
@@ -940,7 +946,7 @@ impl App {
 
             // ── Overlays ──────────────────────────────────────────────
             Message::CloseModals => { self.batch_sheet_open = false; }
-            Message::CloseMenus  => {}
+            Message::CloseMenus  => { /* snora overlay close — no state change needed */ }
 
             // ── Toasts ────────────────────────────────────────────────
             Message::DismissToast(id) => {
