@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.14.2] — Dependency updates
+
+### Updated
+- `sha2` 0.10 → **0.11** (RustCrypto, API compatible)
+- `clap_complete` 4.6.3 → **4.6.5** (patch, compatible)
+
+### Investigated & held
+- `notify` 8.2.0 — 9.0.0-rc.4 is a release candidate; update deferred until stable
+- `serde_yaml` 0.9.x — deprecated upstream but no stable successor yet; held at 0.9
+- `thiserror` — v2.0.18 is already the direct dependency; v1.0.69 is pulled in
+  transitively by other crates (two-version coexistence is normal and harmless)
+
+### Removed from roadmap
+- "iced 0.15 / snora 0.9 migration" — neither version has been released;
+  removed from the remaining issues list
+
 ## [0.14.1] — Consistency fixes & API documentation
 
 ### Bug fixes / Consistency
