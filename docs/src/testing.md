@@ -165,4 +165,4 @@ The release is ready when:
 - [ ] All CLI smoke tests exit with expected codes
 - [ ] No `cargo check --all-targets` warnings
 - [ ] `cargo test -p aaai-core --lib` — 92 passing
-- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 30 passing
+- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 54 passing

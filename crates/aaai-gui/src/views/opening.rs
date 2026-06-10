@@ -26,13 +26,29 @@ pub fn view(app: &App) -> Element<'_, Message> {
         "除外パターンファイルのパス（省略時: Before/.aaaiignore を自動検索）".to_string(),
         &app.ignore_path, Message::IgnorePathChanged);
 
-    let can_start = !app.before_path.trim().is_empty() && !app.after_path.trim().is_empty();
+    // RFC 004: inline validation — compute error messages before building rows
+    let before_error: Option<iced::Element<'_, Message>> =
+        app.opening_validation.before_error.as_ref().map(|e| {
+            iced::widget::text(format!("✗ {e}")).size(11)
+                .color(iced::Color::from_rgb(0.80, 0.15, 0.15))
+                .into()
+        });
+    let after_error: Option<iced::Element<'_, Message>> =
+        app.opening_validation.after_error.as_ref().map(|e| {
+            iced::widget::text(format!("✗ {e}")).size(11)
+                .color(iced::Color::from_rgb(0.80, 0.15, 0.15))
+                .into()
+        });
+
+    let can_start = !app.before_path.trim().is_empty()
+        && !app.after_path.trim().is_empty()
+        && app.opening_validation.can_start();
 
     let start_btn = button(
         text(t!("opening.start_button").to_string()).size(15)
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
     )
-    .on_press_maybe(if can_start { Some(Message::StartAudit) } else { None })
+    .on_press_maybe(if can_start && !app.is_loading { Some(Message::StartAudit) } else { None })
     .padding(Padding::from([10.0, 32.0]));
 
     // Profile save row
@@ -48,15 +64,22 @@ pub fn view(app: &App) -> Element<'_, Message> {
     .spacing(8)
     .align_y(iced::Alignment::Center);
 
-    let mut form_col = column![
-        before_row, after_row, def_row, ignore_row,
-        space().height(Length::Fixed(8.0)),
-        row![start_btn].spacing(12),
-        space().height(Length::Fixed(4.0)),
-        profile_row,
-    ]
-    .spacing(14)
-    .width(Length::Fixed(560.0));
+    // RFC 004: build form column with inline validation errors
+    let mut form_items: Vec<iced::Element<'_, Message>> = Vec::new();
+    form_items.push(before_row.into());
+    if let Some(e) = before_error { form_items.push(e); }
+    form_items.push(after_row.into());
+    if let Some(e) = after_error { form_items.push(e); }
+    form_items.push(def_row.into());
+    form_items.push(ignore_row.into());
+    form_items.push(space().height(Length::Fixed(8.0)).into());
+    form_items.push(row![start_btn].spacing(12).into());
+    form_items.push(space().height(Length::Fixed(4.0)).into());
+    form_items.push(profile_row.into());
+
+    let mut form_col = iced::widget::column(form_items)
+        .spacing(14)
+        .width(Length::Fixed(560.0));
 
     if let Some(err) = &app.open_error {
         form_col = form_col.push(

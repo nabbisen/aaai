@@ -56,6 +56,10 @@ ja:
     before_placeholder: 元フォルダのパス（Before）
     definition_label: 監査定義ファイル
     definition_placeholder: audit.yaml のパス（未指定で新規作成）
+    before_required: "比較元フォルダは必須です。"
+    after_required: "比較先フォルダは必須です。"
+    path_not_found: "フォルダが見つかりません。"
+    not_a_directory: "パスはディレクトリではありません。"
     start_button: 監査を開始
     subtitle: audit for asset integrity
     title: aaai

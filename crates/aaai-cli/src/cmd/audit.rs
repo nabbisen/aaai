@@ -9,12 +9,12 @@
 
 use std::path::PathBuf;
 use std::process;
-
-use clap::Args;
 use colored::Colorize;
 
+use clap::Args;
+
 use aaai_core::{
-    AuditEngine, AuditStatus, DiffEngine, DiffType, IgnoreRules, MaskingEngine,
+    AuditEngine, AuditStatus, DiffEngine, IgnoreRules, MaskingEngine,
     config::io as config_io,
     history::{record::HistoryRecord, store as history_store},
     project::config::ProjectConfig,
@@ -169,117 +169,24 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         process::exit(exit_code(s, args.allow_pending));
     }
 
-    // ── Human output ──────────────────────────────────────────────────
-    if !args.quiet {
-        println!("{}", "aaai audit".bold());
-        println!("Before : {}", left_path.display());
-        println!("After  : {}", right_path.display());
-        println!("Config : {}", args.config.display());
-        if ignore_path.exists() {
-            println!("Ignore : {}", ignore_path.display());
-        }
-        println!();
-
-        // Expiry warnings
-        if !expired.is_empty() {
-            println!("{}", format!("⚠  {} EXPIRED entries in definition:", expired.len()).yellow().bold());
-            for e in &expired {
-                println!("   {} (expired: {})",
-                    e.path,
-                    e.expires_at.map(|d| d.to_string()).unwrap_or_default());
-            }
-            println!();
-        }
-        if !expiring_soon.is_empty() {
-            println!("{}", format!("⏰ {} entries expiring within 30 days:", expiring_soon.len()).yellow());
-            for e in &expiring_soon {
-                println!("   {} (expires: {})",
-                    e.path,
-                    e.expires_at.map(|d| d.to_string()).unwrap_or_default());
-            }
-            println!();
-        }
-
-        // Per-file lines
-        for r in &result.results {
-            let show = match r.status {
-                AuditStatus::Ok      => args.verbose && r.diff.diff_type != DiffType::Unchanged,
-                AuditStatus::Ignored => args.verbose,
-                _                    => r.diff.diff_type != DiffType::Unchanged,
-            };
-            if !show { continue; }
-
-            let status_str = match r.status {
-                AuditStatus::Ok      => "OK     ".green().to_string(),
-                AuditStatus::Pending => "PENDING".yellow().to_string(),
-                AuditStatus::Failed  => "FAILED ".red().bold().to_string(),
-                AuditStatus::Ignored => "IGNORED".dimmed().to_string(),
-                AuditStatus::Error   => "ERROR  ".red().to_string(),
-            };
-            let ticket_tag = r.entry.as_ref()
-                .and_then(|e| e.ticket.as_ref())
-                .map(|t| format!(" [{}]", t))
-                .unwrap_or_default();
-            let expiry_tag = r.entry.as_ref()
-                .and_then(|e| e.expires_at)
-                .map(|d| {
-                    let today = chrono::Utc::now().date_naive();
-                    if d <= today { format!(" ⚠expired:{d}") }
-                    else { format!(" ⏰:{d}") }
-                })
-                .unwrap_or_default();
-
-            println!("{status_str}  {}{ticket_tag}{expiry_tag}  ({})",
-                r.diff.path, r.diff.diff_type);
-
-            if let Some(detail) = &r.detail {
-                if r.status != AuditStatus::Ok {
-                    println!("         {}", detail.dimmed());
-                }
-            }
-            if args.verbose {
-                if let Some(entry) = &r.entry {
-                    if !entry.reason.is_empty() {
-                        let reason = masker.as_ref()
-                            .map(|m| m.mask(&entry.reason))
-                            .unwrap_or_else(|| entry.reason.clone());
-                        println!("         Reason: {}", reason.dimmed());
-                    }
-                    if let Some(ab) = &entry.approved_by {
-                        println!("         Approved by: {}", ab.dimmed());
-                    }
-                }
-                // Phase 4: diff stats and size
-                if let Some(stats) = &r.diff.stats {
-                    println!("         Lines: +{} -{} (={} unchanged)",
-                        stats.lines_added, stats.lines_removed, stats.lines_unchanged);
-                }
-                if let Some(label) = r.diff.size_change_label() {
-                    println!("         Size: {}", label.dimmed());
-                }
-                if r.diff.is_binary {
-                    println!("         {}", "(binary file)".dimmed());
-                }
-            }
-        }
-        println!();
+    // ── Human output (RFC 001: result-first, symbol-based status) ─────
+    if args.json_output {
+        // already handled above
+    } else if args.quiet {
+        // quiet: summary only (printed after this block)
+    } else {
+        print_human_audit(&result, &args, &masker, &expired, &expiring_soon, s,
+                           &left_path, &right_path, &args.config);
     }
 
-    let verdict_str = if s.is_passing() {
-        "Result: PASSED".green().bold()
-    } else {
-        "Result: FAILED".red().bold()
-    };
-    println!("{verdict_str}");
-    println!(
-        "  Total: {}  OK: {}  Pending: {}  Failed: {}  Error: {}  Ignored: {}",
-        s.total,
-        s.ok.to_string().green(),
-        s.pending.to_string().yellow(),
-        s.failed.to_string().red(),
-        s.error.to_string().red(),
-        s.ignored,
-    );
+    // Summary (always printed unless --json-output)
+    if !args.json_output {
+        if args.quiet {
+            let verdict_str = if s.is_passing() { "PASSED" } else { "FAILED" };
+            println!("{verdict_str}  Total:{}  ✓{}  ⚠{}  ✗{}  !{}",
+                s.total, s.ok, s.pending, s.failed, s.error);
+        }
+    }
 
     process::exit(exit_code(s, args.allow_pending));
 }
@@ -289,4 +196,188 @@ fn exit_code(s: &aaai_core::AuditSummary, allow_pending: bool) -> i32 {
     if s.failed > 0  { return 1; }
     if !allow_pending && s.pending > 0 { return 2; }
     0
+}
+
+// ── RFC 001: Human-readable output helpers ───────────────────────────────────
+
+const SEP: &str = "────────────────────────────────────────────────";
+
+fn status_symbol(status: AuditStatus) -> &'static str {
+    match status {
+        AuditStatus::Ok      => "✓",
+        AuditStatus::Pending => "⚠",
+        AuditStatus::Failed  => "✗",
+        AuditStatus::Error   => "!",
+        AuditStatus::Ignored => "—",
+    }
+}
+
+fn status_label(status: AuditStatus) -> &'static str {
+    match status {
+        AuditStatus::Ok      => "OK     ",
+        AuditStatus::Pending => "Pending",
+        AuditStatus::Failed  => "Failed ",
+        AuditStatus::Error   => "Error  ",
+        AuditStatus::Ignored => "Ignored",
+    }
+}
+
+fn print_human_audit(
+    result: &aaai_core::AuditResult,
+    args:   &AuditArgs,
+    masker: &Option<aaai_core::MaskingEngine>,
+    expired:       &[&aaai_core::config::definition::AuditEntry],
+    expiring_soon: &[&aaai_core::config::definition::AuditEntry],
+    s: &aaai_core::AuditSummary,
+    left_path:   &std::path::Path,
+    right_path:  &std::path::Path,
+    config_path: &std::path::Path,
+) {
+
+    // ── Zone 1: Header with Result ────────────────────────────────────
+    let (result_str, result_colored) = if s.is_passing() {
+        ("PASSED", "✓ PASSED".green().bold().to_string())
+    } else {
+        ("FAILED", "✗ FAILED".red().bold().to_string())
+    };
+    println!("{}", SEP);
+    println!("  {}   Result: {}", "aaai audit".bold(), result_colored);
+    println!("  Before : {}  After : {}",
+        left_path.display().to_string().dimmed(),
+        right_path.display().to_string().dimmed());
+    println!("  Config : {}", config_path.display().to_string().dimmed());
+    println!("{}", SEP);
+    println!();
+
+    // ── Zone 2: Summary ───────────────────────────────────────────────
+    println!("  Total: {}   {} OK: {}   {} Pending: {}   {} Failed: {}   {} Error: {}",
+        s.total,
+        "✓".green(),   s.ok.to_string().green(),
+        "⚠".yellow(),  s.pending.to_string().yellow(),
+        "✗".red(),     s.failed.to_string().red(),
+        "!".red(),     s.error.to_string().red(),
+    );
+    println!();
+
+    // ── Expiry notices ────────────────────────────────────────────────
+    if !expired.is_empty() {
+        println!("{}", format!("  ⚠  {} entry / entries EXPIRED:", expired.len()).yellow().bold());
+        for e in expired {
+            println!("     {} (expired: {})", e.path,
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+        }
+        println!();
+    }
+    if !expiring_soon.is_empty() {
+        println!("{}", format!("  ⏰  {} entry / entries expiring within 30 days:", expiring_soon.len()).yellow());
+        for e in expiring_soon {
+            println!("     {} (expires: {})", e.path,
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+        }
+        println!();
+    }
+
+    // ── Zone 3: Entry list ────────────────────────────────────────────
+    // Default: Failed + Pending only (max 20). --verbose: all non-Unchanged.
+    let visible: Vec<_> = result.results.iter().filter(|r| {
+        match r.status {
+            AuditStatus::Ok      => args.verbose && r.diff.diff_type != aaai_core::DiffType::Unchanged,
+            AuditStatus::Ignored => args.verbose,
+            _                    => true,
+        }
+    }).collect();
+
+    let truncated = !args.verbose && visible.len() > 20;
+    let display_slice = if truncated { &visible[..20] } else { &visible[..] };
+
+    for r in display_slice {
+        let sym   = status_symbol(r.status);
+        let label = status_label(r.status);
+        let sym_colored = match r.status {
+            AuditStatus::Ok      => sym.green().to_string(),
+            AuditStatus::Pending => sym.yellow().to_string(),
+            AuditStatus::Failed  => sym.red().bold().to_string(),
+            AuditStatus::Error   => sym.red().to_string(),
+            AuditStatus::Ignored => sym.dimmed().to_string(),
+        };
+        let label_colored = match r.status {
+            AuditStatus::Ok      => label.green().to_string(),
+            AuditStatus::Pending => label.yellow().to_string(),
+            AuditStatus::Failed  => label.red().bold().to_string(),
+            AuditStatus::Error   => label.red().to_string(),
+            AuditStatus::Ignored => label.dimmed().to_string(),
+        };
+        let ticket_tag = r.entry.as_ref()
+            .and_then(|e| e.ticket.as_ref())
+            .map(|t| format!(" [{}]", t))
+            .unwrap_or_default();
+        let expiry_tag = r.entry.as_ref()
+            .and_then(|e| e.expires_at)
+            .map(|d| {
+                let today = chrono::Utc::now().date_naive();
+                if d <= today { format!(" ⚠ expired:{d}") }
+                else { format!(" ⏰ {d}") }
+            })
+            .unwrap_or_default();
+
+        println!("  {} {}  {}{}{expiry_tag}  ({})",
+            sym_colored, label_colored,
+            r.diff.path, ticket_tag,
+            r.diff.diff_type);
+
+        if let Some(detail) = &r.detail {
+            if r.status != AuditStatus::Ok {
+                println!("           {}", detail.dimmed());
+            }
+        }
+        if args.verbose {
+            if let Some(entry) = &r.entry {
+                if !entry.reason.is_empty() {
+                    let reason = masker.as_ref()
+                        .map(|m| m.mask(&entry.reason))
+                        .unwrap_or_else(|| entry.reason.clone());
+                    println!("           Reason: {}", reason.dimmed());
+                }
+                if let Some(ab) = &entry.approved_by {
+                    println!("           Approved by: {}", ab.dimmed());
+                }
+            }
+            if let Some(stats) = &r.diff.stats {
+                println!("           Lines: +{} -{} (={} unchanged)",
+                    stats.lines_added, stats.lines_removed, stats.lines_unchanged);
+            }
+            if let Some(label) = r.diff.size_change_label() {
+                println!("           Size: {}", label.dimmed());
+            }
+            if r.diff.is_binary {
+                println!("           {}", "(binary file)".dimmed());
+            }
+        }
+    }
+
+    if truncated {
+        let hidden = visible.len() - 20;
+        println!("  {} (and {} more — use --verbose to see all)",
+            "...".dimmed(), hidden);
+    }
+    println!();
+
+    // ── Zone 4: Next action hint ──────────────────────────────────────
+    let next = if s.pending > 0 && s.failed == 0 {
+        Some(format!("Next: open {} and fill in 'reason' for ⚠ {} Pending entr{},\n       then re-run `aaai audit`.",
+            "(your audit.yaml)", s.pending,
+            if s.pending == 1 { "y" } else { "ies" }))
+    } else if s.failed > 0 {
+        Some(format!("Next: review ✗ {} Failed entr{} in the diff viewer,\n       update rules or reason, then re-run `aaai audit`.",
+            s.failed, if s.failed == 1 { "y" } else { "ies" }))
+    } else if result_str == "PASSED" {
+        Some("Next: run `aaai report` to generate a report.".to_string())
+    } else {
+        None
+    };
+    if let Some(hint) = next {
+        println!("  {}", hint.dimmed());
+        println!();
+    }
+    println!("{}", SEP);
 }

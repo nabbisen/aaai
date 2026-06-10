@@ -162,10 +162,17 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     if app.audit_result.is_none() {
         return space().height(0).into();
     }
+    // RFC 005: show focus ring when search is the active focus target
+    use crate::app::FocusTarget;
+    let search_placeholder = if app.focus_target == FocusTarget::Search {
+        "Search paths… (/ to focus)"
+    } else {
+        "Search paths… (/ to focus)"
+    };
     container(
         row![
             text("🔍").size(12),
-            text_input("Search paths…", &app.search_query)
+            text_input(search_placeholder, &app.search_query)
                 .on_input(Message::SearchQueryChanged)
                 .padding(Padding::from([3.0, 6.0]))
                 .size(12)
@@ -271,13 +278,6 @@ fn build_file_row<'a>(
     let is_selected = app.selected_index == Some(idx);
     let is_batch    = app.batch.selected.contains(&idx);
 
-    let status_color = match far.status {
-        AuditStatus::Ok      => theme::OK_COLOR,
-        AuditStatus::Pending => theme::PENDING_COLOR,
-        AuditStatus::Failed  => theme::FAILED_COLOR,
-        AuditStatus::Ignored => theme::IGNORED_COLOR,
-        AuditStatus::Error   => theme::ERROR_COLOR,
-    };
     let diff_icon = match far.diff.diff_type {
         DiffType::Added        => "+",
         DiffType::Removed      => "−",
@@ -288,7 +288,9 @@ fn build_file_row<'a>(
         DiffType::Unchanged    => " ",
     };
 
-    let status_badge = colored_badge(diff_icon.to_string(), status_color);
+    // RFC 003: diff-type badge uses neutral color (status conveyed by status_badge)
+    let diff_badge_color = iced::Color::from_rgb(0.50, 0.52, 0.55);
+    let diff_badge = colored_badge(diff_icon.to_string(), diff_badge_color);
 
     // Warning badge
     let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
@@ -319,7 +321,7 @@ fn build_file_row<'a>(
 
     let mut name_row = row![
         space().width(Length::Fixed(indent)),
-        status_badge,
+        diff_badge,
         text(short).size(12).font(iced::Font::MONOSPACE),
     ]
     .spacing(4)
@@ -328,7 +330,16 @@ fn build_file_row<'a>(
         name_row = name_row.push(wb);
     }
 
-    let full_row = row![batch_cb, name_row].spacing(4).align_y(iced::Alignment::Center);
+    // RFC 003: status badge (right-aligned) — symbol + text for ABDD
+    let sbadge = status_badge(far.status);
+    let full_row = row![
+        batch_cb,
+        name_row,
+        space().width(Length::Fill),
+        sbadge,
+    ]
+    .spacing(4)
+    .align_y(iced::Alignment::Center);
 
     let bg = move |_: &iced::Theme| iced::widget::container::Style {
         background: if is_selected {
@@ -396,6 +407,34 @@ fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+// RFC 003: ABDD-compliant status badge — symbol + text, not color only.
+fn status_badge<'a>(status: AuditStatus) -> Element<'a, Message> {
+    let (sym, label, color) = match status {
+        AuditStatus::Ok      => ("✓", "OK     ", theme::OK_COLOR),
+        AuditStatus::Pending => ("⚠", "Pending", theme::PENDING_COLOR),
+        AuditStatus::Failed  => ("✗", "Failed ", theme::FAILED_COLOR),
+        AuditStatus::Error   => ("!", "Error  ", theme::ERROR_COLOR),
+        AuditStatus::Ignored => ("—", "Ignored", theme::IGNORED_COLOR),
+    };
+    container(
+        row![
+            text(sym).size(10).color(Color::WHITE),
+            text(label).size(10).color(Color::WHITE)
+                .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
+        ]
+        .spacing(3)
+        .align_y(iced::Alignment::Center)
+    )
+    .padding(Padding::from([2.0, 6.0]))
+    .style(move |_| iced::widget::container::Style {
+        background: Some(iced::Background::Color(color)),
+        border: iced::Border { radius: 4.0.into(), ..Default::default() },
+        ..Default::default()
+    })
+    .into()
+}
+
 
 fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
     container(

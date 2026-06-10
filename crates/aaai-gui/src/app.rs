@@ -17,6 +17,7 @@ use snora::{
     Toast, ToastIntent, ToastPosition, render,
 };
 
+use regex::Regex as RegexCheck;
 use aaai_core::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
     AuditStatus, DiffType, IgnoreRules,
@@ -35,6 +36,25 @@ use rust_i18n::t;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaneKind { FileTree, Diff, Inspector }
+
+// ── Keyboard focus (RFC 005) ──────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FocusTarget { #[default] FileTree, Search, Inspector }
+
+// ── Opening screen validation ─────────────────────────────────────────────
+
+#[derive(Debug, Clone, Default)]
+pub struct OpeningValidation {
+    pub before_error: Option<String>,
+    pub after_error:  Option<String>,
+}
+
+impl OpeningValidation {
+    pub fn can_start(&self) -> bool {
+        self.before_error.is_none() && self.after_error.is_none()
+    }
+}
 
 // ── Screens ───────────────────────────────────────────────────────────────
 
@@ -85,6 +105,30 @@ pub struct BatchApproveState {
     pub validation_error: Option<String>,
 }
 
+// ── Inspector validation (RFC 002) ────────────────────────────────────────
+
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct FieldError {
+    pub field:   String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct InspectorValidation {
+    pub reason_error:     Option<String>,
+    pub strategy_errors:  Vec<FieldError>,
+    pub expires_at_error: Option<String>,
+}
+
+impl InspectorValidation {
+    pub fn can_approve(&self) -> bool {
+        self.reason_error.is_none()
+            && self.strategy_errors.is_empty()
+            && self.expires_at_error.is_none()
+    }
+}
+
 // ── Inspector state ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
@@ -93,7 +137,7 @@ pub struct InspectorState {
     pub strategy_label: String,
     pub strategy: AuditStrategy,
     pub note: String,
-    pub validation_error: Option<String>,
+    pub validation: InspectorValidation,   // RFC 002: replaces validation_error
     // Phase 3
     pub ticket: String,
     pub approved_by: String,
@@ -107,7 +151,7 @@ impl Default for InspectorState {
             strategy_label: "None".into(),
             strategy: AuditStrategy::None,
             note: String::new(),
-            validation_error: None,
+            validation: InspectorValidation::default(),
             ticket: String::new(),
             approved_by: String::new(),
             expires_at_str: String::new(),
@@ -132,6 +176,7 @@ pub struct App {
     pub after_path: String,
     pub definition_path: String,
     pub open_error: Option<String>,
+    pub opening_validation: OpeningValidation,
 
     // Main
     pub diffs: Vec<aaai_core::DiffEntry>,
@@ -159,6 +204,9 @@ pub struct App {
 
     // Phase 10: theme
     pub theme: AppTheme,
+
+    // RFC 005: keyboard focus
+    pub focus_target: FocusTarget,
     pub prefs: UserPrefs,
 
     // Phase 10: resizable pane layout
@@ -193,6 +241,7 @@ impl Default for App {
             after_path: String::new(),
             definition_path: String::new(),
             open_error: None,
+            opening_validation: OpeningValidation::default(),
             diffs: Vec::new(),
             audit_result: None,
             definition: None,
@@ -207,6 +256,7 @@ impl Default for App {
             locale: rust_i18n::locale().to_string(),
             prefs: UserPrefs::load(),
             theme: UserPrefs::load().theme,
+            focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
             profile_name_input: String::new(),
             ignore_path: String::new(),
@@ -253,6 +303,7 @@ pub enum Message {
 
     // Actions
     ApproveEntry,
+    ApproveAndSave,  // RFC 002: approve + save in one action
     RerunAudit,
     SaveDefinition,
     ExportReport(String),
@@ -301,6 +352,14 @@ pub enum Message {
     PaneResized(pane_grid::ResizeEvent),
     PaneFocused(pane_grid::Pane),
 
+    // RFC 005: keyboard focus messages
+    DeselectEntry,
+    FocusNext,
+    FocusPrev,
+    FocusSearch,
+    FocusInspectorReason,
+    Noop,
+
     // Locale
     SwitchLocale(String),
 
@@ -319,8 +378,8 @@ impl App {
     pub fn update(&mut self, msg: Message) -> Task<Message> {
         match msg {
             // ── Opening ───────────────────────────────────────────────
-            Message::BeforePathChanged(s) => { self.before_path = s; }
-            Message::AfterPathChanged(s)  => { self.after_path = s; }
+            Message::BeforePathChanged(s) => { self.before_path = s; self.validate_opening(); }
+            Message::AfterPathChanged(s)  => { self.after_path = s; self.validate_opening(); }
             Message::DefinitionPathChanged(s) => { self.definition_path = s; }
 
             Message::StartAudit => {
@@ -398,7 +457,7 @@ impl App {
                             strategy_label: entry.strategy.label().into(),
                             strategy: entry.strategy.clone(),
                             note: entry.note.clone().unwrap_or_default(),
-                            validation_error: None,
+                            validation: InspectorValidation::default(),
                             ticket: entry.ticket.clone().unwrap_or_default(),
                             approved_by: entry.approved_by.clone().unwrap_or_default(),
                             expires_at_str: entry.expires_at.map(|d| d.to_string()).unwrap_or_default(),
@@ -475,6 +534,12 @@ impl App {
             }
 
             // ── Approve ───────────────────────────────────────────────
+            Message::ApproveAndSave => {
+                // RFC 002: atomic approve + save
+                let _ = self.update(Message::ApproveEntry);
+                let _ = self.update(Message::SaveDefinition);
+            }
+
             Message::ApproveEntry => {
                 if let Some(idx) = self.selected_index {
                     if let Some(far) = self.audit_result.as_ref()
@@ -523,7 +588,7 @@ impl App {
                                 }
                             }
                             Err(e) => {
-                                self.inspector.validation_error = Some(e);
+                                self.inspector.validation.strategy_errors.push(FieldError { field: "expires_at".into(), message: e });
                             }
                         }
                     }
@@ -787,6 +852,32 @@ impl App {
             Message::PaneResized(e) => { self.panes.resize(e.split, e.ratio); }
             Message::PaneFocused(p) => { self.focus = Some(p); }
 
+            // ── RFC 005: keyboard focus ───────────────────────────────────
+            Message::Noop => {}
+            Message::DeselectEntry => { self.selected_index = None; }
+            Message::FocusNext => {
+                self.focus_target = match self.focus_target {
+                    FocusTarget::FileTree  => FocusTarget::Inspector,
+                    FocusTarget::Inspector => FocusTarget::FileTree,
+                    FocusTarget::Search    => FocusTarget::FileTree,
+                };
+            }
+            Message::FocusPrev => {
+                self.focus_target = match self.focus_target {
+                    FocusTarget::FileTree  => FocusTarget::Inspector,
+                    FocusTarget::Inspector => FocusTarget::FileTree,
+                    FocusTarget::Search    => FocusTarget::Inspector,
+                };
+            }
+            Message::FocusSearch => {
+                // RFC 005: update logical focus; visual focus ring shown by search input
+                self.focus_target = FocusTarget::Search;
+            }
+            Message::FocusInspectorReason => {
+                // RFC 005: update logical focus; inspector reason input highlighted
+                self.focus_target = FocusTarget::Inspector;
+            }
+
             // ── Phase 3: inspector fields ─────────────────────────────
             Message::TicketChanged(s)     => { self.inspector.ticket = s; }
             Message::ApprovedByChanged(s) => { self.inspector.approved_by = s; }
@@ -878,11 +969,30 @@ impl App {
                             Message::RerunAudit,
                         (Key::Character("z"), m) if m.contains(Modifiers::CTRL) =>
                             Message::UndoApproval,
+                        // RFC 005: Ctrl+E → export report
+                        (Key::Character("e"), m) if m.contains(Modifiers::CTRL) =>
+                            Message::ExportReport("markdown".into()),
                         (Key::Named(iced::keyboard::key::Named::ArrowDown), _) =>
                             Message::SelectNext,
                         (Key::Named(iced::keyboard::key::Named::ArrowUp), _) =>
                             Message::SelectPrev,
-                        _ => Message::CloseMenus, // no-op passthrough
+                        // RFC 005: Tab / Shift+Tab for pane focus cycling
+                        (Key::Named(iced::keyboard::key::Named::Tab), m)
+                            if m.contains(Modifiers::SHIFT) =>
+                            Message::FocusPrev,
+                        (Key::Named(iced::keyboard::key::Named::Tab), _) =>
+                            Message::FocusNext,
+                        // RFC 005: / key → focus search
+                        (Key::Character("/"), m)
+                            if !m.contains(Modifiers::CTRL) && !m.contains(Modifiers::ALT) =>
+                            Message::FocusSearch,
+                        // RFC 005: Enter → focus inspector reason
+                        (Key::Named(iced::keyboard::key::Named::Enter), _) =>
+                            Message::FocusInspectorReason,
+                        // RFC 005: Escape → deselect
+                        (Key::Named(iced::keyboard::key::Named::Escape), _) =>
+                            Message::DeselectEntry,
+                        _ => Message::Noop,
                     }
                 }
                 _ => Message::CloseMenus, // no-op passthrough
@@ -978,8 +1088,100 @@ impl App {
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
+    /// RFC 002: per-field real-time validation for the inspector.
     fn validate_inspector(&mut self) {
-        self.inspector.validation_error = self.inspector.strategy.validate().err();
+        use aaai_core::config::definition::AuditStrategy;
+        let ins = &self.inspector;
+        let mut v = InspectorValidation::default();
+
+        // Reason (required)
+        if ins.reason.trim().is_empty() {
+            v.reason_error = Some("Reason is required before approval.".into());
+        }
+
+        // ExpiresAt format
+        if !ins.expires_at_str.trim().is_empty() {
+            if chrono::NaiveDate::parse_from_str(&ins.expires_at_str, "%Y-%m-%d").is_err() {
+                v.expires_at_error = Some("Use YYYY-MM-DD format.".into());
+            }
+        }
+
+        // Strategy-specific validation
+        match &ins.strategy {
+            AuditStrategy::Checksum { expected_sha256 } => {
+                let s = expected_sha256.trim();
+                if s.len() != 64 || !s.chars().all(|c| c.is_ascii_hexdigit()) {
+                    v.strategy_errors.push(FieldError {
+                        field: "expected_sha256".into(),
+                        message: "Must be exactly 64 hex characters.".into(),
+                    });
+                }
+            }
+            AuditStrategy::LineMatch { rules } => {
+                if rules.is_empty() {
+                    v.strategy_errors.push(FieldError {
+                        field: "rules".into(),
+                        message: "At least one rule is required.".into(),
+                    });
+                }
+                for (i, rule) in rules.iter().enumerate() {
+                    if rule.line.trim().is_empty() {
+                        v.strategy_errors.push(FieldError {
+                            field: format!("rule[{}].line", i),
+                            message: "Rule line cannot be empty.".into(),
+                        });
+                    }
+                }
+            }
+            AuditStrategy::Regex { pattern, .. } => {
+                if let Err(e) = RegexCheck::new(pattern) {
+                    v.strategy_errors.push(FieldError {
+                        field: "pattern".into(),
+                        message: format!("Invalid regex: {e}"),
+                    });
+                }
+            }
+            AuditStrategy::Exact { expected_content } => {
+                if expected_content.trim().is_empty() {
+                    v.strategy_errors.push(FieldError {
+                        field: "expected_content".into(),
+                        message: "Expected content cannot be empty.".into(),
+                    });
+                }
+            }
+            AuditStrategy::None => {}
+        }
+
+        self.inspector.validation = v;
+    }
+
+    pub fn validate_opening(&mut self) {
+        let mut v = OpeningValidation::default();
+        let before_s = self.before_path.trim().to_string();
+        let after_s  = self.after_path.trim().to_string();
+
+        if before_s.is_empty() {
+            v.before_error = Some("Before folder is required.".into());
+        } else {
+            let p = std::path::Path::new(&before_s);
+            if !p.exists() {
+                v.before_error = Some("Folder not found.".into());
+            } else if !p.is_dir() {
+                v.before_error = Some("Path is not a directory.".into());
+            }
+        }
+
+        if after_s.is_empty() {
+            v.after_error = Some("After folder is required.".into());
+        } else {
+            let p = std::path::Path::new(&after_s);
+            if !p.exists() {
+                v.after_error = Some("Folder not found.".into());
+            } else if !p.is_dir() {
+                v.after_error = Some("Path is not a directory.".into());
+            }
+        }
+        self.opening_validation = v;
     }
 
     pub fn rerun_audit(&mut self) {

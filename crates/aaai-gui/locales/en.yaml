@@ -56,6 +56,10 @@ en:
     before_placeholder: Path to the source / expected folder
     definition_label: Audit definition
     definition_placeholder: Path to audit.yaml (leave empty to create new)
+    before_required: "Before folder is required."
+    after_required: "After folder is required."
+    path_not_found: "Folder not found."
+    not_a_directory: "Path is not a directory."
     start_button: Start Audit
     subtitle: audit for asset integrity
     title: aaai

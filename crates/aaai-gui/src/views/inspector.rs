@@ -170,15 +170,26 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
 
     // ── Column assembly ───────────────────────────────────────────────
     // ── Validation + approve button ───────────────────────────────────
-    let val_err: Option<Element<'_, Message>> = ins.validation_error.as_ref().map(|e| {
-        text(e.clone()).size(12).color(Color::from_rgb(0.78, 0.10, 0.10)).into()
-    });
-    let can_approve = !ins.reason.trim().is_empty() && ins.validation_error.is_none();
+    // RFC 002: collect all validation errors for display
+    let all_errors: Vec<String> = {
+        let mut errs = Vec::new();
+        if let Some(e) = &ins.validation.reason_error { errs.push(e.clone()); }
+        for fe in &ins.validation.strategy_errors { errs.push(fe.message.clone()); }
+        if let Some(e) = &ins.validation.expires_at_error { errs.push(e.clone()); }
+        errs
+    };
+    let val_err: Option<Element<'_, Message>> = if all_errors.is_empty() {
+        None
+    } else {
+        let msg = all_errors.join(" · ");
+        Some(text(msg).size(11).color(Color::from_rgb(0.78, 0.10, 0.10)).into())
+    };
+    let can_approve = ins.validation.can_approve();
     let approve_btn = button(
         text(t!("inspector.approve_button").to_string()).size(14)
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
     )
-    .on_press_maybe(if can_approve { Some(Message::ApproveEntry) } else { None })
+    .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
     .padding(Padding::from([9.0, 20.0]));
 
     // Collect all column children into a Vec so lifetimes are uniform.
