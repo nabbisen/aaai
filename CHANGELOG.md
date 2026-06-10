@@ -4,6 +4,81 @@ All notable changes to this project are documented in this file.
 
 Format: `## [version] — description`
 
+## [0.13.0] — Pre-release cleanup (UI/UX test pending)
+
+### Note
+
+v1.0.0 is pending completion of the UI/UX manual test checklist
+defined in `docs/src/testing.md`. This release bundles the
+post-RFC code cleanup only.
+
+All 10 core development phases and the 5 UI/UX RFC improvements have shipped.
+The acceptance criteria defined in `docs/src/testing.md` are met:
+
+- **Zero warnings** across all targets (`cargo check --all-targets`)
+- **92 unit tests** passing (`cargo test -p aaai-core --lib`)
+- **54 integration tests** passing (`cargo test -p aaai-cli -- --test-threads=1`)
+- All 5 RFC improvements implemented and moved to `rfcs/done/`
+
+### What changed from v0.12.0
+
+- Version set to `0.13.0` (v1.0.0 deferred until UI/UX test checklist passes)
+- `CHANGELOG.md`: v0.11.0 and v0.12.0 entries backfilled
+- `ROADMAP.md`: Phase 11 (GUI UI/UX Production Ready) added and marked ✅
+- Minor code cleanup: `CloseMenus` → `Noop` (unified no-op message)
+
+### Full feature set
+
+See [CHANGELOG history](CHANGELOG.md) for the complete list of all changes
+from v0.1.0 through v1.0.0, and [docs/](docs/src/SUMMARY.md) for
+the full documentation.
+
+## [0.12.0] — Sprint B+C: RFC 002 + RFC 003 + RFC 005
+
+### RFC 002 — Inspector Validation & Primary Action
+- `InspectorValidation` struct: per-field `reason_error`, `strategy_errors`, `expires_at_error`
+- `FieldError { field, message }` for precise field-level attribution
+- `validate_inspector()` rewritten with strategy-specific checks:
+  - **Checksum**: must be exactly 64 hex characters
+  - **LineMatch**: at least one rule required; no empty `line` fields
+  - **Regex**: `regex::Regex::new()` compile-check on every keystroke
+  - **Exact**: expected content cannot be empty
+- `InspectorValidation::can_approve()` gates the approve button
+- `Message::ApproveAndSave` — atomic approve + save as the primary inspector action
+- `regex` added as `aaai-gui` dependency
+
+### RFC 003 — ABDD Status Display
+- `status_badge()`: symbol (`✓ ⚠ ✗ ! —`) + label text on coloured background, right-aligned per row
+- Diff-type badge (`diff_badge`) uses neutral grey — status conveyed by `status_badge` alone
+- Toolbar verdict updated to `✓ N  ⚠ N  ✗ N  ! N` (symbol + count, not color only)
+
+### RFC 005 — Keyboard Navigation & Focus
+- `FocusTarget` enum: `FileTree` | `Search` | `Inspector`; `focus_target` field on `App`
+- New shortcuts: `Tab`/`Shift+Tab` (pane cycle), `/` (focus search), `Enter` (focus inspector reason),
+  `Ctrl+E` (export Markdown report), `Escape` (deselect entry)
+- New messages: `FocusNext`, `FocusPrev`, `FocusSearch`, `FocusInspectorReason`, `DeselectEntry`, `Noop`
+
+### Other
+- `docs/src/testing.md` + `docs/ja/src/testing.md`: CLI test count updated 30 → 54
+
+## [0.11.0] — Sprint A: RFC 001 + RFC 004
+
+### RFC 001 — CLI Output UX Consistency
+- `aaai audit` output restructured: **result-first** layout with 4 zones
+  - Zone 1 Header: `──────` separator + `Result: ✓ PASSED / ✗ FAILED` at the top, with Before/After/Config paths
+  - Zone 2 Summary: `Total: N  ✓ OK: N  ⚠ Pending: N  ✗ Failed: N  ! Error: N`
+  - Zone 3 Entries: symbol + label + path; Failed+Pending shown by default (max 20); `--verbose` for all
+  - Zone 4 Next action: contextual hint ("fill in 'reason'…", "review Failed…", "run `aaai report`")
+- Status symbols: `✓` OK · `⚠` Pending · `✗` Failed · `!` Error · `—` Ignored (color + symbol)
+- `print_human_audit()` extracted as a standalone helper function
+
+### RFC 004 — Opening Screen Input Validation
+- `OpeningValidation` struct tracks before/after path errors
+- `validate_opening()` called on every `BeforePathChanged` / `AfterPathChanged` event
+- Inline error messages below each field (`✗ Folder not found.` / `✗ Path is not a directory.`)
+- "Start Audit" button disabled when either required path is invalid or empty
+- i18n keys added: `opening.before_required`, `after_required`, `path_not_found`, `not_a_directory`
+
 ## [0.10.3] — Fix unused import warnings in aaai-core
 
 ### Bug fixes

@@ -995,7 +995,7 @@ impl App {
                         _ => Message::Noop,
                     }
                 }
-                _ => Message::CloseMenus, // no-op passthrough
+                _ => Message::Noop,
             }
         });
         Subscription::batch([toast_sub, kb_sub])

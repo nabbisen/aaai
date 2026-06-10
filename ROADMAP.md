@@ -109,3 +109,20 @@
 - **Unchanged files toggle** — show/hide Unchanged entries separately from the filter bar
 - **Inspector: auto-focus reason field** — focus the reason text input when an entry is selected
 
+## Phase 11 — GUI UI/UX Production Ready ✅ (v0.11.0 – v0.12.0)
+
+### RFC 001 — CLI Output UX Consistency (v0.11.0)
+- Result-first 4-zone layout; symbol-based status `✓ ⚠ ✗ ! —`; next-action hint
+
+### RFC 004 — Opening Screen Input Validation (v0.11.0)
+- `OpeningValidation`: inline real-time feedback; Start button disabled when paths invalid
+
+### RFC 002 — Inspector Validation & Primary Action (v0.12.0)
+- `InspectorValidation`: per-field Checksum/LineMatch/Regex/Exact checks; `ApproveAndSave` primary action
+
+### RFC 003 — ABDD Status Display (v0.12.0)
+- `status_badge()`: symbol + text per row; neutral diff badge; ABDD compliance
+
+### RFC 005 — Keyboard Navigation & Focus (v0.12.0)
+- `FocusTarget`; Tab/`/`/Enter/Ctrl+E/Escape shortcuts; complete keyboard flow
+
