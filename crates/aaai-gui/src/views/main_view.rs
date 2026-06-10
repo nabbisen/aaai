@@ -72,6 +72,44 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     let run_btn    = toolbar_btn("▶".into(), t!("toolbar.run_audit").to_string(),     Message::RerunAudit);
     let report_btn = toolbar_btn("↑".into(), t!("toolbar.report_output").to_string(), Message::ExportReport("markdown".into()));
 
+    // RFC 021 §2.3 — small "✓ Saved Nm ago" / "✓ Reported Nm ago" marks
+    // next to Save and Report buttons when those operations have happened
+    // at least once. These persist (no auto-dismiss like toasts) so the
+    // user can always tell at a glance how fresh the on-disk state is.
+    // The relative time updates via the 30-second tick subscription.
+    let save_with_mark: Element<'_, Message> = if let Some(t_saved) = app.last_saved_at {
+        row![
+            save_btn,
+            text(format!("✓ {} {}",
+                t!("banner.saved_label"),
+                crate::util::humanize_since(t_saved),
+            ))
+            .size(10)
+            .color(Color::from_rgb(0.40, 0.55, 0.40)),
+        ]
+        .spacing(4)
+        .align_y(iced::Alignment::Center)
+        .into()
+    } else {
+        save_btn
+    };
+    let report_with_mark: Element<'_, Message> = if let Some(t_rep) = app.last_reported_at {
+        row![
+            report_btn,
+            text(format!("✓ {} {}",
+                t!("banner.reported_label"),
+                crate::util::humanize_since(t_rep),
+            ))
+            .size(10)
+            .color(Color::from_rgb(0.40, 0.55, 0.40)),
+        ]
+        .spacing(4)
+        .align_y(iced::Alignment::Center)
+        .into()
+    } else {
+        report_btn
+    };
+
     // Audit status label — right-aligned simple text
     let status_label: Element<'_, Message> = if let Some(result) = &app.audit_result {
         let s = &result.summary;
@@ -89,7 +127,7 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
 
     container(
         row![
-            open_btn, save_btn, run_btn, report_btn,
+            open_btn, save_with_mark, run_btn, report_with_mark,
             space().width(Length::Fill),
             status_label,
         ]
@@ -187,10 +225,7 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
 fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     let result = match &app.audit_result {
         Some(r) => r,
-        None    => return container(
-            text("No audit result. Press \"Re-run\".").size(12)
-                .color(Color::from_rgb(0.5, 0.5, 0.5))
-        ).padding(12).into(),
+        None    => return empty_state_file_tree(),
     };
 
     let q = app.search_query.to_lowercase();
@@ -349,10 +384,7 @@ fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
     }
     match &app.audit_result {
         Some(r) => dashboard::view(r),
-        None    => container(
-            text("No data. Start an audit from the Opening screen.")
-                .size(13).color(Color::from_rgb(0.5, 0.5, 0.5))
-        ).padding(20).into(),
+        None    => empty_state_diff_panel(),
     }
 }
 
@@ -369,14 +401,7 @@ fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
         }
         None => {}
     }
-    container(
-        text("Select a file to inspect.").size(12)
-            .color(Color::from_rgb(0.55, 0.55, 0.60))
-    )
-    .padding(16)
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    empty_state_inspector()
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -479,4 +504,90 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     .width(Length::Fill)
     .style(panel_style)
     .into()
+}
+
+// ── RFC 022: empty-state panels ──────────────────────────────────────────────
+//
+// Used when `audit_result` is None (file_tree / diff_panel) or when nothing
+// is selected (inspector). All three follow the same visual contract:
+// transparent background, soft 1-px border, mid-grey text. The guidance
+// text is i18n-driven via the `empty_state.*` namespace so en/ja produce
+// equivalent prose.
+
+fn empty_state_file_tree<'a>() -> Element<'a, Message> {
+    use crate::style::empty_state_panel_style;
+    let body = column![
+        text(t!("empty_state.file_tree_no_result_title").to_string())
+            .size(13)
+            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+        space().height(Length::Fixed(6.0)),
+        text(t!("empty_state.file_tree_no_result_hint").to_string())
+            .size(11)
+            .color(Color::from_rgb(0.55, 0.55, 0.60)),
+    ]
+    .spacing(0)
+    .align_x(iced::Alignment::Center)
+    .width(Length::Fill);
+    container(body)
+        .padding(Padding::from([24.0, 16.0]))
+        .width(Length::Fill)
+        .center_x(Length::Fill)
+        .style(empty_state_panel_style)
+        .into()
+}
+
+fn empty_state_diff_panel<'a>() -> Element<'a, Message> {
+    use crate::style::empty_state_panel_style;
+    let body = column![
+        text(t!("empty_state.diff_no_audit_title").to_string())
+            .size(14)
+            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+        space().height(Length::Fixed(10.0)),
+        // Two-step guidance. Stepping is implicit in the order; we keep
+        // the symbols inline with each line so ABDD's "no colour
+        // dependence" rule is met (the bullet character itself carries
+        // the meaning, not styling).
+        text(format!("①  {}", t!("empty_state.diff_no_audit_step1")))
+            .size(12)
+            .color(Color::from_rgb(0.50, 0.52, 0.58)),
+        space().height(Length::Fixed(4.0)),
+        text(format!("②  {}", t!("empty_state.diff_no_audit_step2")))
+            .size(12)
+            .color(Color::from_rgb(0.50, 0.52, 0.58)),
+    ]
+    .spacing(0)
+    .align_x(iced::Alignment::Center)
+    .width(Length::Fill);
+    container(body)
+        .padding(Padding::from([32.0, 24.0]))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .style(empty_state_panel_style)
+        .into()
+}
+
+fn empty_state_inspector<'a>() -> Element<'a, Message> {
+    use crate::style::empty_state_panel_style;
+    let body = column![
+        text(t!("empty_state.inspector_no_selection").to_string())
+            .size(13)
+            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+        space().height(Length::Fixed(6.0)),
+        text(format!("←  {}", t!("empty_state.inspector_no_selection_hint")))
+            .size(11)
+            .color(Color::from_rgb(0.55, 0.55, 0.60)),
+    ]
+    .spacing(0)
+    .align_x(iced::Alignment::Center)
+    .width(Length::Fill);
+    container(body)
+        .padding(Padding::from([24.0, 16.0]))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .style(empty_state_panel_style)
+        .into()
 }

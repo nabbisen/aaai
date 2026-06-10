@@ -1,15 +1,33 @@
 //! aaai — audit for asset integrity
-//! CLI entry point (Phase 3: check, history, granular exit codes).
+//! CLI entry point.
 
 use clap::{Parser, Subcommand};
 
 mod cmd;
+
+/// Top-level `--help` footer. Surfaced when the user invokes `aaai --help`
+/// with no subcommand. Keeps the on-ramp visible: init → snap → audit.
+const TOP_LEVEL_AFTER_HELP: &str = "\
+Getting started:
+  aaai init                                 # interactive setup wizard
+  aaai snap -l ./before -r ./after \\
+            -o audit.yaml                   # create an audit definition
+  aaai audit -l ./before -r ./after \\
+             -c audit.yaml                  # run the audit
+  aaai report -o report.md                  # write a Markdown report
+
+See `aaai <subcommand> --help` for details on each command,
+or `aaai exit-codes` for the exit-code reference.
+
+For the desktop UI, run `aaai-gui`.\
+";
 
 #[derive(Parser)]
 #[command(
     name    = "aaai",
     about   = "audit for asset integrity — folder diff auditor",
     version,
+    after_help = TOP_LEVEL_AFTER_HELP,
 )]
 pub(crate) struct Cli {
     #[command(subcommand)]
@@ -48,6 +66,9 @@ enum Commands {
     Version(cmd::version_cmd::VersionArgs),
     /// Lint an audit definition file for best-practice issues.
     Lint(cmd::lint::LintArgs),
+    /// Print the exit-code reference table.
+    #[command(name = "exit-codes")]
+    ExitCodes(cmd::exit_codes::ExitCodesArgs),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -57,11 +78,11 @@ fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
     match cli.command {
-        Commands::Audit(args)   => cmd::audit::run(args),
-        Commands::Snap(args)    => cmd::snap::run(args),
-        Commands::Report(args)  => cmd::report::run(args),
-        Commands::Check(args)   => cmd::check::run(args),
-        Commands::History(args) => cmd::history::run(args),
+        Commands::Audit(args)       => cmd::audit::run(args),
+        Commands::Snap(args)        => cmd::snap::run(args),
+        Commands::Report(args)      => cmd::report::run(args),
+        Commands::Check(args)       => cmd::check::run(args),
+        Commands::History(args)     => cmd::history::run(args),
         Commands::Config(args)      => cmd::config::run(args),
         Commands::Dashboard(args)   => cmd::dashboard::run(args),
         Commands::Watch(args)       => cmd::watch::run(args),
@@ -72,6 +93,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Export(args)      => cmd::export::run(args),
         Commands::Version(args)     => cmd::version_cmd::run(args),
         Commands::Lint(args)        => cmd::lint::run(args),
+        Commands::ExitCodes(args)   => cmd::exit_codes::run(args),
     }
 }
 

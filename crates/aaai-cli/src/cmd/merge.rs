@@ -13,7 +13,14 @@ use colored::Colorize;
 
 use aaai_core::config::{definition::AuditEntry, io as config_io};
 
+const MERGE_AFTER_HELP: &str = "\
+Next steps:
+  Validate the merged file with `aaai check` before running `aaai audit`
+  on a real diff.\
+";
+
 #[derive(Args)]
+#[command(after_help = MERGE_AFTER_HELP)]
 pub struct MergeArgs {
     /// Base definition file (kept when no conflict).
     #[arg(value_name = "BASE")]

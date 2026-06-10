@@ -9,7 +9,11 @@ aaai <command> --help
 
 ---
 
-## Exit Codes (`aaai audit`)
+## Exit Codes
+
+These codes are stable across v1.x — see the
+[Compatibility Policy](compatibility.md). Run `aaai exit-codes`
+at any time to print the canonical table.
 
 | Code | Meaning |
 |---|---|
@@ -56,4 +60,5 @@ aaai <command> --help
 | [`aaai init`](cli-setup.md#aaai-init) | Interactive project setup wizard |
 | [`aaai config`](cli-setup.md#aaai-config) | Show or create `.aaai.yaml` project config |
 | [`aaai version`](cli-setup.md#aaai-version) | Print version and build information |
+| [`aaai exit-codes`](cli-setup.md#aaai-exit-codes) | Print the canonical exit-code table |
 | [`aaai completions`](cli-setup.md#aaai-completions) | Generate shell completion scripts |

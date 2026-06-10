@@ -6,7 +6,14 @@ use colored::Colorize;
 
 use aaai_core::project::config::{ProjectConfig, CONFIG_FILENAME};
 
+const CONFIG_AFTER_HELP: &str = "\
+Next steps:
+  Edit .aaai.yaml to customise audit defaults for this project, then run
+  `aaai audit` to evaluate. Run `aaai check` to validate the definition first.\
+";
+
 #[derive(Args)]
+#[command(after_help = CONFIG_AFTER_HELP)]
 pub struct ConfigArgs {
     /// Initialise a new .aaai.yaml in the current directory.
     #[arg(long)]

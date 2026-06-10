@@ -15,7 +15,14 @@ use aaai_core::{
     config::io as config_io,
 };
 
+const EXPORT_AFTER_HELP: &str = "\
+Next steps:
+  Open the resulting CSV/TSV in a spreadsheet for external review, then
+  approve changes inside aaai-gui or by editing audit.yaml directly.\
+";
+
 #[derive(Args)]
+#[command(after_help = EXPORT_AFTER_HELP)]
 pub struct ExportArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,

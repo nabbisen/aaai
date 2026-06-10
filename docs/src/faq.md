@@ -130,7 +130,8 @@ writes are:
 
 - The audit definition file (when saving approvals)
 - `~/.aaai/history.jsonl` (disable with `--no-history`)
-- `~/.aaai/prefs.yaml` (GUI theme preference)
+- `~/.aaai/profiles.yaml` (saved GUI projects — the "Recent" list)
+- `~/.aaai/prefs.yaml` (GUI theme and locale preferences)
 
 ---
 

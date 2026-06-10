@@ -5,7 +5,14 @@ use colored::Colorize;
 
 use aaai_core::history::store as history_store;
 
+const HISTORY_AFTER_HELP: &str = "\
+Next steps:
+  - Use --stats to see pass-rate and Pending counts over time.
+  - Use --max-entries N to prune old runs from ~/.aaai/history.jsonl.\
+";
+
 #[derive(Args)]
+#[command(after_help = HISTORY_AFTER_HELP)]
 pub struct HistoryArgs {
     /// Number of recent runs to show.
     #[arg(short = 'n', long, default_value = "10")]

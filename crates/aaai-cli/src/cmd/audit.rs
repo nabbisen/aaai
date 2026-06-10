@@ -20,7 +20,18 @@ use aaai_core::{
     project::config::ProjectConfig,
 };
 
+const AUDIT_AFTER_HELP: &str = "\
+Next steps:
+  - If status is PENDING: open audit.yaml and fill in 'reason' for each entry.
+  - If status is FAILED:  review the diff and update rules or reason.
+  - When all PASSED:      run `aaai report -o report.md` to generate a report.
+
+Exit codes (also: `aaai exit-codes`):
+  0 PASSED   1 FAILED   2 PENDING   3 ERROR   4 CONFIG_ERROR\
+";
+
 #[derive(Args)]
+#[command(after_help = AUDIT_AFTER_HELP)]
 pub struct AuditArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,
@@ -235,10 +246,10 @@ fn print_human_audit(
 ) {
 
     // ── Zone 1: Header with Result ────────────────────────────────────
-    let (result_str, result_colored) = if s.is_passing() {
-        ("PASSED", "✓ PASSED".green().bold().to_string())
+    let result_colored = if s.is_passing() {
+        "✓ PASSED".green().bold().to_string()
     } else {
-        ("FAILED", "✗ FAILED".red().bold().to_string())
+        "✗ FAILED".red().bold().to_string()
     };
     println!("{}", SEP);
     println!("  {}   Result: {}", "aaai audit".bold(), result_colored);
@@ -362,20 +373,11 @@ fn print_human_audit(
     }
     println!();
 
-    // ── Zone 4: Next action hint ──────────────────────────────────────
-    let next = if s.pending > 0 && s.failed == 0 {
-        Some(format!("Next: open {} and fill in 'reason' for ⚠ {} Pending entr{},\n       then re-run `aaai audit`.",
-            "(your audit.yaml)", s.pending,
-            if s.pending == 1 { "y" } else { "ies" }))
-    } else if s.failed > 0 {
-        Some(format!("Next: review ✗ {} Failed entr{} in the diff viewer,\n       update rules or reason, then re-run `aaai audit`.",
-            s.failed, if s.failed == 1 { "y" } else { "ies" }))
-    } else if result_str == "PASSED" {
-        Some("Next: run `aaai report` to generate a report.".to_string())
-    } else {
-        None
-    };
-    if let Some(hint) = next {
+    // ── Zone 4: Next action hint (RFC 024 §3.2) ───────────────────────
+    // Logic now lives in cmd::next_hint so dashboard (and future surfaces)
+    // can share it. `next_action_hint` returns None only when total == 0,
+    // which doesn't happen on this code path (we always have a result).
+    if let Some(hint) = crate::cmd::next_hint::next_action_hint(s) {
         println!("  {}", hint.dimmed());
         println!();
     }

@@ -10,7 +10,14 @@ use aaai_core::{
     templates::library as tmpl,
 };
 
+const SNAP_AFTER_HELP: &str = "\
+Next steps:
+  Edit the generated audit.yaml and fill in the 'reason' for each entry,
+  then run `aaai audit -l <before> -r <after> -c audit.yaml` to evaluate.\
+";
+
 #[derive(Args)]
+#[command(after_help = SNAP_AFTER_HELP)]
 pub struct SnapArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,

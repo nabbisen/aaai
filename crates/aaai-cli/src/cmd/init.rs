@@ -18,7 +18,16 @@ use aaai_core::{
     project::config::ProjectConfig,
 };
 
+const INIT_AFTER_HELP: &str = "\
+Next steps:
+  Edit the generated .aaai.yaml as needed, then either:
+    - run `aaai snap -l ./before -r ./after -o audit.yaml` to seed rules,
+      then `aaai audit` to evaluate; or
+    - run `aaai audit` if you already have an audit definition.\
+";
+
 #[derive(Args)]
+#[command(after_help = INIT_AFTER_HELP)]
 pub struct InitArgs {
     /// Directory to initialise (default: current directory).
     #[arg(long, default_value = ".")]

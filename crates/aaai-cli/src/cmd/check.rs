@@ -6,7 +6,14 @@ use colored::Colorize;
 
 use aaai_core::config::io as config_io;
 
+const CHECK_AFTER_HELP: &str = "\
+Next steps:
+  - If issues are reported: edit audit.yaml to fix them.
+  - If clean: run `aaai audit` to evaluate against the actual folders.\
+";
+
 #[derive(Args)]
+#[command(after_help = CHECK_AFTER_HELP)]
 pub struct CheckArgs {
     /// Audit definition file to validate.
     #[arg(value_name = "FILE")]

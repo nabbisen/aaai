@@ -25,7 +25,7 @@
 | レポート出力 | Markdown・JSON・HTML・SARIF（GitHub Actions 向け） |
 | 機密値マスキング | API キー・パスワード等の正規表現ベース自動マスク |
 | 監査警告 | 大容量ファイルへの戦略適用・承認者未設定などの advisory |
-| CLI | 15 コマンド（audit・snap・lint・diff・merge・watch など） |
+| CLI | 16 コマンド（audit・snap・lint・diff・merge・watch・exit-codes など） |
 | GUI | 3 ペインリサイズ可能なデスクトップ UI。ダーク/ライトテーマ対応 |
 | CI/CD | 詳細な終了コード（0=PASSED … 4=CONFIG_ERROR）、SARIF 出力 |
 

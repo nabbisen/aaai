@@ -17,7 +17,15 @@ use colored::Colorize;
 
 use aaai_core::config::io as config_io;
 
+const LINT_AFTER_HELP: &str = "\
+Next steps:
+  - If warnings are reported: address them, or add the offending kinds to
+    the `suppress_warnings:` list in your .aaai.yaml.
+  - If clean: run `aaai audit` to evaluate against the actual folders.\
+";
+
 #[derive(Args)]
+#[command(after_help = LINT_AFTER_HELP)]
 pub struct LintArgs {
     /// Audit definition file to lint.
     #[arg(value_name = "FILE")]

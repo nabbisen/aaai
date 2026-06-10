@@ -3,7 +3,7 @@
 ## インストール
 
 ```sh
-# ソースからビルド（Rust 1.81 以降が必要）
+# ソースからビルド（Rust 1.91 以降が必要）
 cargo build --release -p aaai-cli -p aaai-gui
 
 # バイナリを PATH に追加（例）

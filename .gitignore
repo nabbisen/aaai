@@ -29,3 +29,10 @@ dist/
 
 # ── aaai runtime files ────────────────────────────────────────────────────────
 *.lock                  # .aaai.lock write-lock files
+
+# ── RFC 017 visual-verification artefacts ─────────────────────────────────────
+# Per RFC 017 §3.1, screenshots and other observation artefacts are NOT
+# committed. They live under rfcs/verification/<NNN>/ on the verifier's
+# machine; the verification card (## Visual Verification section) is what
+# gets committed inside the RFC file itself.
+/rfcs/verification/

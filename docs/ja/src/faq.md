@@ -126,7 +126,8 @@ aaai は比較対象のファイルを変更しません。書き込みが発生
 
 - `--config` で指定した監査定義ファイル（承認時）
 - `~/.aaai/history.jsonl`（`--no-history` で無効化可能）
-- `~/.aaai/prefs.yaml`（GUI テーマ設定）
+- `~/.aaai/profiles.yaml`（保存済み GUI プロジェクト — Recent 一覧）
+- `~/.aaai/prefs.yaml`（GUI テーマ・ロケール設定）
 
 ---
 

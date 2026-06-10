@@ -126,3 +126,128 @@
 ### RFC 005 — Keyboard Navigation & Focus (v0.12.0)
 - `FocusTarget`; Tab/`/`/Enter/Ctrl+E/Escape shortcuts; complete keyboard flow
 
+
+## Phase 12 — v0.19.0 の答え合わせ：視覚検証 / i18n / docs 刷新 + Phase 13〜16 統合 ✅ (v0.20.0)
+
+**目的**: v0.15.0 〜 v0.19.0 で実装した UI/UX が「設計書通りに動くこと」を視覚的に保証する。
+
+**実績**: 当初 Phase 12 は RFC 017〜019 のみを対象としていたが、開発の流れで Phase 13〜16 のスコープ（RFC 020〜025）も v0.20.0 で先行実装した。結果、Phase 12 は当初計画の 3 倍超のスコープで完了。
+
+### RFC 017 — Visual Verification Harness & Protocol ✅
+- 設計書 `aaai_uiux_design.pdf` の各画面要素に対してスクリーンショット + チェック項目のエビデンスを `verification/` に保存する手順を確立
+- `scripts/list-unverified-rfcs.sh` で未検証 RFC を一覧化
+- CI に「未検証 RFC 数」のステップを追加
+- `docs/templates/visual-verification-operators-guide.md` に RFC 020〜023 まで含む包括チェックリストを整備
+
+### RFC 018 — i18n Locale Fallback Strategies ✅ (partial — §3.4 only)
+- §3.4 i18n キー監査スクリプト `scripts/check-i18n-keys.py` を新規実装
+- 動的 `t!()` 呼び出しサイト（`make_btn` パターン）への false-positive 対策
+- B/C 対策は RFC 016 視覚検証で問題が残った場合に限り着手（条件付き）
+
+### RFC 019 — Documentation Refresh for v0.15–v0.19 Realities ✅
+- `docs/src/gui.md` / `docs/ja/src/gui.md` を v0.20.0 の実装に合わせて全面刷新
+- 加えて `cli-auditing.md` / `cli-reporting.md` / `cli-setup.md` / `cli-workflow.md` / `getting-started.md` が「英語パスに日本語が放置」状態だったため、6 ファイルを真の英語化
+- 結果として `docs/src/*.md` 全 15 章が真の英語、`docs/ja/src/*.md` 全 15 章が真の日本語に到達
+
+### RFC 020 — ABDD Audit & Action-oriented Errors ✅ (originally Phase 13)
+- `docs/src/abdd-audit.md` / `docs/ja/src/abdd-audit.md` 新規（合格 / 例外 (記録) 付きのチェックシート）
+- `UserError { message, hint }` 構造体導入、`error.<context>.<short_id>.{message,hint}` 形式の新 i18n キー
+- Opening 画面のエラーバナー（赤いメッセージ + グレーのヒントの 2 行構成）
+- Regex 入力時の regex101.com 誘導
+
+### RFC 021 — Screen Navigation Continuity ✅ partial (originally Phase 14)
+- Save / Report の完了マーク `✓ Saved Nm ago` + 30 秒 tick refresh
+- `last_saved_at`, `last_reported_at`, `audit_dirty` を `App` に追加
+- 新 i18n キー `banner.*`, `relative.*`
+- **deferred**: `audit_dirty` バナー — sync rerun アーキ下では発火しないため、アーキ decoupling 後に再起 RFC で対応
+
+### RFC 022 — Empty States & First-run Guidance ✅ (originally Phase 14)
+- Opening プロファイル空のときの ① ② ③ オンボーディングパネル
+- `audit_result` が None のときの file_tree / diff_panel / inspector それぞれの空状態
+- 新しい i18n キー `empty_state.*`
+
+### RFC 023 — Opening Drag-and-Drop & Recent Polish ✅ (originally Phase 15)
+- iced 0.14 の `Event::Window::FileDropped` を用いた DnD 受け入れ
+- `AuditProfile.last_used_at: Option<DateTime<Utc>>` (`#[serde(default)]`) で前方互換性確保
+- `sort_by_recent` と `humanize_since` 相対時刻フォーマッタ（7 ユニットテスト付き）
+- 新しい i18n キー `relative.*`, `error.opening.drop_invalid_kind.*`, `opening.drop_here`
+
+### RFC 024 — CLI Dashboard & Help Discoverability ✅ (originally Phase 15)
+- 全 16 サブコマンドの clap `after_help` に「Next steps」ブロックを追加
+- `next_action_hint()` ヘルパを `audit.rs` と `dashboard.rs` で共有
+- 新規 `aaai exit-codes` サブコマンド（5 値の終了コード表を印刷、v1.x 安定）
+- aaai-cli tests 54 → 70 (+16)
+
+### RFC 025 — v1.0.0 Release Preparation ✅ partial (originally Phase 16)
+- `docs/src/compatibility.md` / `docs/ja/src/compatibility.md` 新規（v1.x 互換性契約）
+- CLI 16 コマンド名 / 5 終了コード / 7 キーボードショートカット / 設定ファイル `#[serde(default)]` ポリシーを SemVer 解釈で明示
+- 破壊的変更パイプライン（opt-in → ≥1 minor deprecation → 次 major で削除）
+- **deferred**: 実際の v1.0.0 リリース判定ゲート通過とリリースタールボール cut-over は Phase 16 で
+
+### 19 件の pre-existing バグも併せて修正
+Phase 12 実装中の体系的な spot-check で v0.19.0 までに紛れ込んでいた 19 件の既存バグが判明し、すべて修正:
+- GUI: `open_error` silent failure、regex error の hint 欠落、toolbar.* リテラル表示、`abdd-audit.md` mdbook ナビ孤立、23 件の dead i18n キー、`make_btn` false-positive
+- ドキュメント: gui.md が日本語のまま英語パスに置かれていた、5 つの追加 CLI ガイドも同様、`aaai exit-codes` 未文書化、`compatibility.md` の crates.io 公開状態誤記、`overview.md` のコマンド数 15、`faq.md` の書き込み対象不足、`ci-integration.md` の終了コード安定性宣言欠落
+- Toolchain: `Cargo.toml` に rust-version 不在、CI MSRV check が edition 2024 と非互換な 1.81 を指定（プロジェクト指示書通り 1.91 に統一）
+
+## Phases 13〜16 — Phase 12 に統合済み ✅
+
+当初計画では Phase 13〜16 で個別にリリース予定だった内容は、すべて Phase 12 / v0.20.0 で先行実装した:
+
+| 当初予定 | 当初 RFC | 実際の着地 |
+|---|---|---|
+| ~~Phase 13 (v0.21.0)~~ | RFC 020 | v0.20.0 |
+| ~~Phase 14 (v0.22.0)~~ | RFC 021, 022 | v0.20.0（RFC 021 は partial） |
+| ~~Phase 15 (v0.23.0)~~ | RFC 023, 024 | v0.20.0 |
+| ~~Phase 16 (v1.0.0)~~ | RFC 025 | v0.20.0（docs groundwork のみ。実リリースゲート通過は別途） |
+
+---
+
+## Phase 13 (v0.21.0 想定) — Post-v0.20.0 followup
+
+v0.20.0 では 9 件の RFC が同時並行で実装され、いくつかの deferred 項目と新たに発覚した課題が残った。これらを Phase 13 で順次クローズする:
+
+### deferred from v0.20.0
+
+- **RFC 021 audit-dirty バナー**: 現在の同期 rerun アーキでは発火しないため deferred。Update tick を非同期化するアーキ decoupling を別途設計する RFC を切る必要あり
+- **RFC 018 メイン作業 (B/C)**: RFC 016 の視覚検証で literal key 露出が残った場合に限り着手する条件付き作業
+- **FieldError / toast subtitle refactor**: i18n キー `error.inspector.invalid_regex.*` / `error.save.failed.*` を再導入できるように、`Toast` 構造に subtitle (hint) フィールドを追加するリファクタ
+
+### v0.20.0 視覚検証の結果次第
+
+- **RFC 020 ABDD 監査シート埋め込み作業**: operator の検証結果を `docs/src/abdd-audit.md` に転記
+- **RFC 022/023 視覚検証で判明した不整合の修正**: 個別 fix RFC として切る
+
+### CI / 開発体験
+
+- **CI に `mdbook build` ジョブ追加**: 現在は手動 smoke test のみ
+- **`mdbook test` で code sample をテスト**: 現状 0 件、追加する価値ありか検討
+
+## Phase 16 — v1.0.0 リリース判定 (改めて)
+
+v0.20.0 で RFC 025 docs groundwork は landed したが、**実リリースゲート通過 → tag/publish → GitHub Release** は別個に行う。
+
+### v1.0.0 リリース判定ゲート
+
+| グループ | ゲート | 関連 RFC |
+|---|---|---|
+| 機能 | G1 視覚検証 / G2 i18n / G3 ABDD / G4 エラー文 / G5 画面リレーション / G6 空状態 / G7 Opening / G8 CLI | 017〜024 |
+| 品質 | Q1 cargo test / Q2 clippy / Q3 fmt / Q4 mdbook / Q5 release ビルド / Q6 packaging | — |
+| ドキュメント | D1 README / D2 ROADMAP / D3 CHANGELOG / D4 compatibility.md | 019 |
+
+すべての G ゲート は v0.20.0 のコード/ドキュメントレベルでは満たされている。**残るは operator の視覚検証エビデンス**。
+
+### v1.0.0 リリース手順
+
+`docs/release-prep-v0.20.0.md` の 11 ステップを v0.20.0 ベースとして利用し、`v1.0.0` への version bump と CHANGELOG プロモートを行うだけで足りる見込み。
+
+### v1.0.0 以降の互換性宣言 (`docs/src/compatibility.md`)
+
+v0.20.0 で landed 済み。詳細は当該ドキュメント参照。
+
+## v1.1.0 以降（暫定）
+
+v1.0.0 ソーク中に別 RFC で議論する候補:
+- スクリーンリーダー対応（iced 側の a11y サポート待ち）
+- 追加言語（zh / ko）
+- `aaai-core` の独立 crate 化

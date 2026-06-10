@@ -16,7 +16,7 @@ not just to the person who approved it, but to future maintainers months later.
 | Component | Description |
 |---|---|
 | [`aaai-core`](https://crates.io/crates/aaai-core) | Core engine — diff, audit, report, masking |
-| [`aaai-cli`](https://crates.io/crates/aaai-cli) | `aaai` command-line binary (15 commands) |
+| [`aaai-cli`](https://crates.io/crates/aaai-cli) | `aaai` command-line binary (16 commands) |
 | [`aaai-gui`](https://crates.io/crates/aaai-gui) | `aaai-gui` desktop application (iced) |
 
 ---
@@ -44,7 +44,7 @@ not just to the person who approved it, but to future maintainers months later.
 | Report formats | Markdown · JSON · HTML · [SARIF](https://sarifweb.azurewebsites.net/) |
 | Secret masking | Auto-redaction of API keys, passwords, tokens (9 built-in patterns) |
 | Advisory warnings | Large-file strategy, missing approver, no-strategy-on-modified |
-| CLI | 15 commands — `audit` `snap` `lint` `diff` `merge` `watch` … |
+| CLI | 16 commands — `audit` `snap` `lint` `diff` `merge` `watch` `exit-codes` … |
 | GUI | 3-pane resizable desktop UI with dark / light theme |
 | CI/CD | Granular exit codes (0 = PASSED … 4 = CONFIG_ERROR), SARIF output |
 

@@ -9,7 +9,14 @@ use similar::{ChangeTag, TextDiff};
 
 use aaai_core::{DiffEngine, DiffType, IgnoreRules};
 
+const DIFF_AFTER_HELP: &str = "\
+Next steps:
+  Run `aaai snap` to convert these raw diffs into an audit definition
+  template that you can review and approve.\
+";
+
 #[derive(Args)]
+#[command(after_help = DIFF_AFTER_HELP)]
 pub struct DiffArgs {
     /// Before (source) folder.
     #[arg(short = 'l', long, value_name = "PATH")]

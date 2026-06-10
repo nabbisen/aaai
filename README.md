@@ -41,7 +41,7 @@ aaai audit --left ./before --right ./after --config audit.yaml
 ## Installation
 
 ```sh
-# Build from source (requires Rust 1.81+)
+# Build from source (requires Rust 1.91+)
 cargo build --release -p aaai-cli -p aaai-gui
 ```
 
@@ -52,5 +52,6 @@ cargo build --release -p aaai-cli -p aaai-gui
 - [Content Audit Strategies](docs/src/strategies.md)
 - [GUI Guide](docs/src/gui.md)
 - [CI/CD Integration](docs/src/ci-integration.md)
+- [Compatibility Policy](docs/src/compatibility.md) — what `aaai` guarantees across v1.x
 - [FAQ](docs/src/faq.md)
 

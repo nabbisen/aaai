@@ -7,8 +7,13 @@ members = [
 ]
 
 [workspace.package]
-version = "0.19.0"
+version = "0.20.0"
 edition = "2024"
+# MSRV — minimum supported Rust version, fixed at 1.91 per the
+# project's development-environment specification. This is the
+# version the workspace is built and tested against; the explicit
+# `rust-version` makes cargo refuse to build on older toolchains.
+rust-version = "1.91"
 authors = ["nabbisen"]
 license = "Apache-2.0"
 repository = "https://github.com/nabbisen/aaai"

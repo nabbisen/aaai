@@ -43,6 +43,44 @@ pub fn view(app: &App) -> Element<'_, Message> {
     // ── Optional settings (collapsible) ─────────────────────────────
     let optional_section = optional_settings_section(app);
 
+    // ── Drop-hint banner (RFC 023 FR-2): visible only while a drag is
+    // hovering over the window ─────────────────────────────────────────
+    let drop_hint: Element<'_, Message> = if app.file_hovering {
+        container(
+            text(format!("↓ {}", t!("opening.drop_here")))
+                .size(13)
+                .color(Color::from_rgb(0.18, 0.45, 0.85)),
+        )
+        .padding(Padding::from([10.0, 14.0]))
+        .style(card_style)
+        .width(Length::Fill)
+        .into()
+    } else {
+        space().height(Length::Fixed(0.0)).into()
+    };
+
+    // ── Open-error banner (RFC 020 — message + hint, fixes the
+    // previous silent-failure where `app.open_error` was set but never
+    // rendered) ────────────────────────────────────────────────────
+    let error_banner: Element<'_, Message> = if let Some(err) = &app.open_error {
+        let msg_line = text(format!("⚠ {}", err.message))
+            .size(13)
+            .color(Color::from_rgb(0.82, 0.18, 0.18));
+        let hint_line = text(err.hint.as_str())
+            .size(11)
+            .color(Color::from_rgb(0.45, 0.47, 0.52));
+        container(
+            column![msg_line, hint_line]
+                .spacing(4),
+        )
+        .padding(Padding::from([10.0, 14.0]))
+        .style(card_style)
+        .width(Length::Fill)
+        .into()
+    } else {
+        space().height(Length::Fixed(0.0)).into()
+    };
+
     // ── Start audit button ──────────────────────────────────────────
     let can_start = app.opening_validation.can_start()
         && !app.before_path.trim().is_empty()
@@ -72,7 +110,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
         after_card,
         space().height(Length::Fixed(16.0)),
         optional_section,
-        space().height(Length::Fixed(24.0)),
+        space().height(Length::Fixed(12.0)),
+        drop_hint,
+        space().height(Length::Fixed(4.0)),
+        error_banner,
+        space().height(Length::Fixed(8.0)),
         container(start_btn).width(Length::Fill).center_x(Length::Fill),
         space().height(Length::Fixed(32.0)),
         recent_section,
@@ -260,7 +302,8 @@ where
 fn recent_projects_section(app: &App) -> Element<'_, Message> {
     let profiles = &app.profiles.profiles;
     if profiles.is_empty() {
-        return space().height(Length::Fixed(0.0)).into();
+        // RFC 022 FR-2: empty Recent → first-run onboarding panel.
+        return onboarding_section();
     }
 
     let header = text(format!("─── {} ───", t!("opening.recent_section")))
@@ -269,8 +312,22 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
 
     let mut col = column![header, space().height(Length::Fixed(6.0))].spacing(4);
 
-    for (idx, prof) in profiles.iter().take(5).enumerate() {
+    // RFC 023 FR-5: sort by last_used_at descending. Tracking the
+    // original index lets us keep the existing `LoadProfile(usize)`
+    // message wiring (idx still refers to the canonical position in
+    // `app.profiles.profiles`).
+    let mut indexed: Vec<(usize, &aaai_core::profile::store::AuditProfile)> =
+        profiles.iter().enumerate().collect();
+    indexed.sort_by(|(_, a), (_, b)| b.last_used_at.cmp(&a.last_used_at));
+
+    for (orig_idx, prof) in indexed.iter().take(5) {
         let label = text(format!("▸ {}", prof.name)).size(13);
+        // RFC 023 §3.4: render the relative "time ago" alongside the
+        // name. Legacy profiles (None) show nothing — the absence of
+        // a timestamp is the cue that they predate the feature.
+        let when_text: Option<String> = prof
+            .last_used_at
+            .map(crate::util::humanize_since);
         let detail = text(format!(
             "  before: {}  →  after: {}",
             prof.before,
@@ -280,12 +337,27 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
         .color(Color::from_rgb(0.55, 0.55, 0.60))
         .font(iced::Font::MONOSPACE);
         let open_btn = button(text(t!("opening.open_recent").to_string()).size(12))
-            .on_press(Message::LoadProfile(idx))
+            .on_press(Message::LoadProfile(*orig_idx))
             .padding(Padding::from([8.0, 14.0]));
+
+        let header_row: Element<'_, Message> = if let Some(when) = when_text {
+            row![
+                label,
+                space().width(Length::Fill),
+                text(when)
+                    .size(11)
+                    .color(Color::from_rgb(0.55, 0.55, 0.60)),
+            ]
+            .spacing(8)
+            .align_y(Center)
+            .into()
+        } else {
+            label.into()
+        };
 
         let row_el = container(
             row![
-                column![label, detail].spacing(2),
+                column![header_row, detail].spacing(2),
                 space().width(Length::Fill),
                 open_btn,
             ]
@@ -301,4 +373,61 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
     }
 
     col.into()
+}
+
+// ── RFC 022 — first-run onboarding panel ─────────────────────────────────
+//
+// Shown in place of the (empty) Recent projects list when the profile
+// store has no saved profiles. The 3-step ramp mirrors the design doc
+// p.10 A.: select Before → select After → start. The bottom note tells
+// the user that audit.yaml is auto-created — a common first-time
+// stumbling point.
+
+fn onboarding_section<'a>() -> Element<'a, Message> {
+    use crate::style::empty_state_panel_style;
+
+    let title = text(t!("empty_state.onboarding_title").to_string())
+        .size(14)
+        .color(Color::from_rgb(0.40, 0.42, 0.48))
+        .font(iced::Font {
+            weight: iced::font::Weight::Semibold,
+            ..Default::default()
+        });
+
+    // Numbered steps using ① ② ③ — Unicode bullets that carry meaning
+    // without color (ABDD §2 colour independence) and are unambiguous
+    // across en/ja.
+    let step1 = text(format!("①  {}", t!("empty_state.onboarding_step1")))
+        .size(12)
+        .color(Color::from_rgb(0.50, 0.52, 0.58));
+    let step2 = text(format!("②  {}", t!("empty_state.onboarding_step2")))
+        .size(12)
+        .color(Color::from_rgb(0.50, 0.52, 0.58));
+    let step3 = text(format!("③  {}", t!("empty_state.onboarding_step3")))
+        .size(12)
+        .color(Color::from_rgb(0.50, 0.52, 0.58));
+
+    let note = text(t!("empty_state.onboarding_note").to_string())
+        .size(11)
+        .color(Color::from_rgb(0.60, 0.62, 0.68));
+
+    let body = column![
+        title,
+        space().height(Length::Fixed(10.0)),
+        step1,
+        space().height(Length::Fixed(4.0)),
+        step2,
+        space().height(Length::Fixed(4.0)),
+        step3,
+        space().height(Length::Fixed(10.0)),
+        note,
+    ]
+    .spacing(0)
+    .width(Length::Fill);
+
+    container(body)
+        .padding(Padding::from([20.0, 24.0]))
+        .width(Length::Fill)
+        .style(empty_state_panel_style)
+        .into()
 }

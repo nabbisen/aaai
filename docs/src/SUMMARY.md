@@ -12,4 +12,6 @@
 - [GUI Guide](gui.md)
 - [CI/CD Integration](ci-integration.md)
 - [UI/UX Test Specification](testing.md)
+- [ABDD Audit Sheet Template](abdd-audit.md)
+- [Compatibility Policy (v1.x)](compatibility.md)
 - [FAQ](faq.md)

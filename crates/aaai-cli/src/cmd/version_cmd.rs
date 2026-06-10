@@ -3,7 +3,14 @@
 use clap::Args;
 use colored::Colorize;
 
+const VERSION_AFTER_HELP: &str = "\
+Next steps:
+  See `aaai --help` for the full command list,
+  or `aaai init` to start a new project.\
+";
+
 #[derive(Args)]
+#[command(after_help = VERSION_AFTER_HELP)]
 pub struct VersionArgs {
     /// Output as JSON.
     #[arg(long = "json-output")]

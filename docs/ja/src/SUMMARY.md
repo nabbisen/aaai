@@ -12,4 +12,6 @@
 - [GUI ガイド](gui.md)
 - [CI/CD 統合](ci-integration.md)
 - [UI/UX テスト仕様書](testing.md)
+- [ABDD 監査シート (テンプレート)](abdd-audit.md)
+- [互換性方針 (v1.x)](compatibility.md)
 - [よくある質問 (FAQ)](faq.md)

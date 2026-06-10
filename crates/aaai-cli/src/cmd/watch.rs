@@ -11,7 +11,14 @@ use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use aaai_core::{AuditEngine, AuditStatus, DiffEngine, DiffType,
                 config::io as config_io};
 
+const WATCH_AFTER_HELP: &str = "\
+Next steps:
+  Press Ctrl+C to stop watching. While the watcher runs, editing the
+  source folders or the audit definition automatically re-triggers an audit.\
+";
+
 #[derive(Args)]
+#[command(after_help = WATCH_AFTER_HELP)]
 pub struct WatchArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,

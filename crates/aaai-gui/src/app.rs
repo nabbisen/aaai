@@ -191,10 +191,13 @@ pub struct App {
     // Opening
     /// RFC 015: optional settings (audit.yaml / .aaaiignore) section expansion
     pub optional_settings_expanded: bool,
+    /// RFC 023: true while a drag is active over the window — flips
+    /// `opening` into "drop here" hint mode.
+    pub file_hovering: bool,
     pub before_path: String,
     pub after_path: String,
     pub definition_path: String,
-    pub open_error: Option<String>,
+    pub open_error: Option<crate::error::UserError>,
     pub opening_validation: OpeningValidation,
 
     // Main
@@ -213,6 +216,19 @@ pub struct App {
 
     // Unsaved
     pub dirty: bool,
+
+    // RFC 021 — screen navigation continuity
+    /// True when the in-memory definition has changed since the last
+    /// successful audit run, so the displayed `audit_result` may be
+    /// stale. Set by handlers that mutate `self.definition` (approve,
+    /// undo, inspector edits); cleared by `rerun_audit`.
+    pub audit_dirty: bool,
+    /// Wall-clock time of the last successful definition save. `None`
+    /// until the first save. Used for the toolbar "Saved Nm ago" mark.
+    pub last_saved_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Wall-clock time of the last successful report export. `None`
+    /// until the first export. Used for the toolbar "Reported Nm ago" mark.
+    pub last_reported_at: Option<chrono::DateTime<chrono::Utc>>,
 
     // Toasts
     pub toasts: Vec<Toast<Message>>,
@@ -257,6 +273,7 @@ impl Default for App {
         App {
             screen: Screen::Opening,
             optional_settings_expanded: false,
+            file_hovering: false,
             is_loading: false,
             load_progress: None,
             active_ignore: IgnoreRules::default(),
@@ -274,6 +291,9 @@ impl Default for App {
             batch: BatchApproveState::default(),
             batch_sheet_open: false,
             dirty: false,
+            audit_dirty: false,
+            last_saved_at: None,
+            last_reported_at: None,
             toasts: Vec::new(),
             toast_id: 0,
             locale: rust_i18n::locale().to_string(),
@@ -391,6 +411,17 @@ pub enum Message {
     IgnoreFilePicked(Option<std::path::PathBuf>),
     ToggleOptionalSettings,
 
+    // RFC 023: drag-and-drop folder onto the Opening screen
+    /// A file/folder is currently being hovered over the window. Used to
+    /// switch the Opening view into "drop hint" mode.
+    FileHoverEnter,
+    /// The drag left the window without dropping. Clear hover state.
+    FileHoverLeave,
+    /// A file or folder was dropped on the window. The path may be a
+    /// folder (routed to the first empty card) or a file (rejected with
+    /// an inline error).
+    FileDropped(std::path::PathBuf),
+
     // RFC 007: navigation
     BackToOpening,
 
@@ -418,6 +449,11 @@ pub enum Message {
     // Toasts
     DismissToast(u64),
     ToastTick,
+
+    /// RFC 021 §3.5 — 30-second wall-clock tick. Used to refresh
+    /// "Saved Nm ago" / "Reported Nm ago" relative-time labels. A
+    /// no-op at the state level (it just causes a re-render).
+    RelativeTimeTick,
 }
 
 // ── Update ────────────────────────────────────────────────────────────────
@@ -437,14 +473,22 @@ impl App {
                 let def_path = PathBuf::from(&self.definition_path);
 
                 if !before.is_dir() {
-                    self.open_error = Some(format!(
-                        "Before folder not found: {}", before.display()
+                    self.open_error = Some(crate::error::UserError::new(
+                        t!(
+                            "error.opening.before_not_found.message",
+                            path = before.display().to_string()
+                        ),
+                        t!("error.opening.before_not_found.hint"),
                     ));
                     return Task::none();
                 }
                 if !after.is_dir() {
-                    self.open_error = Some(format!(
-                        "After folder not found: {}", after.display()
+                    self.open_error = Some(crate::error::UserError::new(
+                        t!(
+                            "error.opening.after_not_found.message",
+                            path = after.display().to_string()
+                        ),
+                        t!("error.opening.after_not_found.hint"),
                     ));
                     return Task::none();
                 }
@@ -453,7 +497,13 @@ impl App {
                     match config_io::load(&def_path) {
                         Ok(d) => d,
                         Err(e) => {
-                            self.open_error = Some(format!("Failed to load definition: {e}"));
+                            self.open_error = Some(crate::error::UserError::new(
+                                t!(
+                                    "error.opening.definition_load_failed.message",
+                                    reason = e.to_string()
+                                ),
+                                t!("error.opening.definition_load_failed.hint"),
+                            ));
                             return Task::none();
                         }
                     }
@@ -652,6 +702,15 @@ impl App {
                                         self.undo_stack.remove(0);
                                     }
                                     self.dirty = true;
+                                    // RFC 021 §3.2: definition mutated;
+                                    // the immediately-following
+                                    // `rerun_audit()` will clear this
+                                    // again, so under the current sync
+                                    // architecture the banner doesn't
+                                    // visibly fire. The flag is still
+                                    // wired correctly for any future RFC
+                                    // that decouples mutation from rerun.
+                                    self.audit_dirty = true;
                                     self.rerun_audit();
                                     self.push_toast(
                                         ToastIntent::Success,
@@ -757,6 +816,9 @@ impl App {
                     match config_io::save(def, &path, true) {
                         Ok(()) => {
                             self.dirty = false;
+                            // RFC 021 §3.2 — stamp save time so toolbar
+                            // can show "Saved Nm ago" until next mutation.
+                            self.last_saved_at = Some(chrono::Utc::now());
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.saved").as_ref(),
@@ -792,11 +854,16 @@ impl App {
                         ),
                     };
                     match res {
-                        Ok(()) => self.push_toast(
-                            ToastIntent::Success,
-                            t!("toast.export_ok").as_ref(),
-                            &format!("Saved to {}", out.display()),
-                        ),
+                        Ok(()) => {
+                            // RFC 021 §3.2 — stamp report time so toolbar
+                            // can show "Reported Nm ago" until next mutation.
+                            self.last_reported_at = Some(chrono::Utc::now());
+                            self.push_toast(
+                                ToastIntent::Success,
+                                t!("toast.export_ok").as_ref(),
+                                &format!("Saved to {}", out.display()),
+                            );
+                        }
                         Err(e) => self.push_toast(
                             ToastIntent::Error,
                             t!("toast.export_failed").as_ref(),
@@ -849,7 +916,10 @@ impl App {
             Message::DiffFailed(err) => {
                 self.is_loading = false;
                 self.load_progress = None;
-                self.open_error = Some(err);
+                self.open_error = Some(crate::error::UserError::new(
+                    t!("error.diff.failed.message", reason = err),
+                    t!("error.diff.failed.hint"),
+                ));
             }
 
             // ── Phase 6: undo + navigation ───────────────────────────
@@ -859,6 +929,7 @@ impl App {
                         if let Some(idx) = def.entries.iter().position(|e| e.path == path) {
                             def.entries.remove(idx);
                             self.dirty = true;
+                            self.audit_dirty = true;  // RFC 021 §3.2; rerun_audit clears.
                             self.rerun_audit();
                             self.push_toast(
                                 ToastIntent::Info,
@@ -1013,6 +1084,52 @@ impl App {
                 self.optional_settings_expanded = !self.optional_settings_expanded;
             }
 
+            // ── RFC 023: drag-and-drop on the Opening screen ──────────
+            Message::FileHoverEnter => {
+                // Only meaningful while the user is on Opening. We don't
+                // restrict by `self.screen` here because the iced event
+                // arrives globally; the Opening view itself ignores the
+                // `file_hovering` flag on other screens.
+                self.file_hovering = true;
+            }
+            Message::FileHoverLeave => {
+                self.file_hovering = false;
+            }
+            Message::FileDropped(path) => {
+                self.file_hovering = false;
+                // Only act on Opening — on the Main screen the drop is
+                // ignored to avoid surprising the user mid-audit.
+                if self.screen != Screen::Opening {
+                    return Task::none();
+                }
+                if !path.is_dir() {
+                    // RFC 023 FR-3: non-folder drops surface as inline
+                    // error via the open_error banner (RFC 020 pattern).
+                    self.open_error = Some(crate::error::UserError::new(
+                        t!(
+                            "error.opening.drop_invalid_kind.message",
+                            path = path.display().to_string()
+                        ),
+                        t!("error.opening.drop_invalid_kind.hint"),
+                    ));
+                    return Task::none();
+                }
+                // Route to the first empty card; if both filled, route to
+                // Before (the user can re-drag for After). This is the
+                // simplest mapping that satisfies RFC 023 FR-1 without
+                // needing layout-coordinate hit-testing.
+                let target = path.display().to_string();
+                if self.before_path.trim().is_empty() {
+                    self.before_path = target;
+                } else if self.after_path.trim().is_empty() {
+                    self.after_path = target;
+                } else {
+                    // Both are set — overwrite Before by convention.
+                    self.before_path = target;
+                }
+                self.validate_opening();
+            }
+
             // ── RFC 007: navigation ───────────────────────────────────
             Message::BackToOpening => {
                 if self.dirty {
@@ -1081,6 +1198,9 @@ impl App {
                     after:  self.after_path.clone(),
                     definition: if self.definition_path.is_empty() { None } else { Some(self.definition_path.clone()) },
                     ignore_file: if self.ignore_path.is_empty() { None } else { Some(self.ignore_path.clone()) },
+                    // RFC 023 §3.2: new profiles start un-touched. The
+                    // first LoadProfile or explicit re-save will stamp this.
+                    last_used_at: None,
                 };
                 self.profiles.add(profile);
                 if let Err(e) = self.profiles.save() {
@@ -1096,6 +1216,11 @@ impl App {
                     self.after_path      = p.after;
                     self.definition_path = p.definition.unwrap_or_default();
                     self.ignore_path     = p.ignore_file.unwrap_or_default();
+                    // RFC 023 FR-6: stamp last_used_at when loading so the
+                    // Recent list re-orders on next view. We swallow the
+                    // I/O error: failing to persist the timestamp must not
+                    // block the user from continuing into the audit.
+                    let _ = self.profiles.touch(&p.name);
                     self.push_toast(ToastIntent::Info, "Profile", "Profile loaded.");
                 }
             }
@@ -1123,6 +1248,11 @@ impl App {
             }
             Message::ToastTick => {
                 snora::toast::sweep_expired(&mut self.toasts, Instant::now());
+            }
+            Message::RelativeTimeTick => {
+                // No-op at the state level — receiving this message
+                // causes iced to re-render, which is enough to refresh
+                // the "Saved Nm ago" labels through humanize_since.
             }
         }
         Task::none()
@@ -1173,7 +1303,19 @@ impl App {
                 _ => Message::Noop,
             }
         });
-        Subscription::batch([toast_sub, kb_sub])
+        // RFC 021 §3.5 — 30-second wall-clock tick. Only enabled when at
+        // least one timestamp is present, so we don't burn CPU re-rendering
+        // until the user has actually saved or exported once.
+        let needs_tick =
+            self.last_saved_at.is_some() || self.last_reported_at.is_some();
+        let time_sub: Subscription<Message> = if needs_tick {
+            iced::time::every(std::time::Duration::from_secs(30))
+                .map(|_| Message::RelativeTimeTick)
+        } else {
+            Subscription::none()
+        };
+
+        Subscription::batch([toast_sub, kb_sub, dnd_sub(), time_sub])
     }
 
     // ── View ─────────────────────────────────────────────────────────────
@@ -1310,9 +1452,16 @@ impl App {
             }
             AuditStrategy::Regex { pattern, .. } => {
                 if let Err(e) = RegexCheck::new(pattern) {
+                    // RFC 020 §3.3: action-oriented wording inline. The
+                    // FieldError struct doesn't carry a separate `hint`
+                    // (yet — that's a v1.1 refactor scoped to the whole
+                    // InspectorValidation surface), so we fold the next-step
+                    // advice into the message itself.
                     v.strategy_errors.push(FieldError {
                         field: "pattern".into(),
-                        message: format!("Invalid regex: {e}"),
+                        message: format!(
+                            "Invalid regex: {e}. Tip: simplify the pattern or test it at regex101.com."
+                        ),
                     });
                 }
             }
@@ -1371,6 +1520,8 @@ impl App {
             }
             let result = AuditEngine::evaluate(&self.diffs, def);
             self.audit_result = Some(result);
+            // RFC 021 §3.2: a fresh audit clears the dirty flag.
+            self.audit_dirty = false;
         }
     }
 
@@ -1404,4 +1555,22 @@ pub fn regex_target_from_str(s: &str) -> RegexTarget {
         "All changed lines" => RegexTarget::AllChangedLines,
         _                   => RegexTarget::AddedLines,
     }
+}
+
+/// RFC 023 §3.1 — subscription source for drag-and-drop window events.
+/// We listen for the three iced window events that bracket a drag:
+/// `FileHovered` / `FilesHoveredLeft` / `FileDropped`. The handler in
+/// [`App`] decides what to do with the payload (it ignores events while
+/// the user is on a screen other than Opening).
+fn dnd_sub() -> Subscription<Message> {
+    iced::event::listen_with(|event, _status, _id| {
+        use iced::event::Event;
+        use iced::window::Event as WinEvent;
+        match event {
+            Event::Window(WinEvent::FileHovered(_)) => Some(Message::FileHoverEnter),
+            Event::Window(WinEvent::FilesHoveredLeft) => Some(Message::FileHoverLeave),
+            Event::Window(WinEvent::FileDropped(p)) => Some(Message::FileDropped(p)),
+            _ => None,
+        }
+    })
 }

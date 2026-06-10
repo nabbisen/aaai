@@ -7,6 +7,11 @@ machine-readable output.
 
 ## Exit Codes
 
+These codes are stable in v1.x — see the
+[Compatibility Policy](compatibility.md). Run `aaai exit-codes` at
+any time to print the canonical table; CI scripts can rely on these
+numeric values across minor and patch releases.
+
 | Code | Meaning |
 |---|---|
 | 0 | PASSED — all entries OK or Ignored |

@@ -25,3 +25,21 @@ pub fn panel_style(_theme: &iced::Theme) -> container::Style {
         ..Default::default()
     }
 }
+
+/// RFC 022 — visual chrome for empty-state placeholder panels (file
+/// tree / diff panel / inspector / Opening onboarding). Intentionally
+/// understated: transparent background, soft 1-px border, gentle
+/// rounded corners. The container chrome is the *only* signal — actual
+/// guidance text is supplied by the caller via i18n keys under
+/// `empty_state.*` (en/ja both populated).
+pub fn empty_state_panel_style(_theme: &iced::Theme) -> container::Style {
+    container::Style {
+        background: None,
+        border: iced::Border {
+            color: Color::from_rgb(0.82, 0.82, 0.85),
+            width: 1.0,
+            radius: 8.0.into(),
+        },
+        ..Default::default()
+    }
+}

@@ -1218,3 +1218,169 @@ fn completions_powershell_exits_0() {
     let out = aaai().args(["completions", "powershell"]).output().unwrap();
     assert_eq!(out.status.code(), Some(0));
 }
+
+// ── RFC 024: CLI Dashboard & Help Discoverability Polish ──────────────────────
+//
+// These tests verify that every subcommand exposes a "Next steps:" block in
+// its `--help` output, that the top-level `aaai --help` carries a "Getting
+// started:" block, and that the new `exit-codes` subcommand works.
+
+fn help_stdout(args: &[&str]) -> String {
+    let out = aaai().args(args).output().expect("aaai binary should run");
+    assert_eq!(out.status.code(), Some(0), "{args:?} should exit 0");
+    String::from_utf8(out.stdout).expect("--help output should be UTF-8")
+}
+
+#[test]
+fn rfc024_top_level_help_has_getting_started() {
+    let out = help_stdout(&["--help"]);
+    assert!(out.contains("Getting started:"),
+        "top-level --help should carry a 'Getting started:' block, got:\n{out}");
+    // The block lists the core onboarding commands.
+    assert!(out.contains("aaai init"));
+    assert!(out.contains("aaai snap"));
+    assert!(out.contains("aaai audit"));
+    assert!(out.contains("aaai-gui"));
+}
+
+#[test]
+fn rfc024_every_subcommand_help_has_next_steps() {
+    // Every subcommand declared in main.rs must surface a "Next steps:"
+    // footer per RFC 024 FR-2. `help` and `version` are clap built-ins;
+    // exit-codes is a leaf command that prints the codes inline and doesn't
+    // need a Next-steps section.
+    let subcommands = [
+        "audit", "snap", "report", "check", "history", "config",
+        "dashboard", "watch", "completions", "diff", "merge", "init",
+        "export", "version", "lint",
+    ];
+    for sc in subcommands {
+        let out = help_stdout(&[sc, "--help"]);
+        assert!(out.contains("Next steps:"),
+            "`aaai {sc} --help` should contain 'Next steps:', got:\n{out}");
+    }
+}
+
+#[test]
+fn rfc024_audit_help_lists_exit_codes() {
+    let out = help_stdout(&["audit", "--help"]);
+    assert!(out.contains("Exit codes"),
+        "audit --help should call out exit codes, got:\n{out}");
+    // The short-form table lists the canonical names.
+    for code_name in ["PASSED", "FAILED", "PENDING", "ERROR", "CONFIG_ERROR"] {
+        assert!(out.contains(code_name),
+            "audit --help should mention {code_name}, got:\n{out}");
+    }
+}
+
+#[test]
+fn rfc024_exit_codes_subcommand_prints_table() {
+    let out = aaai().arg("exit-codes").output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("Exit code reference:"));
+    // Each canonical code/name pair appears.
+    for (code, name) in [
+        ("0", "PASSED"),
+        ("1", "FAILED"),
+        ("2", "PENDING"),
+        ("3", "ERROR"),
+        ("4", "CONFIG_ERROR"),
+    ] {
+        assert!(stdout.contains(code),  "exit-codes table should mention {code}, got:\n{stdout}");
+        assert!(stdout.contains(name),  "exit-codes table should mention {name}, got:\n{stdout}");
+    }
+}
+
+#[test]
+fn rfc024_audit_zone4_hint_appears_for_pending() {
+    // Use snap to seed a valid audit.yaml with a Pending entry, then run
+    // audit and confirm the Zone 4 hint (now sourced from cmd::next_hint)
+    // mentions 'reason' and `re-run`.
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "config.toml", "port = 80\n");
+    write(&after,  "config.toml", "port = 8080\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+
+    let snap = aaai()
+        .args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml)
+        .status().unwrap();
+    assert_eq!(snap.code(), Some(0));
+
+    let out = aaai()
+        .args(["audit", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
+        .output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("Next: open your audit.yaml"),
+        "Zone 4 hint missing or wrong wording, got:\n{stdout}");
+    assert!(stdout.contains("Pending"));
+    assert!(stdout.contains("re-run"));
+}
+
+#[test]
+fn rfc024_dashboard_emits_next_action_hint() {
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "a.txt", "v1\n");
+    write(&after,  "a.txt", "v2\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+
+    let snap = aaai()
+        .args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml)
+        .status().unwrap();
+    assert_eq!(snap.code(), Some(0));
+
+    let out = aaai()
+        .args(["dashboard", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
+        .output().unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("Next:"),
+        "dashboard should append a Next-action hint, got:\n{stdout}");
+}
+
+#[test]
+fn rfc024_quiet_audit_suppresses_zone4_hint() {
+    // RFC 024 NFR-1: --quiet should suppress the Next-action hint.
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "x.txt", "a\n");
+    write(&after,  "x.txt", "b\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    let _ = aaai().args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml).status();
+
+    let out = aaai()
+        .args(["audit", "--quiet", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
+        .output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(!stdout.contains("Next: "),
+        "--quiet should suppress the Zone 4 hint, got:\n{stdout}");
+}
+
+#[test]
+fn rfc024_json_output_audit_suppresses_zone4_hint() {
+    // RFC 024 NFR-2: --json-output should keep machine output clean.
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "x.txt", "a\n");
+    write(&after,  "x.txt", "b\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    let _ = aaai().args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml).status();
+
+    let out = aaai()
+        .args(["audit", "--json-output", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
+        .output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    // JSON should not contain the hint string anywhere.
+    assert!(!stdout.contains("Next: "),
+        "--json-output should suppress the Zone 4 hint, got:\n{stdout}");
+}

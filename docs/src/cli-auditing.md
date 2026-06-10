@@ -4,129 +4,142 @@ Commands for running and inspecting audits.
 
 ## aaai audit
 
-2つのフォルダを比較し、監査定義ファイルに照らして審査します。
+Compare two folders and audit the differences against an audit
+definition file. This is the central command of `aaai`.
 
 ```sh
 aaai audit --left <BEFORE> --right <AFTER> --config <FILE> [OPTIONS]
 ```
 
-| フラグ | 説明 |
+| Flag | Description |
 |---|---|
-| `-l, --left <PATH>` | 変更前フォルダ |
-| `-r, --right <PATH>` | 変更後フォルダ |
-| `-c, --config <FILE>` | 監査定義ファイル（YAML） |
-| `--ignore <FILE>` | .aaaiignore ファイルのパス |
-| `--verbose` | OK/Ignored エントリと reason も表示 |
-| `--quiet` | サマリー行のみ出力 |
-| `--json-output` | JSON 形式で stdout に出力 |
-| `--allow-pending` | Pending エントリを許容（exit 0） |
-| `--mask-secrets` | reason などの機密値をマスク |
-| `--progress` | プログレスバーを表示 |
-| `--no-history` | 実行履歴を記録しない |
+| `-l, --left <PATH>` | The "Before" folder (baseline) |
+| `-r, --right <PATH>` | The "After" folder (what you're auditing) |
+| `-c, --config <FILE>` | The audit definition (YAML) |
+| `--ignore <FILE>` | Path to a `.aaaiignore`-style exclusion file |
+| `--verbose` | Also show OK / Ignored entries and their reasons |
+| `--quiet` | Print only the summary line |
+| `--json-output` | Emit results as JSON instead of human-readable text |
+| `--allow-pending` | Treat Pending entries as success (exit 0) |
+| `--mask-secrets` | Redact values that look like secrets in reasons and rule text |
+| `--progress` | Show a progress bar while comparing folders |
+| `--no-history` | Don't record this run in `~/.aaai/history.jsonl` |
 
-**終了コード:**
+**Exit codes:** see [`aaai exit-codes`](cli-setup.md#aaai-exit-codes)
+for the canonical table.
 
-| コード | 意味 |
-|---|---|
-| 0 | PASSED — 全エントリ OK または Ignored |
-| 1 | FAILED — 1 件以上の監査失敗 |
-| 2 | PENDING — 未承認エントリあり（`--allow-pending` で 0 に） |
-| 3 | ERROR — ファイル読み取りエラー |
-| 4 | CONFIG_ERROR — 定義ファイルの構文エラー |
-
-**例:**
+**Examples:**
 
 ```sh
-# 基本的な監査
+# A basic audit
 aaai audit --left ./before --right ./after --config audit.yaml
 
-# CI/CD 向け（JSON 出力 + 履歴なし）
+# CI/CD friendly: JSON output, no history record
 aaai audit --left ./before --right ./after --config audit.yaml \
            --json-output --no-history
 
-# 除外パターン + 機密値マスク
+# With ignore rules and secret masking
 aaai audit --left ./before --right ./after --config audit.yaml \
            --ignore .aaaiignore --mask-secrets
 ```
+
+After an audit run, `aaai audit` ends with a "Next steps:" hint
+pointing to the most useful follow-up — for example, telling you
+which entries are still Pending and need a reason. The hint adapts
+to the verdict (Pending vs Failed vs all-clear).
 
 ---
 
 ## aaai snap
 
-現在の差分から監査定義テンプレートを生成します。
+Generate an audit definition template from the current diff. This
+is how you create your first `audit.yaml` — `aaai snap` looks at
+what's changed and produces a YAML scaffold with one entry per
+change, ready for you to fill in the `reason` field.
 
 ```sh
 aaai snap --left <BEFORE> --right <AFTER> --out <FILE> [OPTIONS]
 ```
 
-| フラグ | 説明 |
+| Flag | Description |
 |---|---|
-| `--merge` | 既存ファイルに新エントリをマージ |
-| `--template <ID>` | ルールテンプレートを適用 |
-| `--list-templates` | テンプレート一覧を表示して終了 |
-| `--ignore <FILE>` | .aaaiignore ファイルのパス |
-| `--approver <NAME>` | 生成エントリの approved_by を設定 |
-| `--suggest-glob` | グロブパターン化の提案を表示 |
-| `--dry-run` | ファイルを書かずにプレビュー |
+| `--merge` | Merge new entries into the existing file (don't overwrite) |
+| `--template <ID>` | Apply a rule template (see `--list-templates`) |
+| `--list-templates` | List the available templates and exit |
+| `--ignore <FILE>` | Path to a `.aaaiignore`-style exclusion file |
+| `--approver <NAME>` | Pre-set `approved_by` on generated entries |
+| `--suggest-glob` | Suggest glob patterns where multiple entries share a structure |
+| `--dry-run` | Print what would be written, don't touch the file |
 
-**例:**
+**Examples:**
 
 ```sh
-# 初回スナップショット
+# First snapshot — creates audit.yaml from scratch
 aaai snap --left ./before --right ./after --out audit.yaml
 
-# テンプレート適用（バージョン番号変更パターン）
+# Apply the "version bump" template to detected version-number changes
 aaai snap --left ./before --right ./after --out audit.yaml \
           --template version_bump
 
-# 承認者を自動設定
+# Set the approver and ask for glob suggestions
 aaai snap --left ./before --right ./after --out audit.yaml \
           --approver "alice" --suggest-glob
 ```
+
+Note that `aaai snap` **never auto-approves**. Every generated entry
+starts with an empty `reason`, so the next step is always to review
+each entry and fill in why the change is allowed.
 
 ---
 
 ## aaai check
 
-差分を実行せずに定義ファイルの妥当性を検証します。
+Validate that an audit definition file is well-formed, without
+running an actual audit.
 
 ```sh
 aaai check <FILE> [--all]
 ```
 
-| フラグ | 説明 |
+| Flag | Description |
 |---|---|
-| `--all` | 正常エントリも表示 |
+| `--all` | Also show entries that passed validation |
+
+By default `aaai check` prints only the problems. Useful as a
+pre-commit hook or a CI gate to catch malformed audit files before
+they cause a confusing audit failure downstream.
 
 ---
 
 ## aaai lint
 
-定義ファイルのベストプラクティスをチェックします。
+Apply best-practice checks to an audit definition file.
 
 ```sh
 aaai lint <FILE> [OPTIONS]
 ```
 
-| フラグ | 説明 |
+| Flag | Description |
 |---|---|
-| `--require-ticket` | 全エントリにチケットを必須化 |
-| `--require-approver` | 全エントリに承認者を必須化 |
-| `--min-reason-len <N>` | 理由の最小文字数（デフォルト: 10） |
-| `--json-output` | JSON 形式で出力 |
+| `--require-ticket` | Require every entry to have a `ticket` field |
+| `--require-approver` | Require every entry to have an `approved_by` field |
+| `--min-reason-len <N>` | Minimum length of the `reason` field (default: 10) |
+| `--json-output` | Emit findings as JSON |
 
-**検出項目:**
+**Findings:**
 
-| ID | 深刻度 | 内容 |
+| ID | Severity | Meaning |
 |---|---|---|
-| `duplicate-path` | error | 同一パスの重複定義 |
-| `empty-linematch` | error | LineMatch にルールなし |
-| `empty-line-rule` | error | LineMatch の行が空 |
-| `short-reason` | warning | 理由が短すぎる |
-| `missing-ticket` | warning | チケット未設定（`--require-ticket` 時） |
-| `missing-approver` | warning | 承認者未設定（`--require-approver` 時） |
-| `expired` | warning | 有効期限切れ |
-| `strategy-mismatch` | info | 追加/削除エントリに LineMatch |
-| `disabled` | info | 無効化エントリ |
+| `duplicate-path` | error | Two or more entries share the same `path` |
+| `empty-linematch` | error | A LineMatch strategy has no rules |
+| `empty-line-rule` | error | A LineMatch rule has an empty `line:` |
+| `short-reason` | warning | `reason` shorter than `--min-reason-len` |
+| `missing-ticket` | warning | `ticket` missing when `--require-ticket` is set |
+| `missing-approver` | warning | `approved_by` missing when `--require-approver` is set |
+| `expired` | warning | `expires_at` is in the past |
+| `strategy-mismatch` | info | LineMatch on an Added/Removed entry (LineMatch only makes sense for Modified) |
+| `disabled` | info | An entry has `disabled: true` |
 
----
+`aaai lint` exit codes mirror its findings: any `error` causes a
+non-zero exit; warnings and info-level findings do not. Combine with
+`--json-output` for structured CI consumption.

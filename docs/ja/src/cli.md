@@ -9,7 +9,10 @@ aaai <command> --help
 
 ---
 
-## 終了コード (`aaai audit`)
+## 終了コード
+
+これらは v1.x で安定 — [互換性方針](compatibility.md) を参照。
+いつでも `aaai exit-codes` で同じ表が確認できる。
 
 | コード | 意味 |
 |---|---|
@@ -56,4 +59,5 @@ aaai <command> --help
 | [`aaai init`](cli-setup.md#aaai-init) | 対話型プロジェクト初期設定ウィザード |
 | [`aaai config`](cli-setup.md#aaai-config) | `.aaai.yaml` プロジェクト設定の表示・生成 |
 | [`aaai version`](cli-setup.md#aaai-version) | バージョン・ビルド情報を表示 |
+| [`aaai exit-codes`](cli-setup.md#aaai-exit-codes) | 標準終了コード一覧を表示 |
 | [`aaai completions`](cli-setup.md#aaai-completions) | シェル補完スクリプトを生成 |

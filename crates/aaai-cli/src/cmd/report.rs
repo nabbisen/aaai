@@ -10,7 +10,14 @@ use aaai_core::{
     report::generator::ReportGenerator,
 };
 
+const REPORT_AFTER_HELP: &str = "\
+Next steps:
+  Review the generated report. Re-run `aaai audit` and regenerate the
+  report after any rule or reason changes.\
+";
+
 #[derive(Args)]
+#[command(after_help = REPORT_AFTER_HELP)]
 pub struct ReportArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,

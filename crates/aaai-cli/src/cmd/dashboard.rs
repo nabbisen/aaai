@@ -7,7 +7,14 @@ use colored::Colorize;
 use aaai_core::{AuditEngine, AuditStatus, DiffEngine, DiffType,
                 config::io as config_io};
 
+const DASHBOARD_AFTER_HELP: &str = "\
+Next steps:
+  - Use --detail to list every changed entry beneath the cards.
+  - Use `aaai audit --verbose` for the result-first text view.\
+";
+
 #[derive(Args)]
+#[command(after_help = DASHBOARD_AFTER_HELP)]
 pub struct DashboardArgs {
     #[arg(short = 'l', long, value_name = "PATH")]
     pub left: PathBuf,
@@ -121,6 +128,14 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
             let binary = if r.diff.is_binary { " [bin]" } else { "" };
             println!("    {icon} {}{stats}{binary}", r.diff.path);
         }
+    }
+
+    // ── Next-action hint (RFC 024 FR-1) ───────────────────────────────
+    // Shared with `audit` via `cmd::next_hint`. Dashboard has no --quiet
+    // / --json-output flags, so the hint is always emitted.
+    if let Some(hint) = crate::cmd::next_hint::next_action_hint(s) {
+        println!();
+        println!("  {}", hint.dimmed());
     }
 
     println!();

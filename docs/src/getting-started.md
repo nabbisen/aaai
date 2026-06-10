@@ -1,34 +1,35 @@
 # Getting Started
 
-## インストール
+## Installation
 
 ```sh
-# ソースからビルド（Rust 1.81+ が必要）
+# Build from source — needs Rust 1.91 or later
 cargo build --release -p aaai-cli -p aaai-gui
 
-# バイナリを PATH に追加（例）
+# Copy the binaries somewhere on your PATH
 cp target/release/aaai ~/.local/bin/
 cp target/release/aaai-gui ~/.local/bin/
 ```
 
 ---
 
-## 初回セットアップ（推奨: `aaai init`）
+## First-time setup (recommended: `aaai init`)
 
-新しいプロジェクトでは `aaai init` が最も簡単な出発点です。
+For a brand-new project, `aaai init` is the easiest starting point.
 
 ```sh
 cd /your/project
 aaai init
 ```
 
-対話的に以下を設定できます。
-- Before / After フォルダパス
-- 監査定義ファイルの場所
-- 承認者名
-- 初回スナップショットの生成
+The interactive wizard asks for:
 
-`--non-interactive` フラグで CI/スクリプトから使えます。
+- The Before / After folder paths
+- Where to put the audit definition
+- Your approver name
+- Whether to generate an initial snapshot
+
+For CI or scripts, use `--non-interactive`:
 
 ```sh
 aaai init --non-interactive --dir /path/to/project
@@ -36,63 +37,79 @@ aaai init --non-interactive --dir /path/to/project
 
 ---
 
-## 手動セットアップ（ステップバイステップ）
+## Manual setup (step by step)
 
-### 1. 差分テンプレートを生成する
+If you'd rather skip the wizard and drive the four core commands by
+hand, here's the canonical sequence.
+
+### 1. Generate a snapshot
 
 ```sh
 aaai snap --left ./before --right ./after --out audit.yaml
 ```
 
-生成された `audit.yaml` の各エントリに `reason` フィールドを記入します（空欄のままだと Pending 扱い）。
+This produces an `audit.yaml` with one entry per detected change.
+**Fill in the `reason` field on each entry** — entries with an empty
+reason will be flagged Pending in the next step.
 
-### 2. 監査を実行する
+### 2. Run the audit
 
 ```sh
 aaai audit --left ./before --right ./after --config audit.yaml
 ```
 
-- **PASSED** — 全エントリが期待通りに変更されている
-- **FAILED** — ルール不一致のエントリがある
-- **PENDING** — reason 未記入のエントリがある（`--allow-pending` で続行可）
+The verdict lands as one of:
 
-### 3. 問題を確認して修正する
+- **PASSED** — every entry is allowed and the rules match
+- **FAILED** — at least one entry's content doesn't match its rules
+- **PENDING** — at least one entry still has an empty `reason`
+  (use `--allow-pending` if you want Pending to count as success)
+
+After the run, `aaai audit` prints a short "Next steps:" hint
+pointing to whatever action is most useful given the verdict.
+
+### 3. Inspect and fix problems
 
 ```sh
-# 差分の詳細を確認
+# Look at the raw diff in detail
 aaai diff --left ./before --right ./after --content
 
-# ベストプラクティスチェック
+# Best-practice lint checks on the definition
 aaai lint audit.yaml
 ```
 
-### 4. レポートを出力する
+### 4. Generate a report
 
 ```sh
-# Markdown レポート
+# Markdown report
 aaai report --left ./before --right ./after --config audit.yaml --out report.md
 
-# HTML レポート（ブラウザで開ける）
+# HTML report (browser-friendly)
 aaai report --left ./before --right ./after --config audit.yaml \
             --format html --out report.html
 ```
 
+For CI/CD pipelines, SARIF output integrates directly with GitHub
+Pull Request reviews — see [CI/CD Integration](ci-integration.md).
+
 ---
 
-## GUI を使う
+## Using the GUI
 
 ```sh
 aaai-gui
 ```
 
-Opening 画面で Before / After / 定義ファイルを指定して「監査を開始」をクリックします。
-詳しくは [GUI ガイド](gui.md) を参照してください。
+On the Opening screen, drag folders onto the cards (or use the
+pickers), then click **Start audit**. The
+[GUI Guide](gui.md) walks through the 3-pane workspace.
 
 ---
 
-## .aaai.yaml でデフォルト設定
+## Setting defaults with `.aaai.yaml`
 
-プロジェクトルートに `.aaai.yaml` を置くと、よく使うパスと設定を省略できます。
+Drop a `.aaai.yaml` at the project root to skip the most-repeated
+flags:
 
 ```yaml
 version: "1"
@@ -102,28 +119,34 @@ approver_name: "your-name"
 mask_secrets: true
 ```
 
+To scaffold one:
+
 ```sh
-# 初期テンプレート生成
 aaai config --init
 ```
 
 ---
 
-## シェル補完のインストール
+## Shell completions
 
 ```sh
-# Zsh の例
+# Zsh
 aaai completions zsh > ~/.zfunc/_aaai
 echo 'fpath=(~/.zfunc $fpath)' >> ~/.zshrc
 source ~/.zshrc
 ```
 
+Bash, Fish, and PowerShell are also supported — see
+[Setup & Tooling Commands](cli-setup.md).
+
 ---
 
-## 次のステップ
+## What to read next
 
-- [CLI リファレンス](cli.md) — 全コマンドの詳細
-- [監査定義ファイル](audit-definition.md) — YAML フォーマット
-- [内容監査戦略](strategies.md) — None / Checksum / LineMatch / Regex / Exact
-- [CI/CD 統合](ci-integration.md) — GitHub Actions での使い方
-- [GUI ガイド](gui.md) — 3 ペイン画面の操作方法
+- [CLI Reference](cli.md) — every subcommand explained
+- [Audit Definition File](audit-definition.md) — the YAML schema
+- [Content Audit Strategies](strategies.md) — None / Checksum /
+  LineMatch / Regex / Exact
+- [CI/CD Integration](ci-integration.md) — GitHub Actions workflow
+- [GUI Guide](gui.md) — the desktop 3-pane workspace
+- [Compatibility Policy](compatibility.md) — what's stable in v1.x

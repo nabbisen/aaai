@@ -4,9 +4,11 @@
 //! locale and falls back to English.
 
 mod app;
+mod error;
 mod i18n;
 mod style;
 mod theme;
+mod util;
 mod views;
 use rust_i18n::t;
 use aaai_core::profile::prefs::Theme as AppTheme;

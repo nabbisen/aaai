@@ -166,3 +166,77 @@ The release is ready when:
 - [ ] No `cargo check --all-targets` warnings
 - [ ] `cargo test -p aaai-core --lib` — 92 passing
 - [ ] `cargo test -p aaai-cli -- --test-threads=1` — 54 passing
+
+---
+
+## 10. Visual Verification (RFC 017)
+
+The acceptance criteria above tell you **what** to test. RFC 017
+(`rfcs/proposed/017-visual-verification-harness.md`) tells you **how to
+record that you actually did**.
+
+When you finish the tester run for a given release, also produce a
+**Visual Verification card** for each RFC whose UI/CLI surface you touched
+during that release. The card is appended to the end of the relevant
+`rfcs/done/<NNN>-<slug>.md` file. A copy-paste template lives at
+`docs/templates/visual-verification-template.md`.
+
+To see which RFCs are still missing a card, run from the repository root:
+
+```sh
+scripts/list-unverified-rfcs.sh
+```
+
+This script is run informationally on every CI build; failures of the
+overall acceptance criteria above are not the same as missing verification
+cards, but both should reach zero before tagging a release.
+
+## 11. i18n Key Audit (RFC 018 §3.4)
+
+Static counterpart to the visual verification above. Catches the failure
+mode that RFC 016 traced (literal keys rendered in the GUI) before the
+GUI is ever launched, by cross-checking every `t!()` call site against
+the entries in `locales/en.yaml` and `locales/ja.yaml`.
+
+```sh
+scripts/check-i18n-keys.py            # full report
+scripts/check-i18n-keys.py --quiet    # summary line only
+scripts/check-i18n-keys.py --strict   # also fail on UNUSED entries
+```
+
+Exit code is 1 if any key is MISSING (referenced but absent from a
+locale) or DIVERGENT (present in one locale but not the other). This
+check runs as a blocking step in CI, unlike the visual-verification
+reporter which is informational.
+
+UNUSED entries (in a YAML but never called) are listed but do not fail
+the build unless `--strict` is given — they are typically left-over from
+removed UI features and should be cleaned up by the RFC that removed
+the feature, not by an automated sweep.
+
+## 12. ABDD verification (manual)
+
+Accessible-by-Default Design checks per the design document p.8. The
+checklist itself lives at `docs/src/abdd-audit.md` — a fresh sheet is
+filled in once per release. The cases below describe the steps the
+operator performs to fill that sheet.
+
+| # | Step | Expected |
+|---|---|---|
+| 12-1 | Display in greyscale and run through Opening → audit → Inspector | Status icons `✓ ⚠ ✗ ! —` remain distinguishable from each other |
+| 12-2 | From Opening, press Tab six times | Focus visits Before card → After card → optional toggle → optional fields → Start |
+| 12-3 | From the main screen, press Tab through the toolbar | Open → Save → Run → Report, no skipped items |
+| 12-4 | Click "Start audit" with an invalid Before path | Banner above the Start button shows a message line and a hint line (no silent failure) |
+| 12-5 | Enter an invalid regex in the Inspector | Below the field: message line ("Invalid regex") + hint line explaining the next step |
+| 12-6 | Hover toolbar / Start / Approve buttons | Click target is at least 44 px on the smaller dimension |
+| 12-7 | Look at Approve & Save versus any destructive (delete-rule) button | They are not adjacent and have distinct visual weight |
+
+The operator transcribes the observations into the corresponding rows of
+`docs/src/abdd-audit.md`, then marks the sheet as verified.
+
+### Out of scope for v1.0
+
+Screen-reader interoperability (NVDA / JAWS / VoiceOver / Orca) is not
+verified for v1.0. iced 0.14 does not expose accessibility APIs to the
+host platform. The ABDD sheet records this as a declared limitation in
+its §7. A follow-up RFC will revisit when iced ships native a11y hooks.
