@@ -276,7 +276,7 @@ RFC 031 の draft で「これが最後の hardcoded string」を 3 回間違え
 
 ---
 
-## Phase 14 (v0.22.0 想定) — Post-v0.21.0 backlog
+## Phase 14 — GUI i18n endgame ✅ (v0.22.0)
 
 Phase 13 で deferred になった項目および v0.21.0 リリース時点で残る課題を整理:
 

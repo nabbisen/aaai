@@ -13,8 +13,7 @@ use aaai_core::{
 };
 use crate::app::{App, InspectorState, Message};
 use crate::theme;
-
-const STRATEGIES: &[&str] = &["None", "Checksum", "LineMatch", "Regex", "Exact"];
+use crate::util::{LocalizedOption, StrategyKind};
 
 pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> {
     let ins = &app.inspector;
@@ -104,10 +103,24 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     let strategy_label = semibold_text(t!("inspector.strategy_label").to_string(), 13.0);
     let strategy_desc = text(ins.strategy.description().to_string()).size(11)
         .color(Color::from_rgb(0.45, 0.45, 0.45));
+    // RFC 035 — LocalizedOption<StrategyKind> pattern
+    let strategy_options: Vec<LocalizedOption<StrategyKind>> = [
+        StrategyKind::None,
+        StrategyKind::Checksum,
+        StrategyKind::LineMatch,
+        StrategyKind::Regex,
+        StrategyKind::Exact,
+    ]
+    .into_iter()
+    .map(|k| LocalizedOption { value: k, label: k.label() })
+    .collect();
+    let strategy_selected = strategy_options.iter()
+        .find(|o| o.value == ins.strategy_kind)
+        .cloned();
     let strategy_pick = pick_list(
-        STRATEGIES,
-        Some(ins.strategy_label.as_str()),
-        |s: &str| Message::StrategySelected(s.to_string()),
+        strategy_options,
+        strategy_selected,
+        |o: LocalizedOption<StrategyKind>| Message::StrategySelected(o.value),
     ).padding(6);
 
     // Template picker
@@ -291,10 +304,26 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
 
                 if is_editing {
                     // ── Edit form (expanded on click) ───────────────
+                    // RFC 033 — pick_list display/value separation: localized
+                    // labels paired with `LineAction` enum values.
+                    let action_options: Vec<crate::util::LocalizedOption<LineAction>> = vec![
+                        crate::util::LocalizedOption {
+                            value: LineAction::Added,
+                            label: t!("inspector.action_added").to_string(),
+                        },
+                        crate::util::LocalizedOption {
+                            value: LineAction::Removed,
+                            label: t!("inspector.action_removed").to_string(),
+                        },
+                    ];
+                    let action_selected = action_options.iter()
+                        .find(|o| o.value == rule.action)
+                        .cloned();
                     let action_pick = pick_list(
-                        &["Added", "Removed"][..],
-                        Some(if rule.action == LineAction::Added { "Added" } else { "Removed" }),
-                        move |s: &str| Message::LineRuleActionChanged(i, s.to_string()),
+                        action_options,
+                        action_selected,
+                        move |o: crate::util::LocalizedOption<LineAction>|
+                            Message::LineRuleActionChanged(i, o.value),
                     ).padding(4);
                     let line_input = text_input(&t!("inspector.linematch_line_placeholder").to_string(), &rule.line)
                         .on_input(move |s| Message::LineRuleLineChanged(i, s))
@@ -369,19 +398,33 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             col.into()
         }
         AuditStrategy::Regex { pattern, target } => {
-            let target_opts: &[&str] = &["Added lines", "Removed lines", "All changed lines"];
-            let target_sel = match target {
-                RegexTarget::AddedLines     => "Added lines",
-                RegexTarget::RemovedLines   => "Removed lines",
-                RegexTarget::AllChangedLines => "All changed lines",
-            };
+            // RFC 033 — pick_list display/value separation: localized labels
+            // paired with `RegexTarget` enum values.
+            let target_options: Vec<crate::util::LocalizedOption<RegexTarget>> = vec![
+                crate::util::LocalizedOption {
+                    value: RegexTarget::AddedLines,
+                    label: t!("inspector.target_added_lines").to_string(),
+                },
+                crate::util::LocalizedOption {
+                    value: RegexTarget::RemovedLines,
+                    label: t!("inspector.target_removed_lines").to_string(),
+                },
+                crate::util::LocalizedOption {
+                    value: RegexTarget::AllChangedLines,
+                    label: t!("inspector.target_all_changed_lines").to_string(),
+                },
+            ];
+            let target_selected = target_options.iter()
+                .find(|o| &o.value == target)
+                .cloned();
             column![
                 text(t!("inspector.regex_pattern_label").to_string()).size(12),
                 text_input(&t!("inspector.regex_pattern_placeholder").to_string(), pattern)
                     .on_input(Message::RegexPatternChanged).padding(6).font(iced::Font::MONOSPACE),
                 text(t!("inspector.regex_target_label").to_string()).size(12),
-                pick_list(target_opts, Some(target_sel),
-                    |s: &str| Message::RegexTargetChanged(s.to_string())).padding(4),
+                pick_list(target_options, target_selected,
+                    |o: crate::util::LocalizedOption<RegexTarget>|
+                        Message::RegexTargetChanged(o.value)).padding(4),
             ].spacing(4).into()
         }
         AuditStrategy::Exact { expected_content } => {

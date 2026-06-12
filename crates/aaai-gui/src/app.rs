@@ -30,6 +30,7 @@ use aaai_core::{
 };
 
 use crate::views::{opening, main_view};
+use crate::util::StrategyKind;
 use rust_i18n::t;
 
 // ── Pane identifiers ──────────────────────────────────────────────────────
@@ -155,7 +156,7 @@ pub struct InspectorState {
     /// RFC 009: multi-line text editor content backing the reason field.
     /// `reason` is kept in sync via `ReasonAction` handler.
     pub reason_content: iced::widget::text_editor::Content,
-    pub strategy_label: String,
+    pub strategy_kind: StrategyKind,
     pub strategy: AuditStrategy,
     pub note: String,
     pub validation: InspectorValidation,   // RFC 002: replaces validation_error
@@ -171,7 +172,7 @@ impl Default for InspectorState {
             reason: String::new(),
             editing_rule: None,
             reason_content: iced::widget::text_editor::Content::new(),
-            strategy_label: "None".into(),
+            strategy_kind: StrategyKind::None,
             strategy: AuditStrategy::None,
             note: String::new(),
             validation: InspectorValidation::default(),
@@ -342,14 +343,19 @@ pub enum Message {
     ReasonChanged(String),
     ReasonAction(iced::widget::text_editor::Action),  // RFC 009
     NoteChanged(String),
-    StrategySelected(String),
+    /// RFC 035 — payload changed from `String` to `StrategyKind`
+    /// to support pick_list display/value separation.
+    StrategySelected(StrategyKind),
     ChecksumChanged(String),
     RegexPatternChanged(String),
-    RegexTargetChanged(String),
+    /// RFC 033 — payload changed from `String` to `RegexTarget` to
+    /// support pick_list display/value separation.
+    RegexTargetChanged(RegexTarget),
     AddLineRule,
     EditRule(usize),   // RFC 012: toggle rule edit mode
     RemoveLineRule(usize),
-    LineRuleActionChanged(usize, String),
+    /// RFC 033 — payload changed from `String` to `LineAction`.
+    LineRuleActionChanged(usize, LineAction),
     LineRuleLineChanged(usize, String),
     ExactContentChanged(String),
 
@@ -365,7 +371,8 @@ pub enum Message {
     // Batch
     ToggleBatchSelect(usize),
     BatchReasonChanged(String),
-    BatchStrategySelected(String),
+    /// RFC 035 — payload changed from `String` to `StrategyKind`.
+    BatchStrategySelected(StrategyKind),
     OpenBatchSheet,
     CloseBatchSheet,
     CommitBatchApprove,
@@ -561,7 +568,7 @@ impl App {
                             reason: entry.reason.clone(),
                             editing_rule: None,
                             reason_content: iced::widget::text_editor::Content::with_text(&entry.reason),
-                            strategy_label: entry.strategy.label().into(),
+                            strategy_kind: StrategyKind::from_strategy(&entry.strategy),
                             strategy: entry.strategy.clone(),
                             note: entry.note.clone().unwrap_or_default(),
                             validation: InspectorValidation::default(),
@@ -598,9 +605,11 @@ impl App {
             }
             Message::NoteChanged(s) => { self.inspector.note = s; }
 
-            Message::StrategySelected(label) => {
-                self.inspector.strategy_label = label.clone();
-                self.inspector.strategy = strategy_from_label(&label);
+            Message::StrategySelected(kind) => {
+                // RFC 035 — payload is already `StrategyKind`; construct the
+                // default `AuditStrategy` for that variant.
+                self.inspector.strategy_kind = kind;
+                self.inspector.strategy = kind.to_default_strategy();
                 self.validate_inspector();
             }
             Message::ChecksumChanged(s) => {
@@ -615,9 +624,10 @@ impl App {
                 }
                 self.validate_inspector();
             }
-            Message::RegexTargetChanged(s) => {
+            Message::RegexTargetChanged(new_target) => {
+                // RFC 033 — payload is already `RegexTarget`; no string parsing needed.
                 if let AuditStrategy::Regex { target, .. } = &mut self.inspector.strategy {
-                    *target = regex_target_from_str(&s);
+                    *target = new_target;
                 }
             }
             Message::AddLineRule => {
@@ -640,10 +650,12 @@ impl App {
                 }
                 self.validate_inspector();
             }
-            Message::LineRuleActionChanged(i, s) => {
+            Message::LineRuleActionChanged(i, new_action) => {
+                // RFC 033 — payload is already `LineAction`; no string parsing
+                // and no silent-drop on unknown variant.
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
                     if let Some(r) = rules.get_mut(i) {
-                        r.action = if s == "Removed" { LineAction::Removed } else { LineAction::Added };
+                        r.action = new_action;
                     }
                 }
             }
@@ -745,8 +757,9 @@ impl App {
             Message::BatchReasonChanged(s) => {
                 self.batch.shared_reason = s;
             }
-            Message::BatchStrategySelected(label) => {
-                self.batch.shared_strategy = strategy_from_label(&label);
+            Message::BatchStrategySelected(kind) => {
+                // RFC 035 — payload is already `StrategyKind`.
+                self.batch.shared_strategy = kind.to_default_strategy();
             }
             Message::OpenBatchSheet => {
                 self.batch_sheet_open = true;
@@ -816,7 +829,7 @@ impl App {
                     self.push_toast(
                         ToastIntent::Error,
                         t!("toast.save_failed").as_ref(),
-                        "No definition file path set.",
+                        t!("toast.no_definition_path").as_ref(),
                     );
                     return Task::none();
                 }
@@ -830,7 +843,7 @@ impl App {
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.saved").as_ref(),
-                                &format!("Saved to {}", path.display()),
+                                t!("toast.saved_to_path", path = path.display().to_string()).as_ref(),
                             );
                         }
                         Err(e) => {
@@ -877,7 +890,7 @@ impl App {
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.export_ok").as_ref(),
-                                &format!("Saved to {}", out.display()),
+                                t!("toast.saved_to_path", path = out.display().to_string()).as_ref(),
                             );
                         }
                         Err(e) => self.push_toast(
@@ -949,13 +962,17 @@ impl App {
                             self.rerun_audit();
                             self.push_toast(
                                 ToastIntent::Info,
-                                "Undo",
-                                &format!("Removed approval for: {path}"),
+                                t!("toast.undo").as_ref(),
+                                t!("toast.removed_approval", path = path.clone()).as_ref(),
                             );
                         }
                     }
                 } else {
-                    self.push_toast(ToastIntent::Info, "Undo", "Nothing to undo.");
+                    self.push_toast(
+                        ToastIntent::Info,
+                        t!("toast.undo").as_ref(),
+                        t!("toast.nothing_to_undo").as_ref(),
+                    );
                 }
             }
             Message::SelectNext => {
@@ -1024,10 +1041,11 @@ impl App {
 
             // ── RFC 015: Opening picker handlers ─────────────────────
             Message::PickBeforeFolder => {
+                let title = t!("dialog.pick_before").to_string();
                 return Task::perform(
-                    async {
+                    async move {
                         rfd::AsyncFileDialog::new()
-                            .set_title("Pick the Before folder")
+                            .set_title(title)
                             .pick_folder()
                             .await
                             .map(|h| h.path().to_path_buf())
@@ -1036,10 +1054,11 @@ impl App {
                 );
             }
             Message::PickAfterFolder => {
+                let title = t!("dialog.pick_after").to_string();
                 return Task::perform(
-                    async {
+                    async move {
                         rfd::AsyncFileDialog::new()
-                            .set_title("Pick the After folder")
+                            .set_title(title)
                             .pick_folder()
                             .await
                             .map(|h| h.path().to_path_buf())
@@ -1048,10 +1067,11 @@ impl App {
                 );
             }
             Message::PickDefinitionFile => {
+                let title = t!("dialog.pick_audit_yaml").to_string();
                 return Task::perform(
-                    async {
+                    async move {
                         rfd::AsyncFileDialog::new()
-                            .set_title("Pick audit.yaml")
+                            .set_title(title)
                             .add_filter("YAML", &["yaml", "yml"])
                             .pick_file()
                             .await
@@ -1061,10 +1081,11 @@ impl App {
                 );
             }
             Message::PickIgnoreFile => {
+                let title = t!("dialog.pick_aaaiignore").to_string();
                 return Task::perform(
-                    async {
+                    async move {
                         rfd::AsyncFileDialog::new()
-                            .set_title("Pick .aaaiignore")
+                            .set_title(title)
                             .pick_file()
                             .await
                             .map(|h| h.path().to_path_buf())
@@ -1194,7 +1215,7 @@ impl App {
                 use aaai_core::templates::library as tmpl;
                 if let Some(t) = tmpl::find(&id) {
                     self.inspector.strategy = (t.strategy)();
-                    self.inspector.strategy_label = self.inspector.strategy.label().into();
+                    self.inspector.strategy_kind = StrategyKind::from_strategy(&self.inspector.strategy);
                     self.validate_inspector();
                 }
             }
@@ -1205,7 +1226,11 @@ impl App {
             Message::SaveProfile => {
                 let name = self.profile_name_input.trim().to_string();
                 if name.is_empty() {
-                    self.push_toast(ToastIntent::Error, "Profile", "Profile name must not be empty.");
+                    self.push_toast(
+                        ToastIntent::Error,
+                        t!("toast.profile").as_ref(),
+                        t!("toast.profile_name_empty").as_ref(),
+                    );
                     return Task::none();
                 }
                 let profile = AuditProfile {
@@ -1247,7 +1272,11 @@ impl App {
                     // I/O error: failing to persist the timestamp must not
                     // block the user from continuing into the audit.
                     let _ = self.profiles.touch(&p.name);
-                    self.push_toast(ToastIntent::Info, "Profile", "Profile loaded.");
+                    self.push_toast(
+                        ToastIntent::Info,
+                        t!("toast.profile").as_ref(),
+                        t!("toast.profile_loaded").as_ref(),
+                    );
                 }
             }
             Message::DeleteProfile(idx) => {
@@ -1627,24 +1656,6 @@ impl App {
 }
 
 // ── pure functions ────────────────────────────────────────────────────────
-
-pub fn strategy_from_label(label: &str) -> AuditStrategy {
-    match label {
-        "Checksum"  => AuditStrategy::Checksum { expected_sha256: String::new() },
-        "LineMatch" => AuditStrategy::LineMatch { rules: Vec::new() },
-        "Regex"     => AuditStrategy::Regex { pattern: String::new(), target: RegexTarget::AddedLines },
-        "Exact"     => AuditStrategy::Exact { expected_content: String::new() },
-        _           => AuditStrategy::None,
-    }
-}
-
-pub fn regex_target_from_str(s: &str) -> RegexTarget {
-    match s {
-        "Removed lines"     => RegexTarget::RemovedLines,
-        "All changed lines" => RegexTarget::AllChangedLines,
-        _                   => RegexTarget::AddedLines,
-    }
-}
 
 /// RFC 023 §3.1 — subscription source for drag-and-drop window events.
 /// We listen for the three iced window events that bracket a drag:

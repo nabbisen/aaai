@@ -195,7 +195,7 @@ fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 
     if let Some(label) = diff.size_change_label() {
         parts.push(
-            text(format!("  Size: {label}")).size(11)
+            text(t!("diff.size_inline", value = label).to_string()).size(11)
                 .color(Color::from_rgb(0.50, 0.50, 0.55))
                 .into()
         );

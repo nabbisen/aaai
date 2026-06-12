@@ -31,6 +31,7 @@ diff:
   after_sha256_label: 'After SHA-256:'
   hashes_match: ✓ ハッシュ値が一致
   hashes_differ: ✗ ハッシュ値が不一致
+  size_inline: '  サイズ: %{value}'
 expiry:
   expired_badge: 期限切れ
   soon_badge: まもなく期限切れ
@@ -65,6 +66,16 @@ inspector:
   linematch_line_placeholder: 行の内容
   regex_pattern_placeholder: 正規表現
   exact_content_placeholder: 完全一致する内容…
+  action_added: 追加
+  action_removed: 削除
+  target_added_lines: 追加された行
+  target_removed_lines: 削除された行
+  target_all_changed_lines: 変更されたすべての行
+  strategy_none: なし
+  strategy_checksum: チェックサム
+  strategy_linematch: 行マッチ
+  strategy_regex: 正規表現
+  strategy_exact: 完全一致
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト
@@ -105,6 +116,14 @@ toast:
   rerun: 再実行
   save_failed: 保存失敗
   saved: 保存しました
+  no_definition_path: 監査定義ファイルのパスが設定されていません。
+  saved_to_path: '%{path} に保存しました'
+  undo: 取り消し
+  nothing_to_undo: 取り消す操作がありません。
+  removed_approval: '%{path} の承認を取り消しました'
+  profile: プロファイル
+  profile_name_empty: プロファイル名を入力してください。
+  profile_loaded: プロファイルを読み込みました。
 toolbar:
   audit_status: 監査ステータス
   report_output: レポート出力
@@ -198,3 +217,8 @@ dashboard:
   needs_attention: 要対応
 main:
   search_placeholder: パスを検索… (/ でフォーカス)
+dialog:
+  pick_before: Before フォルダを選択
+  pick_after: After フォルダを選択
+  pick_audit_yaml: audit.yaml を選択
+  pick_aaaiignore: .aaaiignore を選択

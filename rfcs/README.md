@@ -51,6 +51,9 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [030](done/030-field-error-hint-authoring.md) | FieldError hint authoring (selective) | v0.21.0 |
 | [031](done/031-app-rs-i18n-sweep.md) | User-facing string i18n migration sweep in app.rs | v0.21.0 |
 | [032](done/032-views-i18n-sweep.md) | views/*.rs user-facing string i18n migration | v0.21.0 |
+| [033](done/033-picklist-display-value-separation.md) | pick_list display/value separation | v0.22.0 |
+| [034](done/034-toast-dialog-format-i18n-sweep.md) | Toast / dialog / format-string i18n sweep | v0.22.0 |
+| [035](done/035-strategy-label-display-value-separation.md) | Strategy label display/value separation | v0.22.0 |
 
 > **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
 > RFC 017 のハーネスでエビデンスを取得し、判明した差分は個別 fix RFC を別途切る。
@@ -66,6 +69,11 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 > - RFC 030 (FieldError hint authoring, 選択的) landed — RFC 028/029 の延長として、ヒントが本当に役立つ 2 サイト（Checksum hex format、LineMatch 空ルール）に actionable hint を追加。残りの 2 サイトは「メッセージ自体が action を示している」ためヒント未追加（noise になる）。`+ Add rule` / `+ ルール追加` のような UI ラベルとの引用整合に注意して文言を作成
 > - RFC 031 (app.rs i18n sweep) landed — `app.rs` に残っていた **8 件**の user-facing 英語ハードコード文字列（progress / batch validation / inspector validation / opening inline validation）を全て i18n 化。これにより `app.rs` 内に user-facing ハードコード文字列は **0 件**になった。aaai-core の `is_approvable()` 由来のエラー文言は major version bump が必要なため明示的に deferred
 > - RFC 032 (views/*.rs i18n sweep) landed — `views/{batch,dashboard,diff_view,inspector,main_view,opening}.rs` の **20 件**の user-facing 英語ハードコード文字列を i18n 化（diff_view バイナリラベル 4種・SHA-256 ラベル 3種・ハッシュ一致状態 2種、その他 11 件）。display と Message protocol value を兼ねる pick_list 文字列 5 件は out-of-scope として明示し、別 RFC で Message protocol refactor として扱う
+
+> **Phase 14 進捗** (v0.22.0 想定):
+> - RFC 033 (pick_list display/value separation) landed — RFC 032 で deferred とした 5 件の pick_list 文字列 (`Added`/`Removed` × LineMatch action picker, `Added lines`/`Removed lines`/`All changed lines` × RegexTarget picker) を i18n 化。`Message::LineRuleActionChanged(String)` / `Message::RegexTargetChanged(String)` を `LineAction` / `RegexTarget` enum payload に変更し、`LocalizedOption<T>` adapter を `util.rs` に追加。これにより `aaai-gui` の user-facing 文字列はすべて `t!()` 経由となり、英語のまま残るのは aaai-core 由来 (Display impls / `Result<(), String>` errors) のみ
+> - RFC 034 (toast/dialog/format-string i18n sweep) landed — RFCs 031-033 では検出できなかったパターン（`push_toast()` への直接 `&str` 引数、`format!()` 内部の英語、`rfd::AsyncFileDialog::set_title()` 引数）に対して `format!` / `push_toast` / `.set_title` の 3 種類の grep で網羅 sweep。16 call site / 13 new keys を i18n 化（toast bodies, native dialog titles, diff size_inline format string）。RFC 031 の教訓「draft 前に網羅 grep を流す」を適用し、scope creep ゼロで 1 回の implementation pass で完了
+> - RFC 035 (strategy label display/value separation) landed — RFC 034 で out-of-scope とした最後の i18n gap (`STRATEGIES: &["None", "Checksum", "LineMatch", "Regex", "Exact"]` 5 件) を `StrategyKind` discriminator enum + `LocalizedOption<StrategyKind>` パターンで i18n 化。`AuditStrategy` が struct-shaped enum (associated data 持ち) のため、`LineAction`/`RegexTarget` (RFC 033) と違い直接使えないので、discriminator enum を `aaai-gui/src/util.rs` に追加（aaai-core API は touch しない）。`Message::StrategySelected(String)` → `StrategySelected(StrategyKind)`、`InspectorState.strategy_label: String` → `strategy_kind: StrategyKind`、`strategy_from_label()` 関数および 2 個の `STRATEGIES` 定数を削除。**これで GUI i18n loop は完全閉じる** — 残る英語文字列は aaai-core 由来および documented out-of-scope のみ
 
 ---
 

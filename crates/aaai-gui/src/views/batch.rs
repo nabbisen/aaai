@@ -13,9 +13,8 @@ use iced::{
 use aaai_core::AuditStatus;
 use crate::app::{App, Message};
 use crate::theme;
+use crate::util::{LocalizedOption, StrategyKind};
 use rust_i18n::t;
-
-const STRATEGIES: &[&str] = &["None", "Checksum", "LineMatch", "Regex", "Exact"];
 
 pub fn view<'a>(app: &'a App) -> Element<'a, Message> {
     let count = app.batch.selected.len();
@@ -71,12 +70,25 @@ pub fn view<'a>(app: &'a App) -> Element<'a, Message> {
     .on_input(Message::BatchReasonChanged)
     .padding(8);
 
-    // Strategy picker
-    let strategy_current = app.batch.shared_strategy.label();
+    // Strategy picker — RFC 035: LocalizedOption<StrategyKind> pattern
+    let strategy_options: Vec<LocalizedOption<StrategyKind>> = [
+        StrategyKind::None,
+        StrategyKind::Checksum,
+        StrategyKind::LineMatch,
+        StrategyKind::Regex,
+        StrategyKind::Exact,
+    ]
+    .into_iter()
+    .map(|k| LocalizedOption { value: k, label: k.label() })
+    .collect();
+    let strategy_current_kind = StrategyKind::from_strategy(&app.batch.shared_strategy);
+    let strategy_selected = strategy_options.iter()
+        .find(|o| o.value == strategy_current_kind)
+        .cloned();
     let strategy_pick = pick_list(
-        STRATEGIES,
-        Some(strategy_current),
-        |s: &str| Message::BatchStrategySelected(s.to_string()),
+        strategy_options,
+        strategy_selected,
+        |o: LocalizedOption<StrategyKind>| Message::BatchStrategySelected(o.value),
     )
     .padding(6);
 

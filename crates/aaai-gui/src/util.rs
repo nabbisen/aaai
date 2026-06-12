@@ -45,6 +45,104 @@ pub fn humanize_since_at(t: DateTime<Utc>, now: DateTime<Utc>) -> String {
     t.format("%Y-%m-%d").to_string()
 }
 
+// ── LocalizedOption (RFC 033) ─────────────────────────────────────────────
+
+/// Pairs a Rust enum variant with its localized display label for use as a
+/// `pick_list` option. The variant is the canonical identity; the label is
+/// the human-readable form rendered for the current locale.
+///
+/// The `PartialEq` implementation compares **by `value` only**, not by
+/// label. This is the key trick that makes pick_list selection work
+/// across locales: the picker uses equality to identify "the currently
+/// selected option," and selecting by enum value rather than label
+/// means changing the locale (or the label text) doesn't break selection
+/// identity.
+///
+/// Use this in two places per picker:
+/// 1. Build a `Vec<LocalizedOption<T>>` of options with localized labels
+/// 2. Send the `LocalizedOption<T>` to `pick_list`; in the callback,
+///    extract `o.value` and dispatch to a Message variant carrying `T`.
+#[derive(Debug, Clone)]
+pub struct LocalizedOption<T: Clone + PartialEq> {
+    pub value: T,
+    pub label: String,
+}
+
+impl<T: Clone + PartialEq> std::fmt::Display for LocalizedOption<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.label)
+    }
+}
+
+impl<T: Clone + PartialEq> PartialEq for LocalizedOption<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl<T: Clone + PartialEq> Eq for LocalizedOption<T> {}
+
+// ── StrategyKind (RFC 035) ────────────────────────────────────────────────
+
+use aaai_core::config::definition::{AuditStrategy, RegexTarget};
+
+/// Discriminator for `AuditStrategy` variants without their associated data.
+/// Used as the value type for the strategy picker via
+/// `LocalizedOption<StrategyKind>`.
+///
+/// This is a GUI-layer concern (display + Message protocol identity).
+/// `aaai-core` continues to expose only `AuditStrategy`; this discriminator
+/// stays inside the GUI's display layer.
+///
+/// The variants mirror `AuditStrategy`'s variants one-for-one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrategyKind {
+    None,
+    Checksum,
+    LineMatch,
+    Regex,
+    Exact,
+}
+
+impl StrategyKind {
+    /// Construct a zero-value `AuditStrategy` for this kind.
+    /// Used when the picker selects a new kind — the inspector
+    /// state's strategy is replaced with a fresh default of
+    /// that variant (e.g. an empty `expected_sha256`, no rules).
+    pub fn to_default_strategy(self) -> AuditStrategy {
+        match self {
+            StrategyKind::None      => AuditStrategy::None,
+            StrategyKind::Checksum  => AuditStrategy::Checksum { expected_sha256: String::new() },
+            StrategyKind::LineMatch => AuditStrategy::LineMatch { rules: Vec::new() },
+            StrategyKind::Regex     => AuditStrategy::Regex { pattern: String::new(), target: RegexTarget::AddedLines },
+            StrategyKind::Exact     => AuditStrategy::Exact { expected_content: String::new() },
+        }
+    }
+
+    /// Read the kind from an existing strategy.
+    pub fn from_strategy(s: &AuditStrategy) -> StrategyKind {
+        match s {
+            AuditStrategy::None          => StrategyKind::None,
+            AuditStrategy::Checksum {..} => StrategyKind::Checksum,
+            AuditStrategy::LineMatch{..} => StrategyKind::LineMatch,
+            AuditStrategy::Regex {..}    => StrategyKind::Regex,
+            AuditStrategy::Exact {..}    => StrategyKind::Exact,
+        }
+    }
+
+    /// Localised label for the picker.
+    /// Resolves through `inspector.strategy_{none,checksum,linematch,regex,exact}`.
+    pub fn label(self) -> String {
+        match self {
+            StrategyKind::None      => t!("inspector.strategy_none"),
+            StrategyKind::Checksum  => t!("inspector.strategy_checksum"),
+            StrategyKind::LineMatch => t!("inspector.strategy_linematch"),
+            StrategyKind::Regex     => t!("inspector.strategy_regex"),
+            StrategyKind::Exact     => t!("inspector.strategy_exact"),
+        }.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,5 +220,56 @@ mod tests {
         let out = humanize_since_at(later, now);
         // Just confirm we get some string back rather than panic.
         assert!(!out.is_empty());
+    }
+
+    // ── LocalizedOption (RFC 033) ────────────────────────────────────
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum TestAction { A, B }
+
+    /// RFC 033 — verify equality compares by `value` alone, not by
+    /// `label`. This is the property that makes pick_list selection
+    /// work correctly when the locale changes: the picker's
+    /// "currently selected" identity is preserved across translations.
+    #[test]
+    fn localized_option_equality_ignores_label() {
+        let a = LocalizedOption { value: TestAction::A, label: "Added".into() };
+        let b = LocalizedOption { value: TestAction::A, label: "追加".into() };
+        assert_eq!(a, b);  // same value, different label
+    }
+
+    /// RFC 033 — verify inequality when values differ even if labels
+    /// happen to match. This is unlikely in practice (labels are
+    /// usually distinct) but the contract is: value determines identity.
+    #[test]
+    fn localized_option_inequality_by_value() {
+        let a = LocalizedOption { value: TestAction::A, label: "X".into() };
+        let b = LocalizedOption { value: TestAction::B, label: "X".into() };
+        assert_ne!(a, b);  // different value, same label
+    }
+
+    // ── StrategyKind (RFC 035) ───────────────────────────────────────
+
+    /// RFC 035 — verify the discriminator round-trips through
+    /// `to_default_strategy()` and back via `from_strategy()`.
+    /// This is the key contract for the picker: selecting a kind
+    /// produces a strategy whose kind matches.
+    #[test]
+    fn strategy_kind_roundtrips_through_strategy() {
+        for kind in [StrategyKind::None, StrategyKind::Checksum,
+                     StrategyKind::LineMatch, StrategyKind::Regex,
+                     StrategyKind::Exact] {
+            let strategy = kind.to_default_strategy();
+            assert_eq!(StrategyKind::from_strategy(&strategy), kind,
+                "round-trip failed for {kind:?}");
+        }
+    }
+
+    /// RFC 035 — `AuditStrategy::default()` is `None`; verify our
+    /// discriminator agrees with that.
+    #[test]
+    fn strategy_kind_default_is_none() {
+        let default_strategy = AuditStrategy::default();
+        assert_eq!(StrategyKind::from_strategy(&default_strategy), StrategyKind::None);
     }
 }

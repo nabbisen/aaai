@@ -31,6 +31,7 @@ diff:
   after_sha256_label: 'After SHA-256:'
   hashes_match: ✓ Hashes match
   hashes_differ: ✗ Hashes differ
+  size_inline: '  Size: %{value}'
 expiry:
   expired_badge: EXPIRED
   soon_badge: Expiring soon
@@ -65,6 +66,16 @@ inspector:
   linematch_line_placeholder: line content
   regex_pattern_placeholder: regular expression
   exact_content_placeholder: exact file content...
+  action_added: Added
+  action_removed: Removed
+  target_added_lines: Added lines
+  target_removed_lines: Removed lines
+  target_all_changed_lines: All changed lines
+  strategy_none: None
+  strategy_checksum: Checksum
+  strategy_linematch: LineMatch
+  strategy_regex: Regex
+  strategy_exact: Exact
 opening:
   open_recent: Open
   recent_section: Or open a recent project
@@ -105,6 +116,14 @@ toast:
   rerun: Re-run
   save_failed: Save failed
   saved: Saved
+  no_definition_path: No definition file path set.
+  saved_to_path: Saved to %{path}
+  undo: Undo
+  nothing_to_undo: Nothing to undo.
+  removed_approval: 'Removed approval for: %{path}'
+  profile: Profile
+  profile_name_empty: Profile name must not be empty.
+  profile_loaded: Profile loaded.
 toolbar:
   audit_status: Audit status
   report_output: Export Report
@@ -201,3 +220,8 @@ dashboard:
   needs_attention: Needs attention
 main:
   search_placeholder: Search paths… (/ to focus)
+dialog:
+  pick_before: Pick the Before folder
+  pick_after: Pick the After folder
+  pick_audit_yaml: Pick audit.yaml
+  pick_aaaiignore: Pick .aaaiignore

@@ -8,6 +8,263 @@ Format: `## [version] — description`
 
 (no entries yet)
 
+## [0.22.0] — 2026-06-05 — Phase 14: GUI i18n endgame
+
+### Phase 14 — Post-v0.21.0 followup work
+
+#### RFC 033 — pick_list display/value separation
+
+RFC 032 で deferred とした 5 件の pick_list 文字列を i18n 化。`Added`/`Removed` (LineMatch action picker) と `Added lines`/`Removed lines`/`All changed lines` (RegexTarget picker) は display label と Message protocol value を兼ねていたため、単純な `t!()` 置換ではローカライズ時に Message dispatch が silently break する問題があった。
+
+**Adapter type 導入:**
+
+```rust
+pub struct LocalizedOption<T: Clone + PartialEq> {
+    pub value: T,
+    pub label: String,
+}
+```
+
+- `Display` 実装は `label` だけを表示 → pick_list が localized 表示を出せる
+- `PartialEq` は **value のみで比較** → locale 切り替えで "selected" identity が壊れない
+- `util.rs` に generic として配置。将来の picker (strategy picker など) でも再利用可
+
+**Message protocol 変更:**
+
+```rust
+// Before (RFC 032):
+LineRuleActionChanged(usize, String),
+RegexTargetChanged(String),
+
+// After (RFC 033):
+LineRuleActionChanged(usize, LineAction),
+RegexTargetChanged(RegexTarget),
+```
+
+handler 側の string 解析ステップを削除。silent-drop on unknown variant も解消。`regex_target_from_str` ヘルパ関数も削除 (もう不要)。
+
+**5 new i18n keys (×2 locales = 10 entries):**
+
+```yaml
+inspector:
+  action_added:             "Added"   / "追加"
+  action_removed:           "Removed" / "削除"
+  target_added_lines:       "Added lines"        / "追加された行"
+  target_removed_lines:     "Removed lines"      / "削除された行"
+  target_all_changed_lines: "All changed lines"  / "変更されたすべての行"
+```
+
+**Out of scope (RFC 032 で確立した境界を維持):**
+
+inspector.rs 行 329, 335 の `"Added"`/`"Removed"` は YAML preview formatter の一部 (`format!("- action: {action_label}")`)。これは保存される YAML の literal preview で、localize するとユーザーに「保存内容と違うものを見せる」誤解を生むため英語のまま保持。
+
+**新規テスト (aaai-gui):**
+
+- `localized_option_equality_ignores_label`: 同じ value で異なる label を持つ option が等しいと判定されることを検証 (locale 切り替えに対する identity 保持)
+- `localized_option_inequality_by_value`: 異なる value で同じ label を持つ option が等しくないと判定されることを検証 (value-based identity)
+
+aaai-gui tests: 11 → 13。
+
+**結果:** i18n state 157/157/157 → **162/162/162**、`cargo check --workspace --all-targets` warning-free、全 180 件のテスト pass、mdbook smoke test clean、`aaai-gui` の user-facing 文字列はすべて `t!()` 経由となった（残る英語文字列は aaai-core 由来のみ — 既知の v1→v2 deferred 項目）。
+
+#### RFC 034 — Toast / dialog / format-string i18n sweep
+
+RFCs 031-033 で覆い切れなかった i18n パターンを **3 種類の grep** で網羅 sweep:
+
+```sh
+grep -nE 'format!\("[^"]*[A-Z][a-z]' crates/aaai-gui/src/**/*.rs
+grep -nE 'push_toast\(' crates/aaai-gui/src/**/*.rs
+grep -rn '\.set_title(' crates/aaai-gui/src/
+```
+
+これら 3 種類のパターンが、以前の text widget / 配列リテラル中心の sweep では検出できなかった:
+- `push_toast()` の 2nd/3rd 引数に直接 `&str` リテラル渡し
+- `format!()` で英語 + runtime 値を補間
+- `rfd::AsyncFileDialog` の `.set_title()` (native OS ダイアログ)
+
+**16 call site / 13 unique key** を i18n 化:
+
+| カテゴリ | call sites | unique keys |
+|---|---|---|
+| Toast bodies (save, undo, profile) | 10 | 8 |
+| Native dialog titles (rfd) | 4 | 4 |
+| Inline diff stats format | 1 | 1 |
+| (重複) `saved_to_path`, `undo`, `profile` は 2 箇所で使用 | (3 reused) | — |
+
+**新規 i18n キー (13 × 2 locales = 26 entries):**
+
+```yaml
+toast:
+  no_definition_path: "No definition file path set." / "監査定義ファイルのパスが設定されていません。"
+  saved_to_path:      "Saved to %{path}"             / "%{path} に保存しました"
+  undo:               "Undo"                          / "取り消し"
+  nothing_to_undo:    "Nothing to undo."              / "取り消す操作がありません。"
+  removed_approval:   "Removed approval for: %{path}" / "%{path} の承認を取り消しました"
+  profile:            "Profile"                       / "プロファイル"
+  profile_name_empty: "Profile name must not be empty." / "プロファイル名を入力してください。"
+  profile_loaded:     "Profile loaded."               / "プロファイルを読み込みました。"
+dialog:
+  pick_before:        "Pick the Before folder"   / "Before フォルダを選択"
+  pick_after:         "Pick the After folder"    / "After フォルダを選択"
+  pick_audit_yaml:    "Pick audit.yaml"          / "audit.yaml を選択"
+  pick_aaaiignore:    "Pick .aaaiignore"         / ".aaaiignore を選択"
+diff:
+  size_inline:        "  Size: %{value}"         / "  サイズ: %{value}"
+```
+
+新規 namespace は `dialog.*` のみ。toast/diff は既存 namespace に追加。
+
+**Substitution パターン:**
+
+`format!()` migration は `rust-i18n` の `%{name}` placeholder で実装:
+
+```rust
+// Before:
+&format!("Saved to {}", path.display())
+// After:
+t!("toast.saved_to_path", path = path.display().to_string()).as_ref()
+```
+
+`rfd::AsyncFileDialog::set_title()` は `async move {}` block の前で title を resolve:
+
+```rust
+let title = t!("dialog.pick_before").to_string();
+return Task::perform(
+    async move {
+        rfd::AsyncFileDialog::new().set_title(title)...
+    },
+    Message::BeforeFolderPicked,
+);
+```
+
+**Out of scope (明示的に deferred):**
+
+- **Strategy label strings** (`STRATEGIES: &["None", "Checksum", "LineMatch", "Regex", "Exact"]` および app.rs:1639-1642 の `strategy_from_label()` の match arms) — RFC 033 と並行する Message protocol refactor + StrategyKind discriminator enum の導入が必要。RFC 035 として別途扱う
+- **Locale display name `"English"`** (i18n.rs:8) — ロケール名は通常自言語で表示する慣習 ("English"/"日本語") のため翻訳しない
+- **aaai-core 由来の Display impls / error strings** — v1→v2 major bump 範囲（RFC 031 §5 既出）
+
+**RFC 031 の教訓の再適用:**
+
+RFC 031 で「これが最後の hardcoded string」を 3 回間違えた経験を活かし、本 RFC も **draft 前に 3 種類の grep を流して scope を確定** してから実装に着手。結果、scope creep ゼロで 1 回の implementation pass で完了。
+
+**結果:** i18n state 162/162/162 → **175/175/175**、`cargo check --workspace --all-targets` warning-free、全 180 件のテスト pass、mdbook smoke test clean。`aaai-gui` の user-facing ハードコード文字列は **完全に 0 件**（aaai-core 由来および documented out-of-scope を除く）。
+
+#### RFC 035 — Strategy label display/value separation
+
+RFC 034 で out-of-scope とした **最後の i18n gap** (`STRATEGIES: &["None", "Checksum", "LineMatch", "Regex", "Exact"]` の 5 件) を解消。これにより GUI i18n loop は完全閉じる。
+
+**Architecture: 新たな discriminator enum `StrategyKind`:**
+
+`AuditStrategy` は struct-shaped enum (各 variant が associated data 持ち) のため、RFC 033 の `LineAction`/`RegexTarget` パターンを直接適用できない (`LocalizedOption<AuditStrategy>` で `PartialEq` が内部データまで比較してしまい、picker selection identity が壊れる)。
+
+そこで discriminator-only enum `StrategyKind` を `aaai-gui/src/util.rs` に追加:
+
+```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StrategyKind {
+    None, Checksum, LineMatch, Regex, Exact,
+}
+
+impl StrategyKind {
+    pub fn to_default_strategy(self) -> AuditStrategy { /* 5-arm match → defaults */ }
+    pub fn from_strategy(s: &AuditStrategy) -> StrategyKind { /* 5-arm match */ }
+    pub fn label(self) -> String { /* t!("inspector.strategy_*") */ }
+}
+```
+
+**なぜ aaai-gui-only か (aaai-core ではなく):**
+
+`AuditStrategy` は aaai-core public API の一部だが、`StrategyKind` は GUI display layer concern。aaai-core に並列 discriminator type を追加するのは consumer 不要な surface を増やす。将来 aaai-core v2.0 redesign 時に upstream へ promote する余地は残す。
+
+**Message protocol changes:**
+
+```rust
+// Before:
+StrategySelected(String),
+BatchStrategySelected(String),
+
+// After:
+StrategySelected(StrategyKind),
+BatchStrategySelected(StrategyKind),
+```
+
+handler から `strategy_from_label()` 呼び出しが消え、enum を直接受け取って `to_default_strategy()` で構築。
+
+**State shape change:**
+
+```rust
+// Before:
+pub strategy_label: String,    // 文字列で discriminator を保持
+
+// After:
+pub strategy_kind: StrategyKind,  // 型で discriminator を表現
+```
+
+5 個の使用箇所 (Default init, entry load, message handler, ApplyTemplate, pick_list) を更新。
+
+**削除されたコード:**
+
+- `pub fn strategy_from_label(label: &str) -> AuditStrategy` (app.rs) — `StrategyKind::to_default_strategy()` で代替
+- `const STRATEGIES: &[&str] = &["None", "Checksum", ...]` × 2 箇所 (views/batch.rs, views/inspector.rs)
+
+**5 new i18n keys (×2 locales = 10 entries):**
+
+```yaml
+inspector:
+  strategy_none:      "None"      / "なし"
+  strategy_checksum:  "Checksum"  / "チェックサム"
+  strategy_linematch: "LineMatch" / "行マッチ"
+  strategy_regex:     "Regex"     / "正規表現"
+  strategy_exact:     "Exact"     / "完全一致"
+```
+
+英語 key は既存の docs/ vocabulary を維持。日本語は inspector 他のキーと整合する technical vocabulary を採用。
+
+**Pick_list call sites — clean inline construction:**
+
+`StrategyKind::label()` メソッドを使い、picker は 5 行で構築可能に:
+
+```rust
+let strategy_options: Vec<LocalizedOption<StrategyKind>> = [
+    StrategyKind::None, StrategyKind::Checksum, StrategyKind::LineMatch,
+    StrategyKind::Regex, StrategyKind::Exact,
+]
+.into_iter()
+.map(|k| LocalizedOption { value: k, label: k.label() })
+.collect();
+```
+
+**新規テスト (aaai-gui):**
+
+- `strategy_kind_roundtrips_through_strategy`: 5 variant について `to_default_strategy()` → `from_strategy()` ラウンドトリップが恒等であることを検証
+- `strategy_kind_default_is_none`: `AuditStrategy::default()` が `StrategyKind::None` を返すこと
+
+aaai-gui tests: 13 → 15。
+
+**Out of scope (明示的):**
+
+- `AuditStrategy` variant 名 (`"None"`/`"Checksum"`/etc.) — `#[serde(tag = "type")]` の canonical 表現。変更すると既存 `audit.yaml` 全部 break。維持
+- `AuditStrategy::label()` および `description()` メソッド (aaai-core) — `&'static str` を返す helper。localization には `String` allocation or locale 引数追加が必要、いずれも core API 変更で out of scope。GUI 側は `StrategyKind::label()` を使うため不要
+- YAML preview formatter の `"- action: Added"` 等 (RFC 032/033 既出)
+
+**結果:** i18n state 175/175/175 → **180/180/180**、`cargo check --workspace --all-targets` warning-free、全 182 件のテスト pass、mdbook smoke test clean。
+
+**i18n endgame — `aaai-gui` の user-facing 文字列は完全に i18n 化:**
+
+| Surface | Status |
+|---|---|
+| app.rs (text widgets, format!, push_toast, set_title) | ✅ 0 hardcoded |
+| views/*.rs (text widgets, placeholders, empty states) | ✅ 0 hardcoded |
+| pick_list options (LineAction, RegexTarget, **StrategyKind**) | ✅ 0 hardcoded |
+| Toast / dialog / format strings | ✅ 0 hardcoded |
+| Strategy labels | ✅ 0 hardcoded (this RFC) |
+
+残る英語文字列はすべて documented exceptions:
+- aaai-core derived strings (`AuditStatus::Display`, `is_approvable()` errors, `AuditStrategy::label()/description()`) — v1→v2 territory
+- Locale display names (`"English"`/`"日本語"`) — convention: own language
+- YAML preview formatters — by design (matches disk-saved YAML)
+
+
 ## [0.21.0] — 2026-05-14 — Phase 13: error UX uniformity + GUI i18n completeness
 
 ### Phase 13 — Post-v0.20.0 followup work
