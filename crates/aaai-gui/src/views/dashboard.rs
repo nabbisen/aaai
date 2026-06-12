@@ -52,7 +52,7 @@ pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
 
     let attention_section: Element<'_, Message> = if !attention.is_empty() {
         let mut col = column![
-            text("Needs attention").size(14).font(iced::Font {
+            text(t!("dashboard.needs_attention").to_string()).size(14).font(iced::Font {
                 weight: iced::font::Weight::Semibold, ..Default::default()
             })
         ].spacing(6);
@@ -86,14 +86,14 @@ pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
         col.into()
     } else {
         container(
-            text("All entries are in order.").size(13)
+            text(t!("empty_state.dashboard_all_clear").to_string()).size(13)
                 .color(Color::from_rgb(0.3, 0.6, 0.3))
         )
         .into()
     };
 
     // ── Hint ──────────────────────────────────────────────────────────
-    let hint = text("Select a file from the left panel to inspect it.")
+    let hint = text(t!("empty_state.dashboard_select_file").to_string())
         .size(12)
         .color(Color::from_rgb(0.55, 0.55, 0.60));
 

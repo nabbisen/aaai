@@ -7,6 +7,7 @@ batch:
   reason_placeholder: Why are these changes allowed?
   selected: selected entries
   title: Batch Approve
+  content_audit_strategy: Content Audit Strategy
 diff:
   no_changes: No changed lines.
   no_text_content: No text content available.
@@ -21,6 +22,15 @@ diff:
   directory: (directory)
   identical: Files are identical.
   unreadable: File cannot be compared.
+  binary_file_added: Binary file added
+  binary_file_removed: Binary file removed
+  binary_file_modified: Binary file modified
+  binary_file: Binary file
+  size_label: 'Size:'
+  before_sha256_label: 'Before SHA-256:'
+  after_sha256_label: 'After SHA-256:'
+  hashes_match: ✓ Hashes match
+  hashes_differ: ✗ Hashes differ
 expiry:
   expired_badge: EXPIRED
   soon_badge: Expiring soon
@@ -51,6 +61,10 @@ inspector:
   template_none: (none)
   ticket_label: Ticket / Issue
   ticket_placeholder: e.g. JIRA-123, INF-42
+  no_content_inspection: No content inspection.
+  linematch_line_placeholder: line content
+  regex_pattern_placeholder: regular expression
+  exact_content_placeholder: exact file content...
 opening:
   open_recent: Open
   recent_section: Or open a recent project
@@ -69,6 +83,7 @@ opening:
   subtitle: audit for asset integrity
   title: aaai
   drop_here: Drop a folder anywhere on this screen
+  recent_project_paths: '  before: %{before}  →  after: %{after}'
 profile:
   deleted: Profile deleted
   saved: Profile saved
@@ -116,10 +131,45 @@ error:
     drop_invalid_kind:
       message: 'Dropped item is not a folder: %{path}'
       hint: Drop a folder (not a file) onto either card.
+    before_required:
+      message: Before folder is required.
+    after_required:
+      message: After folder is required.
+    folder_missing:
+      message: Folder not found.
+    not_a_directory:
+      message: Path is not a directory.
   diff:
     failed:
       message: 'Folder comparison failed: %{reason}'
       hint: Make sure both folders are readable and try again.
+  inspector:
+    invalid_regex:
+      message: The regular expression couldn't be parsed.
+      hint: Test your pattern at regex101.com to find the issue.
+    invalid_sha256:
+      message: Must be exactly 64 hex characters.
+      hint: Generate one with `sha256sum filename`, or copy the value from an earlier
+        audit run.
+    empty_rules:
+      message: At least one rule is required.
+      hint: Click the `+ Add rule` button below to define what line changes are allowed.
+    empty_rule_line:
+      message: Rule line cannot be empty.
+    empty_expected:
+      message: Expected content cannot be empty.
+    expires_at_format:
+      message: Use YYYY-MM-DD format.
+    reason_required:
+      message: Reason is required before approval.
+  save:
+    failed:
+      message: Couldn't write the audit definition file.
+      hint: Check the file isn't open in another application, or pick a different
+        output location.
+  batch:
+    reason_required:
+      message: Reason must not be empty.
 relative:
   just_now: Just now
   minutes_ago: '%{n} min ago'
@@ -139,6 +189,15 @@ empty_state:
   diff_no_audit_step2: Or click '□ Open' to start a new project
   inspector_no_selection: Pick a file to inspect
   inspector_no_selection_hint: Choose an entry from the file tree on the left.
+  dashboard_all_clear: All entries are in order.
+  dashboard_select_file: Select a file from the left panel to inspect it.
+  no_entries_match_filter: No entries match the current filter.
 banner:
   saved_label: Saved
   reported_label: Reported
+progress:
+  comparing_folders: Comparing folders…
+dashboard:
+  needs_attention: Needs attention
+main:
+  search_placeholder: Search paths… (/ to focus)

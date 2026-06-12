@@ -36,4 +36,57 @@ impl UserError {
             hint: hint.into(),
         }
     }
+
+    /// Construct by reading two adjacent i18n keys: `{prefix}.message`
+    /// and `{prefix}.hint`. The convention is established in
+    /// `locales/en.yaml` under `error.<context>.<short_id>` —
+    /// e.g. `prefix = "error.save.failed"` reads `error.save.failed.message`
+    /// and `error.save.failed.hint`.
+    ///
+    /// If either key is missing, the returned `UserError` will contain the
+    /// raw key string in that field. This makes missing keys obvious during
+    /// development without panicking in production.
+    ///
+    /// **Note for the i18n audit script:** `check-i18n-keys.py` recognises
+    /// the `UserError::from_i18n("prefix")` call shape and treats the two
+    /// derived keys (`prefix.message`, `prefix.hint`) as referenced. Don't
+    /// rename this method without updating the script.
+    pub fn from_i18n(prefix: &str) -> Self {
+        let msg_key = format!("{prefix}.message");
+        let hint_key = format!("{prefix}.hint");
+        Self {
+            message: rust_i18n::t!(&msg_key).to_string(),
+            hint: rust_i18n::t!(&hint_key).to_string(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_holds_both_fields() {
+        let e = UserError::new("what", "what next");
+        assert_eq!(e.message, "what");
+        assert_eq!(e.hint, "what next");
+    }
+
+    #[test]
+    fn from_i18n_resolves_message_and_hint() {
+        // Set the locale to a known value to avoid test inter-dependency.
+        rust_i18n::set_locale("en");
+        // Use a prefix whose two derived keys exist in locales/en.yaml.
+        // The literal prefix is intentionally split across `let` bindings
+        // so the audit script doesn't treat the prefix itself as a
+        // referenced key — only the two derived keys count.
+        let prefix = ["error", "save", "failed"].join(".");
+        let e = UserError::from_i18n(&prefix);
+        // Fields are populated and not the literal key (which would
+        // indicate a missing translation lookup).
+        assert!(!e.message.contains(&prefix));
+        assert!(!e.hint.contains(&prefix));
+        assert!(!e.message.is_empty());
+        assert!(!e.hint.is_empty());
+    }
 }

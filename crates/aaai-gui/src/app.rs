@@ -122,6 +122,12 @@ pub struct BatchApproveState {
 pub struct FieldError {
     pub field:   String,
     pub message: String,
+    /// RFC 028 — optional next-action hint. Rendered beneath
+    /// `message` in a muted style. `None` for errors where the
+    /// message is self-explanatory (e.g. "cannot be empty");
+    /// `Some` when the corrective action isn't trivially inferable
+    /// from the message text itself.
+    pub hint:    Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -523,7 +529,8 @@ impl App {
 
                 // Phase 8: run diff on a background thread to keep the GUI responsive.
                 self.is_loading = true;
-                self.load_progress = Some("Comparing folders…".into());
+                // RFC 031 — i18n'd.
+                self.load_progress = Some(t!("progress.comparing_folders").to_string());
 
                 let ignore_for_msg = ignore.clone();
                 return Task::perform(
@@ -720,7 +727,7 @@ impl App {
                                 }
                             }
                             Err(e) => {
-                                self.inspector.validation.strategy_errors.push(FieldError { field: "expires_at".into(), message: e });
+                                self.inspector.validation.strategy_errors.push(FieldError { field: "expires_at".into(), message: e, hint: None });
                             }
                         }
                     }
@@ -749,8 +756,9 @@ impl App {
             }
             Message::CommitBatchApprove => {
                 if self.batch.shared_reason.trim().is_empty() {
+                    // RFC 031 — i18n'd.
                     self.batch.validation_error =
-                        Some("Reason must not be empty.".into());
+                        Some(t!("error.batch.reason_required.message").to_string());
                     return Task::none();
                 }
                 let indices: Vec<usize> =
@@ -826,10 +834,18 @@ impl App {
                             );
                         }
                         Err(e) => {
-                            self.push_toast(
+                            // RFC 026 — use message+hint pattern. The
+                            // raw `e.to_string()` is appended to the
+                            // localized message so the user sees both
+                            // a user-friendly description and the
+                            // concrete OS error.
+                            let user_err = crate::error::UserError::from_i18n("error.save.failed");
+                            let full_message = format!("{}\n({})", user_err.message, e);
+                            self.push_toast_with_hint(
                                 ToastIntent::Error,
                                 t!("toast.save_failed").as_ref(),
-                                &e.to_string(),
+                                &full_message,
+                                &user_err.hint,
                             );
                         }
                     }
@@ -1204,7 +1220,17 @@ impl App {
                 };
                 self.profiles.add(profile);
                 if let Err(e) = self.profiles.save() {
-                    self.push_toast(ToastIntent::Error, t!("toast.save_failed").as_ref(), &e.to_string());
+                    // RFC 026 — message+hint pattern. The same
+                    // "couldn't write" hint applies: the user's
+                    // recourse is the same.
+                    let user_err = crate::error::UserError::from_i18n("error.save.failed");
+                    let full_message = format!("{}\n({})", user_err.message, e);
+                    self.push_toast_with_hint(
+                        ToastIntent::Error,
+                        t!("toast.save_failed").as_ref(),
+                        &full_message,
+                        &user_err.hint,
+                    );
                 } else {
                     self.push_toast(ToastIntent::Success, t!("profile.saved").as_ref(), &name);
                     self.profile_name_input.clear();
@@ -1413,13 +1439,16 @@ impl App {
 
         // Reason (required)
         if ins.reason.trim().is_empty() {
-            v.reason_error = Some("Reason is required before approval.".into());
+            // RFC 031 — i18n'd.
+            v.reason_error = Some(t!("error.inspector.reason_required.message").to_string());
         }
 
         // ExpiresAt format
         if !ins.expires_at_str.trim().is_empty() {
             if chrono::NaiveDate::parse_from_str(&ins.expires_at_str, "%Y-%m-%d").is_err() {
-                v.expires_at_error = Some("Use YYYY-MM-DD format.".into());
+                // RFC 031 — i18n-migrated; this was the last
+                // hardcoded user-facing string in app.rs.
+                v.expires_at_error = Some(t!("error.inspector.expires_at_format.message").to_string());
             }
         }
 
@@ -1428,48 +1457,66 @@ impl App {
             AuditStrategy::Checksum { expected_sha256 } => {
                 let s = expected_sha256.trim();
                 if s.len() != 64 || !s.chars().all(|c| c.is_ascii_hexdigit()) {
+                    // RFC 030 — message + actionable hint. The
+                    // raw "64 hex chars" message assumes SHA-256
+                    // familiarity; the hint says where the value
+                    // comes from for users new to the tool.
+                    let err = crate::error::UserError::from_i18n("error.inspector.invalid_sha256");
                     v.strategy_errors.push(FieldError {
                         field: "expected_sha256".into(),
-                        message: "Must be exactly 64 hex characters.".into(),
+                        message: err.message,
+                        hint: Some(err.hint),
                     });
                 }
             }
             AuditStrategy::LineMatch { rules } => {
                 if rules.is_empty() {
+                    // RFC 030 — message + actionable hint. New
+                    // users may not realise the `+ Add rule`
+                    // button below the empty rules list is where
+                    // they go next.
+                    let err = crate::error::UserError::from_i18n("error.inspector.empty_rules");
                     v.strategy_errors.push(FieldError {
                         field: "rules".into(),
-                        message: "At least one rule is required.".into(),
+                        message: err.message,
+                        hint: Some(err.hint),
                     });
                 }
                 for (i, rule) in rules.iter().enumerate() {
                     if rule.line.trim().is_empty() {
+                        // RFC 029 — hint stays None: the message ("rule line
+                        // cannot be empty") already points at the action.
                         v.strategy_errors.push(FieldError {
                             field: format!("rule[{}].line", i),
-                            message: "Rule line cannot be empty.".into(),
+                            message: t!("error.inspector.empty_rule_line.message").to_string(),
+                            hint: None,
                         });
                     }
                 }
             }
             AuditStrategy::Regex { pattern, .. } => {
                 if let Err(e) = RegexCheck::new(pattern) {
-                    // RFC 020 §3.3: action-oriented wording inline. The
-                    // FieldError struct doesn't carry a separate `hint`
-                    // (yet — that's a v1.1 refactor scoped to the whole
-                    // InspectorValidation surface), so we fold the next-step
-                    // advice into the message itself.
+                    // RFC 028 — hint is now a structural field, not
+                    // composed into the message. The message line
+                    // carries the localized description + the concrete
+                    // syntax error from the regex compiler; the hint
+                    // line carries the actionable next step
+                    // (i.e. "test at regex101.com").
+                    let err = crate::error::UserError::from_i18n("error.inspector.invalid_regex");
                     v.strategy_errors.push(FieldError {
                         field: "pattern".into(),
-                        message: format!(
-                            "Invalid regex: {e}. Tip: simplify the pattern or test it at regex101.com."
-                        ),
+                        message: format!("{} ({})", err.message, e),
+                        hint: Some(err.hint),
                     });
                 }
             }
             AuditStrategy::Exact { expected_content } => {
                 if expected_content.trim().is_empty() {
+                    // RFC 029.
                     v.strategy_errors.push(FieldError {
                         field: "expected_content".into(),
-                        message: "Expected content cannot be empty.".into(),
+                        message: t!("error.inspector.empty_expected.message").to_string(),
+                        hint: None,
                     });
                 }
             }
@@ -1484,25 +1531,29 @@ impl App {
         let before_s = self.before_path.trim().to_string();
         let after_s  = self.after_path.trim().to_string();
 
+        // RFC 031 — all 6 inline validation messages migrated to t!().
+        // Distinct from the RFC 020 banner path's
+        // error.opening.{before,after}_not_found.* keys, which carry
+        // path interpolation. Inline versions are terse.
         if before_s.is_empty() {
-            v.before_error = Some("Before folder is required.".into());
+            v.before_error = Some(t!("error.opening.before_required.message").to_string());
         } else {
             let p = std::path::Path::new(&before_s);
             if !p.exists() {
-                v.before_error = Some("Folder not found.".into());
+                v.before_error = Some(t!("error.opening.folder_missing.message").to_string());
             } else if !p.is_dir() {
-                v.before_error = Some("Path is not a directory.".into());
+                v.before_error = Some(t!("error.opening.not_a_directory.message").to_string());
             }
         }
 
         if after_s.is_empty() {
-            v.after_error = Some("After folder is required.".into());
+            v.after_error = Some(t!("error.opening.after_required.message").to_string());
         } else {
             let p = std::path::Path::new(&after_s);
             if !p.exists() {
-                v.after_error = Some("Folder not found.".into());
+                v.after_error = Some(t!("error.opening.folder_missing.message").to_string());
             } else if !p.is_dir() {
-                v.after_error = Some("Path is not a directory.".into());
+                v.after_error = Some(t!("error.opening.not_a_directory.message").to_string());
             }
         }
         self.opening_validation = v;
@@ -1534,6 +1585,44 @@ impl App {
             body.to_string(),
             Message::DismissToast(id),
         ));
+    }
+
+    /// Push a toast with a two-line body following RFC 020's
+    /// message + hint pattern (RFC 026 §3). The first line names what
+    /// happened in user-facing terms; the second line — prefixed with
+    /// a 💡 marker for visual distinction — names what to do next.
+    ///
+    /// Use this for *actionable* errors. For purely informational
+    /// success / info toasts, use [`Self::push_toast`] directly.
+    pub fn push_toast_with_hint(
+        &mut self,
+        intent: ToastIntent,
+        title: &str,
+        message: &str,
+        hint: &str,
+    ) {
+        let body = format!("{message}\n\n💡 {hint}");
+        self.push_toast(intent, title, &body);
+    }
+
+    /// Push a toast carrying an already-built [`crate::error::UserError`].
+    /// Convenience over [`Self::push_toast_with_hint`] for call-sites
+    /// that constructed the error elsewhere (e.g. via
+    /// `UserError::from_i18n("error.save.failed")`).
+    ///
+    /// Currently no internal site uses this — the two existing save_failed
+    /// sites and the inspector regex site each build the toast inline. This
+    /// method is part of RFC 026's public surface for future error sites
+    /// (e.g. when DiffFailed, profile delete failure, or export failure
+    /// gain proper UserError plumbing).
+    #[allow(dead_code)]
+    pub fn push_user_error_toast(
+        &mut self,
+        intent: ToastIntent,
+        title: &str,
+        err: &crate::error::UserError,
+    ) {
+        self.push_toast_with_hint(intent, title, &err.message, &err.hint);
     }
 }
 
@@ -1573,4 +1662,39 @@ fn dnd_sub() -> Subscription<Message> {
             _ => None,
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// RFC 028 — verify the new `hint` field is populated when the
+    /// construction site passes `Some(...)`, alongside the existing
+    /// `field` and `message` fields.
+    #[test]
+    fn field_error_with_hint_holds_all_three_fields() {
+        let fe = FieldError {
+            field: "pattern".into(),
+            message: "Pattern parse failed".into(),
+            hint: Some("Test at regex101.com".into()),
+        };
+        assert_eq!(fe.field, "pattern");
+        assert_eq!(fe.message, "Pattern parse failed");
+        assert_eq!(fe.hint.as_deref(), Some("Test at regex101.com"));
+    }
+
+    /// RFC 028 — verify `hint: None` is a valid construction and
+    /// behaves identically to the pre-RFC-028 `FieldError` for
+    /// errors where a hint would just repeat the message
+    /// (e.g. "cannot be empty" validations).
+    #[test]
+    fn field_error_without_hint_remains_valid() {
+        let fe = FieldError {
+            field: "expected_content".into(),
+            message: "Expected content cannot be empty.".into(),
+            hint: None,
+        };
+        assert_eq!(fe.field, "expected_content");
+        assert!(fe.hint.is_none());
+    }
 }

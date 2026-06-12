@@ -192,17 +192,15 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     if app.audit_result.is_none() {
         return space().height(0).into();
     }
-    // RFC 005: show focus ring when search is the active focus target
-    use crate::app::FocusTarget;
-    let search_placeholder = if app.focus_target == FocusTarget::Search {
-        "Search paths… (/ to focus)"
-    } else {
-        "Search paths… (/ to focus)"
-    };
+    // RFC 005: focus management is handled by iced's `id`/`focus` plumbing,
+    // not by per-state placeholder text. RFC 032: i18n migration. Both
+    // branches of the previous `if focus == Search` produced the same
+    // string, so the conditional is collapsed.
+    let search_placeholder = t!("main.search_placeholder").to_string();
     container(
         row![
             text("🔍").size(12),
-            text_input(search_placeholder, &app.search_query)
+            text_input(&search_placeholder, &app.search_query)
                 .on_input(Message::SearchQueryChanged)
                 .padding(Padding::from([3.0, 6.0]))
                 .size(12)
@@ -282,7 +280,7 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
 
     if items.is_empty() {
         return container(
-            text("No entries match the current filter.").size(12)
+            text(t!("empty_state.no_entries_match_filter").to_string()).size(12)
                 .color(Color::from_rgb(0.55, 0.55, 0.58))
         ).padding(12).into();
     }

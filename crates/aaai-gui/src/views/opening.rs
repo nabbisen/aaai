@@ -328,11 +328,11 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
         let when_text: Option<String> = prof
             .last_used_at
             .map(crate::util::humanize_since);
-        let detail = text(format!(
-            "  before: {}  →  after: {}",
-            prof.before,
-            prof.after
-        ))
+        let detail = text(t!(
+            "opening.recent_project_paths",
+            before = prof.before.clone(),
+            after  = prof.after.clone(),
+        ).to_string())
         .size(11)
         .color(Color::from_rgb(0.55, 0.55, 0.60))
         .font(iced::Font::MONOSPACE);

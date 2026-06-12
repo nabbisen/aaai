@@ -175,19 +175,41 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
 
     // ── Column assembly ───────────────────────────────────────────────
     // ── Validation + approve button ───────────────────────────────────
-    // RFC 002: collect all validation errors for display
-    let all_errors: Vec<String> = {
-        let mut errs = Vec::new();
-        if let Some(e) = &ins.validation.reason_error { errs.push(e.clone()); }
-        for fe in &ins.validation.strategy_errors { errs.push(fe.message.clone()); }
-        if let Some(e) = &ins.validation.expires_at_error { errs.push(e.clone()); }
-        errs
-    };
-    let val_err: Option<Element<'_, Message>> = if all_errors.is_empty() {
-        None
-    } else {
-        let msg = all_errors.join(" · ");
-        Some(text(msg).size(11).color(Color::from_rgb(0.78, 0.10, 0.10)).into())
+    // RFC 002: collect all validation errors for display.
+    // RFC 028: FieldError now carries an optional `hint`; when present,
+    // it renders beneath the message in a muted style. Errors from
+    // reason_error and expires_at_error don't carry hints yet (their
+    // own i18n migration is a follow-up).
+    let val_err: Option<Element<'_, Message>> = {
+        let mut blocks: Vec<Element<'_, Message>> = Vec::new();
+        let err_color = Color::from_rgb(0.78, 0.10, 0.10);
+        // ~62% opacity of standard text — muted but readable.
+        // Matches RFC 020's banner hint style and RFC 026's toast hint.
+        let hint_color = Color::from_rgba(0.0, 0.0, 0.0, 0.62);
+
+        if let Some(e) = &ins.validation.reason_error {
+            blocks.push(text(e.clone()).size(11).color(err_color).into());
+        }
+        for fe in &ins.validation.strategy_errors {
+            blocks.push(text(fe.message.clone()).size(11).color(err_color).into());
+            if let Some(h) = &fe.hint {
+                blocks.push(
+                    text(h.clone())
+                        .size(11)
+                        .color(hint_color)
+                        .into(),
+                );
+            }
+        }
+        if let Some(e) = &ins.validation.expires_at_error {
+            blocks.push(text(e.clone()).size(11).color(err_color).into());
+        }
+
+        if blocks.is_empty() {
+            None
+        } else {
+            Some(iced::widget::column(blocks).spacing(2).into())
+        }
     };
     // RFC 008: approve button moved to bottom action bar
     // can_approve is still computed for validation state reference (RFC 002)
@@ -251,7 +273,7 @@ fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
 fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
     match &ins.strategy {
         AuditStrategy::None => {
-            text("No content inspection.").size(12).color(Color::from_rgb(0.5,0.5,0.5)).into()
+            text(t!("inspector.no_content_inspection").to_string()).size(12).color(Color::from_rgb(0.5,0.5,0.5)).into()
         }
         AuditStrategy::Checksum { expected_sha256 } => {
             column![
@@ -274,7 +296,7 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
                         Some(if rule.action == LineAction::Added { "Added" } else { "Removed" }),
                         move |s: &str| Message::LineRuleActionChanged(i, s.to_string()),
                     ).padding(4);
-                    let line_input = text_input("line content", &rule.line)
+                    let line_input = text_input(&t!("inspector.linematch_line_placeholder").to_string(), &rule.line)
                         .on_input(move |s| Message::LineRuleLineChanged(i, s))
                         .padding(6).font(iced::Font::MONOSPACE);
                     let del = button(text("✕").size(11))
@@ -355,7 +377,7 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
             };
             column![
                 text(t!("inspector.regex_pattern_label").to_string()).size(12),
-                text_input("regular expression", pattern)
+                text_input(&t!("inspector.regex_pattern_placeholder").to_string(), pattern)
                     .on_input(Message::RegexPatternChanged).padding(6).font(iced::Font::MONOSPACE),
                 text(t!("inspector.regex_target_label").to_string()).size(12),
                 pick_list(target_opts, Some(target_sel),
@@ -365,7 +387,7 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
         AuditStrategy::Exact { expected_content } => {
             column![
                 text(t!("inspector.exact_label").to_string()).size(12),
-                text_input("exact file content...", expected_content)
+                text_input(&t!("inspector.exact_content_placeholder").to_string(), expected_content)
                     .on_input(Message::ExactContentChanged).padding(6).font(iced::Font::MONOSPACE),
             ].spacing(4).into()
         }

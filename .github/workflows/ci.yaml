@@ -98,3 +98,26 @@ jobs:
           scripts/list-unverified-rfcs.sh
         # Intentionally no --strict; this step never blocks merges.
         # See RFC 017 §2.3.
+
+  # RFC 027 — mdbook build smoke test.
+  # Catches the class of bugs that Phase 12 surfaced: orphan chapters
+  # (`abdd-audit.md` was missing from SUMMARY), broken cross-references,
+  # encoding issues, and malformed markdown. Runs on every push/PR.
+  # This step IS blocking — broken docs are not worth merging.
+  docs-build:
+    name: mdbook build (en + ja)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install mdbook
+        # --no-default-features drops the search-index generator, which is
+        # unused in CI and roughly halves the install time. Pin to ^0.4 so
+        # a future 0.5 release doesn't silently change rendering. See
+        # RFC 027 §3 for the trade-off rationale.
+        run: cargo install mdbook --version "^0.4" --no-default-features
+      - name: Build English book
+        run: mdbook build docs/
+      - name: Build Japanese book
+        run: mdbook build docs/ja/

@@ -44,12 +44,28 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [023](done/023-opening-dnd-and-recent.md) | Opening Drag-and-Drop & Recent Polish | v0.20.0 |
 | [024](done/024-cli-dashboard-and-help.md) | CLI Dashboard & Help Discoverability Polish | v0.20.0 |
 | [025](done/025-v1-0-release-prep.md) | v1.0.0 Release Preparation — *partial*, docs groundwork only | v0.20.0 |
+| [026](done/026-toast-error-hints.md) | Toast Error Hints & i18n Key Re-introduction | v0.21.0 |
+| [027](done/027-ci-mdbook-build.md) | CI mdbook build job | v0.21.0 |
+| [028](done/028-field-error-hint.md) | FieldError native `hint` field | v0.21.0 |
+| [029](done/029-field-error-i18n.md) | FieldError i18n migration | v0.21.0 |
+| [030](done/030-field-error-hint-authoring.md) | FieldError hint authoring (selective) | v0.21.0 |
+| [031](done/031-app-rs-i18n-sweep.md) | User-facing string i18n migration sweep in app.rs | v0.21.0 |
+| [032](done/032-views-i18n-sweep.md) | views/*.rs user-facing string i18n migration | v0.21.0 |
 
 > **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
 > RFC 017 のハーネスでエビデンスを取得し、判明した差分は個別 fix RFC を別途切る。
 
 > **v0.20.0 の特徴**: Phase 12 で 9 件の RFC が実装され、19 件の pre-existing バグも整理された。
 > Phase 13 以降は別途 ROADMAP.md を参照。
+>
+> **Phase 13 進捗** (v0.21.0 想定):
+> - RFC 026 (Toast Error Hints) landed — RFC 020 の message+hint パターンを toast 側にも拡張し、Phase 12 で削除された 4 件の i18n キーを復活
+> - RFC 027 (CI mdbook build) landed — `mdbook build` を CI に組み込み、Phase 12 で発覚した orphan chapter 問題などをハンマー的に防ぐ
+> - RFC 028 (FieldError native hint) landed — RFC 026 で workaround として使った `💡` インライン合成を構造分離。FieldError が `hint: Option<String>` を持ち、inspector がそれを muted style で第 2 行表示
+> - RFC 029 (FieldError i18n) landed — `app.rs` に残っていた 4 件の英語ハードコードされた validation メッセージを `t!()` 経由で i18n 化。日本語ユーザーでも全 validation エラーが日本語で読めるようになる
+> - RFC 030 (FieldError hint authoring, 選択的) landed — RFC 028/029 の延長として、ヒントが本当に役立つ 2 サイト（Checksum hex format、LineMatch 空ルール）に actionable hint を追加。残りの 2 サイトは「メッセージ自体が action を示している」ためヒント未追加（noise になる）。`+ Add rule` / `+ ルール追加` のような UI ラベルとの引用整合に注意して文言を作成
+> - RFC 031 (app.rs i18n sweep) landed — `app.rs` に残っていた **8 件**の user-facing 英語ハードコード文字列（progress / batch validation / inspector validation / opening inline validation）を全て i18n 化。これにより `app.rs` 内に user-facing ハードコード文字列は **0 件**になった。aaai-core の `is_approvable()` 由来のエラー文言は major version bump が必要なため明示的に deferred
+> - RFC 032 (views/*.rs i18n sweep) landed — `views/{batch,dashboard,diff_view,inspector,main_view,opening}.rs` の **20 件**の user-facing 英語ハードコード文字列を i18n 化（diff_view バイナリラベル 4種・SHA-256 ラベル 3種・ハッシュ一致状態 2種、その他 11 件）。display と Message protocol value を兼ねる pick_list 文字列 5 件は out-of-scope として明示し、別 RFC で Message protocol refactor として扱う
 
 ---
 

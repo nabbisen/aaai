@@ -111,7 +111,7 @@ pub fn view<'a>(app: &'a App) -> Element<'a, Message> {
         iced::widget::rule::horizontal(1),
         reason_label,
         reason_input,
-        text("Content Audit Strategy").size(12),
+        text(t!("batch.content_audit_strategy").to_string()).size(12),
         strategy_pick,
         space().height(Length::Fixed(8.0)),
         row![approve_btn, cancel_btn].spacing(8),

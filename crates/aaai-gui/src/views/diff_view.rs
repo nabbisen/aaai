@@ -118,10 +118,10 @@ fn placeholder(msg: String) -> Element<'static, Message> {
 /// Panel shown for binary files.
 fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     let kind_label = match diff.diff_type {
-        DiffType::Added    => "Binary file added",
-        DiffType::Removed  => "Binary file removed",
-        DiffType::Modified => "Binary file modified",
-        _                  => "Binary file",
+        DiffType::Added    => t!("diff.binary_file_added").to_string(),
+        DiffType::Removed  => t!("diff.binary_file_removed").to_string(),
+        DiffType::Modified => t!("diff.binary_file_modified").to_string(),
+        _                  => t!("diff.binary_file").to_string(),
     };
 
     let mut rows: Vec<Element<'_, Message>> = vec![
@@ -134,7 +134,7 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if let Some(label) = diff.size_change_label() {
         rows.push(
             row![
-                text("Size:").size(12).color(Color::from_rgb(0.5,0.5,0.5)),
+                text(t!("diff.size_label").to_string()).size(12).color(Color::from_rgb(0.5,0.5,0.5)),
                 text(label).size(12),
             ].spacing(8).into()
         );
@@ -144,7 +144,7 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if let Some(h) = &diff.before_sha256 {
         rows.push(
             row![
-                text("Before SHA-256:").size(11).color(Color::from_rgb(0.5,0.5,0.5)),
+                text(t!("diff.before_sha256_label").to_string()).size(11).color(Color::from_rgb(0.5,0.5,0.5)),
                 text(h.clone()).size(11).font(iced::Font::MONOSPACE),
             ].spacing(8).into()
         );
@@ -152,7 +152,7 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if let Some(h) = &diff.after_sha256 {
         rows.push(
             row![
-                text("After SHA-256:").size(11).color(Color::from_rgb(0.5,0.5,0.5)),
+                text(t!("diff.after_sha256_label").to_string()).size(11).color(Color::from_rgb(0.5,0.5,0.5)),
                 text(h.clone()).size(11).font(iced::Font::MONOSPACE),
             ].spacing(8).into()
         );
@@ -161,9 +161,9 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if diff.before_sha256.as_ref() == diff.after_sha256.as_ref()
         && diff.before_sha256.is_some()
     {
-        rows.push(text("✓ Hashes match").size(12).color(Color::from_rgb(0.18,0.65,0.32)).into());
+        rows.push(text(t!("diff.hashes_match").to_string()).size(12).color(Color::from_rgb(0.18,0.65,0.32)).into());
     } else if diff.before_sha256.is_some() && diff.after_sha256.is_some() {
-        rows.push(text("✗ Hashes differ").size(12).color(Color::from_rgb(0.82,0.18,0.18)).into());
+        rows.push(text(t!("diff.hashes_differ").to_string()).size(12).color(Color::from_rgb(0.82,0.18,0.18)).into());
     }
 
     container(

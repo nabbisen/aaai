@@ -64,7 +64,9 @@ mod tests {
     fn within_a_minute_is_just_now() {
         let now = t(2026, 5, 13, 12, 0);
         let earlier = t(2026, 5, 13, 11, 59);  // 60 s ago — boundary
-        let out = humanize_since_at(earlier - chrono::Duration::seconds(1), now);
+        // Move 1 s into the "just now" side of the boundary (59 s ago,
+        // not 61 s ago — the original `-1s` was a Phase 12 typo).
+        let out = humanize_since_at(earlier + chrono::Duration::seconds(1), now);
         // Either translation; we just check the key resolved (no "min", no "h", no "d")
         assert!(!out.contains(" min "));
         assert!(!out.contains(" h "));

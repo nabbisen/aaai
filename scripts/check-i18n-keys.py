@@ -123,6 +123,20 @@ def extract_keys_from_code(src_dir: Path) -> tuple[set[str], set[str], list[str]
             else:
                 non_dotted.add(key)
 
+        # RFC 026 — recognise the `UserError::from_i18n("prefix")` shape.
+        # Each such call implicitly references the two derived keys
+        # `prefix.message` and `prefix.hint`. We collect them as dotted
+        # so they're properly accounted for during the audit.
+        for m in re.finditer(
+            r'(?<![A-Za-z0-9_])UserError::from_i18n\(\s*"([^"]+)"',
+            content,
+            re.DOTALL,
+        ):
+            prefix = m.group(1)
+            if DOTTED_KEY_RE.match(prefix):
+                dotted.add(f"{prefix}.message")
+                dotted.add(f"{prefix}.hint")
+
         # Detect dynamic calls: `t!(` followed by something that isn't a
         # string literal (and isn't whitespace before a string literal).
         file_has_dynamic = False

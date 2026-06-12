@@ -8,6 +8,236 @@ Format: `## [version] — description`
 
 (no entries yet)
 
+## [0.21.0] — 2026-05-14 — Phase 13: error UX uniformity + GUI i18n completeness
+
+### Phase 13 — Post-v0.20.0 followup work
+
+#### RFC 026 — Toast Error Hints & i18n Key Re-introduction
+
+RFC 020 の `message + hint` パターンを toast 通知側にも拡張し、Phase 12 dead-key sweep で削除を余儀なくされた 4 件の i18n キーを復活させる:
+
+- `error.inspector.invalid_regex.{message,hint}` (en + ja)
+- `error.save.failed.{message,hint}` (en + ja)
+
+**新規 API:**
+
+- `App::push_toast_with_hint(intent, title, message, hint)` — RFC 020 の 2 行パターンに従う toast を生成。第 1 行は user-facing description、第 2 行は `💡` プレフィックス付きの「次の操作」ヒント
+- `App::push_user_error_toast(intent, title, &UserError)` — `UserError` をそのまま toast 化する convenience（current internal users なし、public surface として記録）
+- `UserError::from_i18n("prefix")` — `prefix.message` と `prefix.hint` の 2 キーを 1 回の呼び出しで解決する convenience。`from_i18n("error.save.failed")` で 2 keys を取得
+
+**Refactored call-sites:**
+
+- `SaveDefinition` の error path（`app.rs:828`）— 旧: `push_toast(Error, ..., &e.to_string())`（生 `std::io::Error` 露出）→ 新: localized message + concrete OS error + actionable hint
+- Profile save の error path（`app.rs:1215`）— 同様
+- Inspector regex validation の `FieldError`（`app.rs:1480`）— 旧: `"Invalid regex: {e}. Tip: …"` (英語ハードコード) → 新: i18n キーから localized message + concrete error + hint を組み立て
+
+**i18n audit script の改修:**
+
+`scripts/check-i18n-keys.py` に `UserError::from_i18n("prefix")` パターン認識を追加。これを呼び出すコードは暗黙的に `prefix.message` と `prefix.hint` を参照していると解釈され、これらが UNUSED として誤報告されることを防ぐ。
+
+**Pre-existing バグ修正:**
+
+`util::tests::within_a_minute_is_just_now` (RFC 023 由来) のテストロジックが `-1s` で 61 秒（minute バケットに入る）を境界としていた。テスト名とコメントは「60 秒以内 → just now」を意図しているため、`+1s` に修正して 59 秒を境界に。
+
+**結果:**
+
+- aaai-core 97/97, aaai-cli 70/70, aaai-gui 9/9 (1 新規 + 1 pre-existing fix)
+- i18n: 0/0/0 (code 123 / en 123 / ja 123 — Phase 12 終了時の 119 から +4 keys)
+- `cargo check --workspace --all-targets` warning-free
+
+#### RFC 027 — CI mdbook build job
+
+`.github/workflows/ci.yaml` に新規 `docs-build` ジョブを追加。`mdbook build docs/` (英語) と `mdbook build docs/ja/` (日本語) を両方ビルドし、broken cross-reference / orphan chapter / malformed markdown / encoding 異常があれば CI が落ちる。
+
+**根拠:** Phase 12 で `abdd-audit.md` を新規作成した際、両 `SUMMARY.md` への登録漏れ (orphan) が、最終盤の `mdbook build` smoke test で初めて発覚した。CI 化することで同種の drift を merge 前に捕捉する。
+
+**実装メモ:**
+
+- mdbook を `^0.4` で pin（0.4.52 が現行）— hypothetical 0.5 による silent rendering change を回避
+- `--no-default-features` で `search` 機能を無効化 — install を高速化（CI では search 不要）
+- Blocking ジョブとして組み込む — broken docs の merge を未然に防ぐ
+- Path filter 無し — 一般的な「path filter 更新忘れ」failure mode を避け、ビルドの速さ（< 1 分）を活かす
+
+**CI ジョブ一覧（更新後）:** test (3 OS) / check-msrv / audit-security / i18n-key-audit / visual-verification-status / **docs-build** (新規) — 計 6 ジョブ
+
+**ローカル smoke test:** `~/.cargo/bin/mdbook build docs/` と `mdbook build docs/ja/` — 両方 clean。`release-prep-v0.20.0.md` の Pre-flight check と完全に同じ手順なので、リリース時の二重チェックにもなる。
+
+#### RFC 028 — FieldError native `hint` field
+
+RFC 026 で `FieldError` を経由するインスペクター regex バリデーションのエラーは、`💡` プレフィックスで第 2 行ヒントを 1 つの `message: String` フィールドに合成していた。RFC 028 はこの合成を構造分離する:
+
+```rust
+pub struct FieldError {
+    pub field:   String,
+    pub message: String,
+    pub hint:    Option<String>,   // ← NEW
+}
+```
+
+これにより:
+
+- `UserError` (RFC 020) と `Toast::push_toast_with_hint` (RFC 026) で確立された「message + hint の構造的分離」パターンに `FieldError` も合流
+- インスペクターの validation error 表示が、message 行（エラー色）と hint 行（muted 62% opacity）の 2 行構成になる
+- 表示用の `💡` 合成は display layer に押し戻され、model layer は純粋なデータを保持
+
+**Update site:**
+
+`views/inspector.rs` の `val_err` 構築ロジックを「全エラーを ` · ` で連結した単一 `text()`」から「エラーごとの column 構成、`hint: Some` の場合は muted 行を追加」に変更。`hint: None` のエラーは従来と同じ単一行レンダリング。
+
+**6 FieldError construction sites:**
+
+| 位置 | 種類 | hint |
+|---|---|---|
+| `app.rs:729` | expires_at parse error | `None` |
+| `app.rs:1457` | Checksum hex validation | `None` |
+| `app.rs:1465` | LineMatch empty rules | `None` |
+| `app.rs:1473` | LineMatch empty line | `None` |
+| `app.rs:1495` | **Regex compile** | `Some(err.hint)` ← RFC 026 で導入された hint がここに |
+| `app.rs:1503` | Exact empty content | `None` |
+
+5 サイトの `None` は「文言が自明（cannot be empty 系）でヒントを足すと message を繰り返すだけになる」もの。将来的に i18n 化と併せて hint を付ける余地があるが、本 RFC のスコープ外。
+
+**Test additions (`crates/aaai-gui/src/app.rs` 末尾の `#[cfg(test)] mod tests`):**
+
+- `field_error_with_hint_holds_all_three_fields` — `Some(hint)` の構築が field / message / hint すべて読めることを検証
+- `field_error_without_hint_remains_valid` — `None` の構築が panic せず、`hint.is_none()` が true であることを検証
+
+**結果:** aaai-gui tests 9 → 11 (+2)、`cargo check --workspace --all-targets` warning-free、i18n 0/0/0 (123/123/123 不変 — RFC 028 はキーを足さない)。
+
+#### RFC 029 — FieldError i18n migration
+
+`app.rs` のインスペクター validation ロジックに残っていた 4 件の英語ハードコード文字列を `t!()` 経由で i18n 化:
+
+| Strategy | Before | After |
+|---|---|---|
+| Checksum hex format | `"Must be exactly 64 hex characters.".into()` | `t!("error.inspector.invalid_sha256.message").to_string()` |
+| LineMatch empty rules | `"At least one rule is required.".into()` | `t!("error.inspector.empty_rules.message").to_string()` |
+| LineMatch empty rule line | `"Rule line cannot be empty.".into()` | `t!("error.inspector.empty_rule_line.message").to_string()` |
+| Exact empty content | `"Expected content cannot be empty.".into()` | `t!("error.inspector.empty_expected.message").to_string()` |
+
+**新規 i18n キー (4 × 2 locales = 8 entries):**
+
+```yaml
+error.inspector.invalid_sha256.message  (en + ja)
+error.inspector.empty_rules.message      (en + ja)
+error.inspector.empty_rule_line.message  (en + ja)
+error.inspector.empty_expected.message   (en + ja)
+```
+
+`error.inspector.*` 名前空間配下、RFC 020 / 026 の `error.<surface>.<short_id>.message` パターンに準拠。これらはヒント無し（RFC 028 の `hint: None`）の validation メッセージなので `.message` リーフのみ。
+
+**意義:** これにより `aaai-gui/src/app.rs` 内の **すべての user-facing 文字列** が `t!()` 経由で i18n 化された（残る 1 件は `expires_at` の `chrono::ParseError` 由来文字列、これはエラー variant マッピングが必要で別 RFC 案件）。日本語ロケールユーザーは Checksum / LineMatch / Exact 戦略のあらゆる validation エラーを日本語で読めるようになる。
+
+**結果:** i18n state 123/123/123 → **127/127/127**、`cargo check` warning-free、既存 178 件のテスト全 pass（構造変化なし）。
+
+#### RFC 030 — FieldError hint authoring (selective)
+
+RFC 028 で `FieldError.hint: Option<String>` を導入し、RFC 029 で `.message` を i18n 化した 4 サイトのうち、**メッセージ単独では「次に何をするか」が分からない 2 サイトに actionable hint を追加**:
+
+| Site | 旧 (RFC 029) | 新 (RFC 030) |
+|---|---|---|
+| `invalid_sha256` | `hint: None` | `hint: Some` — `sha256sum filename` での生成方法 + 過去の監査出力からのコピー |
+| `empty_rules` | `hint: None` | `hint: Some` — `+ Add rule` ボタンへの誘導 |
+| `empty_rule_line` | `hint: None` | **変更なし** — メッセージが既に action を示す（行を入力） |
+| `empty_expected` | `hint: None` | **変更なし** — 同上（内容を入力） |
+
+**選択的な理由**: ヒント slot を埋めるのは魅力的だが、message を言い換えるだけのヒントは「視覚ノイズになり、ユーザーが第 2 行を skip するようになる」リスクがある。RFC 028 §3 の判断基準「原因が non-obvious か、action が message から自明でない場合に限り hint を追加」に従い、2 サイトに留めた。
+
+**新規 i18n キー (2 × 2 locales = 4 entries):**
+
+```yaml
+error.inspector.invalid_sha256.hint   (en + ja)
+error.inspector.empty_rules.hint      (en + ja)
+```
+
+ja 文言は UI ラベル `+ ルール追加`（`inspector.add_rule` キー由来）と整合させた。将来このラベルが変わった場合、hint 文言も lockstep で見直す必要あり。
+
+**call-site refactor:** 2 サイトが直接 `t!()` から `UserError::from_i18n("prefix")` への切り替え。これにより `.message` と `.hint` が一回の呼び出しで解決され、コードと audit script の両方で「2 キーがペア」として扱われる（RFC 026 で既に確立された pattern）。
+
+**結果:** i18n state 127/127/127 → **129/129/129**、`cargo check` warning-free、既存 178 件のテスト全 pass、mdbook smoke test も clean。
+
+#### RFC 031 — User-facing string i18n migration sweep in `app.rs`
+
+`app.rs` を `\.into\(\)` パターンで grep し、user-facing な英語ハードコード文字列 **8 件**を発見・全て `t!()` 経由で i18n 化:
+
+| Site | 文言 | 新キー |
+|---|---|---|
+| Progress (line 532) | `"Comparing folders…"` | `progress.comparing_folders` |
+| Batch validation (line 759) | `"Reason must not be empty."` | `error.batch.reason_required.message` |
+| Inspector validation (line 1440) | `"Reason is required before approval."` | `error.inspector.reason_required.message` |
+| Inspector validation (line 1446) | `"Use YYYY-MM-DD format."` | `error.inspector.expires_at_format.message` |
+| Opening inline (line 1535) | `"Before folder is required."` | `error.opening.before_required.message` |
+| Opening inline (line 1546) | `"After folder is required."` | `error.opening.after_required.message` |
+| Opening inline (line 1539, 1550) | `"Folder not found."` ×2 | `error.opening.folder_missing.message` |
+| Opening inline (line 1541, 1552) | `"Path is not a directory."` ×2 | `error.opening.not_a_directory.message` |
+
+**新規 i18n キー (8 × 2 locales = 16 entries)** — `progress.*` namespace を新設、`error.batch.*` / `error.inspector.*` / `error.opening.*` は既存 namespace に追加。
+
+**Opening inline は RFC 020 の banner path とは別キー:** `error.opening.{before,after}_not_found.*` (RFC 020 由来) は path 補間付きの full-sentence メッセージで、`open_error` フィールドの UserError banner で使われる。`validate_opening()` の inline メッセージは入力フィールド直下に表示される terse 版で、別の役割。同一概念に見えて UI 文脈が異なるため、別キーとして保持。
+
+**結果:** `app.rs` に残る user-facing ハードコード文字列は **0 件**。残るのは:
+- Line 174 `strategy_label: "None".into()` — `AuditStrategy::label()` (aaai-core) との照合用 internal discriminator
+- Lines 1678-1694 — `#[cfg(test)] mod tests` 内のテストコード
+
+**Deferred (out of scope):**
+
+`AuditEntry::is_approvable()` および `AuditStrategy::validate()` (aaai-core) が返す `Result<(), String>` 形式のエラー文言群 (~8 件)。これを i18n 化するには aaai-core の API を `Result<(), ApprovalError>` のような structured enum に変える必要があり、`compatibility.md` 上 **major version bump (v1 → v2)** が必要。Phase 13 の小さく機械的なスコープには合わないため、将来別 RFC（aaai-core API redesign と bundle 可）として扱う。
+
+**スコープ漸進的拡張についての反省:**
+
+このRFCは当初 1 site (expires_at_format) のみのスコープだった。実装直前の sweep で 3 site 追加、`validate_opening()` を読んで 4 site 追加、最終的に 8 site に。"これが最後の文字列" という主張は 3 回間違えた。今後の sweep RFC は **draft 前に網羅 grep を流す** 規律を持つ。
+
+**結果:** i18n state 129/129/129 → **137/137/137**、`cargo check` warning-free、既存 178 件のテスト全 pass、mdbook smoke test も clean、`app.rs` の user-facing ハードコード文字列 **0 件**。
+
+#### RFC 032 — `views/*.rs` user-facing string i18n migration
+
+RFC 031 で `app.rs` を完了した後、`views/*.rs` を grep して残る user-facing 英語ハードコード文字列を sweep。in-scope な **20 件**を i18n 化し、protocol value と display を兼ねる pick_list 文字列 5 件は明示的に out-of-scope (別 RFC で Message protocol refactor が必要)。
+
+**In-scope migrations:**
+
+| File | Strings migrated | Count |
+|---|---|---|
+| `batch.rs` | "Content Audit Strategy" 見出し | 1 |
+| `dashboard.rs` | "Needs attention" 見出し、 "All entries are in order." (空状態)、 "Select a file from the left panel to inspect it." (ヒント) | 3 |
+| `diff_view.rs` | バイナリファイル状態 4種 (added/removed/modified/fallback) + "Size:" / "Before SHA-256:" / "After SHA-256:" ラベル + ハッシュ一致状態 ✓/✗ 2種 | 9 |
+| `inspector.rs` | "No content inspection." 空状態 + 3 件の text_input placeholder ("line content", "regular expression", "exact file content…") | 4 |
+| `main_view.rs` | "Search paths… (/ to focus)" placeholder (2 箇所が同一文字列 — 1 key、ついでに dead if/else 簡略化)、 "No entries match the current filter." 空状態 | 2 |
+| `opening.rs` | Recent project の "  before: {}  →  after: {}" format string ( `%{before}` / `%{after}` placeholder で rust-i18n の substitution 機能を使用) | 1 |
+
+**新規 i18n キー (20 × 2 locales = 40 entries)** — 既存 namespace 配下に追加 (`batch.*` / `dashboard.*` / `empty_state.*` / `diff.*` / `inspector.*`)、`main.*` 名前空間を新設。
+
+**Format string with substitution:**
+
+`opening.rs` の format string は rust-i18n の `%{name}` placeholder を使った substitution に変換:
+
+```yaml
+opening:
+  recent_project_paths: "  before: %{before}  →  after: %{after}"
+```
+
+```rust
+let detail = text(t!(
+    "opening.recent_project_paths",
+    before = prof.before.clone(),
+    after  = prof.after.clone(),
+).to_string())
+```
+
+**Out-of-scope (明示的に deferred):**
+
+`inspector.rs` の pick_list 文字列 5 件 (`"Added"` / `"Removed"` / `"Added lines"` / `"Removed lines"` / `"All changed lines"`) は display label でありつつ `Message::LineRuleActionChanged(String)` / `Message::RegexTargetChanged(String)` の payload としても使われる。localize するには Message protocol を `LineAction` / `RegexTarget` enum 直接渡しに変える必要があり、display/value を分離する wrapper 型の導入も必要。これは text-migration sweep に混ぜるとリスクが二種類混じるため、別 RFC (033 想定) で扱う。
+
+**Also out-of-scope:**
+
+- `AuditStatus::Display` impl 由来の文字列 (dashboard.rs L70 の `r.status.to_string()`) — aaai-core API 変更必要 (RFC 031 の deferred 項目と同範囲)
+- YAML preview formatter ("- action: Added" 等、inspector.rs L341) — disk に保存される YAML 文字列のプレビューなので英語のまま保持 (localize するとユーザーに「保存内容と違うものを見せる」誤解を生む)
+
+**Process discipline:**
+
+RFC 031 で「This is the last hardcoded string」を 3 回間違えた経験を活かし、本 RFC は **draft 前に網羅 grep** を流し、in-scope/out-of-scope の境界を明示してから実装に着手。結果、scope creep ゼロで 1 回の implementation で完了。
+
+**結果:** i18n state 137/137/137 → **157/157/157**、`cargo check` warning-free、既存 178 件のテスト全 pass、mdbook smoke test clean。`views/*.rs` の in-scope ハードコード文字列 0 件、out-of-scope 5 件は別 RFC で扱う旨を `views/inspector.rs` 内でコメント化済み。
+
 ## [0.20.0] — 2026-05-13 — UI/UX refresh, accessibility, doc hygiene
 
 詳細は [rfcs/PLAN.md](rfcs/PLAN.md) Rev. 4 および [ROADMAP.md](ROADMAP.md) Phase 12〜16 を参照。
