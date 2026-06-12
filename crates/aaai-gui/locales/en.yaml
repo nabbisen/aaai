@@ -78,25 +78,26 @@ inspector:
   strategy_regex: Regex
   strategy_exact: Exact
   revert_to_pending: Revert to Pending
+  advanced_toggle_show: More options
+  advanced_toggle_hide: Fewer options
 opening:
   open_recent: Open
   recent_section: Or open a recent project
   pick_file: Pick file
-  ignore_label: .aaaiignore file
-  optional_hint: Collapsed by default. Without these, a new audit definition is created.
-  optional_section: Optional settings (audit definition / .aaaiignore)
+  optional_section: Optional settings
   change_folder: Change folder
   pick_folder: Pick folder
   unselected: Not selected
   after_card: After (target)
   before_card: Before (source)
   guide: Pick two folders to audit.
-  definition_label: Audit definition
+  definition_label: Approvals file
   start_button: Start Audit
   subtitle: audit for asset integrity
   title: aaai
   drop_here: Drop a folder anywhere on this screen
   recent_project_paths: '  before: %{before}  →  after: %{after}'
+  definition_placeholder: Leave empty to be prompted on first Save
 profile:
   deleted: Profile deleted
   saved: Profile saved
@@ -116,7 +117,6 @@ toast:
   rerun: Re-run
   save_failed: Save failed
   saved: Saved
-  no_definition_path: No definition file path set.
   saved_to_path: Saved to %{path}
   undo: Undo
   nothing_to_undo: Nothing to undo.
@@ -225,6 +225,7 @@ progress:
   rerunning: Re-running audit…
 dashboard:
   needs_attention: Needs attention
+  new_audit: New Audit
 main:
   search_placeholder: Search paths… (/ to focus)
 dialog:
@@ -233,6 +234,7 @@ dialog:
   pick_audit_yaml: Pick audit.yaml
   pick_aaaiignore: Pick .aaaiignore
   save_report: Save Report
+  save_approvals_file: Save Approvals File
 settings:
   title: Settings
   button_tooltip: Settings
@@ -258,6 +260,7 @@ help:
   search: Focus search
   show_help: Show / hide this help
   revert: Revert selected entry to Pending
+  approve_and_save: Approve and save current entry
 nav_guard:
   title: Unsaved Changes
   message: You have unsaved changes. Save before leaving, or discard them?

@@ -78,25 +78,26 @@ inspector:
   strategy_regex: 正規表現
   strategy_exact: 完全一致
   revert_to_pending: Pending に戻す
+  advanced_toggle_show: 詳細オプション
+  advanced_toggle_hide: 詳細を隠す
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト
   pick_file: ファイルを選ぶ
-  ignore_label: .aaaiignore ファイル
-  optional_hint: 折りたたみ。指定しない場合は新規作成として開始されます
-  optional_section: オプション設定（監査定義ファイル / .aaaiignore）
+  optional_section: オプション設定
   change_folder: フォルダを変更
   pick_folder: フォルダを選ぶ
   unselected: 未選択
   after_card: 比較先 (After)
   before_card: 比較元 (Before)
   guide: 監査するための 2 つのフォルダを選んでください
-  definition_label: 監査定義ファイル
+  definition_label: 承認ファイル
   start_button: 監査を開始
   subtitle: audit for asset integrity
   title: aaai
   drop_here: フォルダをこの画面のどこかにドロップしてください
   recent_project_paths: '  before: %{before}  →  after: %{after}'
+  definition_placeholder: 空欄の場合は初回保存時に保存先を選択します
 profile:
   deleted: プロファイルを削除しました
   saved: プロファイルを保存しました
@@ -116,7 +117,6 @@ toast:
   rerun: 再実行
   save_failed: 保存失敗
   saved: 保存しました
-  no_definition_path: 監査定義ファイルのパスが設定されていません。
   saved_to_path: '%{path} に保存しました'
   undo: 取り消し
   nothing_to_undo: 取り消す操作がありません。
@@ -222,6 +222,7 @@ progress:
   rerunning: 監査を再実行中…
 dashboard:
   needs_attention: 要対応
+  new_audit: 新しい監査
 main:
   search_placeholder: パスを検索… (/ でフォーカス)
 dialog:
@@ -230,6 +231,7 @@ dialog:
   pick_audit_yaml: audit.yaml を選択
   pick_aaaiignore: .aaaiignore を選択
   save_report: レポートを保存
+  save_approvals_file: 承認ファイルを保存
 settings:
   title: 設定
   button_tooltip: 設定
@@ -255,6 +257,7 @@ help:
   search: 検索フォーカス
   show_help: このヘルプを表示 / 非表示
   revert: 選択エントリを Pending に戻す
+  approve_and_save: 現在のエントリを承認して保存
 nav_guard:
   title: 未保存の変更があります
   message: 未保存の変更があります。保存してから離れますか？

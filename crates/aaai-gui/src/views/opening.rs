@@ -239,34 +239,26 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
     .style(iced::widget::button::text)
     .padding(Padding::from([6.0, 4.0]));
 
-    let hint = text(t!("opening.optional_hint").to_string())
-        .size(11)
-        .color(Color::from_rgb(0.55, 0.55, 0.60));
+    // RFC 045 — hint text removed; .aaaiignore row removed
+    // (global ignored dirs live in App Settings; per-project .aaaiignore
+    // is auto-detected from Before folder silently).
 
     if !expanded {
-        return column![header, hint].spacing(2).into();
+        return column![header].spacing(2).into();
     }
 
     let def_row = file_picker_row(
         t!("opening.definition_label").to_string(),
+        t!("opening.definition_placeholder").to_string(),
         &app.definition_path,
         Message::PickDefinitionFile,
         Message::DefinitionPathChanged,
     );
-    let ignore_row = file_picker_row(
-        t!("opening.ignore_label").to_string(),
-        &app.ignore_path,
-        Message::PickIgnoreFile,
-        Message::IgnorePathChanged,
-    );
 
     column![
         header,
-        hint,
         space().height(Length::Fixed(8.0)),
         def_row,
-        space().height(Length::Fixed(6.0)),
-        ignore_row,
     ]
     .spacing(2)
     .into()
@@ -274,6 +266,7 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
 
 fn file_picker_row<'a, F>(
     label: String,
+    placeholder: String,
     current: &'a str,
     pick_msg: Message,
     on_text_change: F,
@@ -283,7 +276,7 @@ where
 {
     let label_text = text(label).size(12)
         .color(Color::from_rgb(0.35, 0.37, 0.42));
-    let input = text_input("", current)
+    let input = text_input(&placeholder, current)
         .on_input(on_text_change)
         .padding(Padding::from([8.0, 10.0]))
         .size(12);

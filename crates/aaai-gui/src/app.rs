@@ -264,6 +264,15 @@ pub struct App {
     // RFC 041: navigation guard (unsaved-changes confirmation)
     pub nav_guard_open: bool,
 
+    /// RFC 046 — set when a save-as dialog is opened from NavGuardSaveAndLeave.
+    /// Tells `DefinitionSavePathPicked` to call `do_leave_to_opening()` after saving.
+    pub pending_leave_to_opening: bool,
+
+    /// RFC 048 — progressive disclosure in the Inspector.
+    /// `false` = show Reason + Strategy only (default for new users).
+    /// `true`  = show all fields (expert mode, global across entries).
+    pub advanced_inspector_expanded: bool,
+
     // Phase 10: resizable pane layout
     pub panes: pane_grid::State<PaneKind>,
     pub focus: Option<pane_grid::Pane>,
@@ -327,6 +336,8 @@ impl Default for App {
             settings_draft: UserPrefs::default(),
             help_open: false,
             nav_guard_open: false,
+            pending_leave_to_opening: false,
+            advanced_inspector_expanded: false,
             diff_view_mode: DiffViewMode::default(),
             focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
@@ -399,6 +410,9 @@ pub enum Message {
     /// RFC 038 — routes Escape: closes open overlays before falling through to deselect.
     EscapeKey,
 
+    /// RFC 048 — toggle the expert fields section in the Inspector.
+    ToggleAdvancedInspector,
+
     /// RFC 039 — removes the currently-selected OK entry from the definition,
     /// reverting it to Pending status. Triggers an async rerun.
     RevertSelectedEntry,
@@ -418,6 +432,9 @@ pub enum Message {
     /// RFC 040 — opens the native save-file dialog; format derived from extension.
     ExportReport,
     ReportPathPicked(Option<std::path::PathBuf>),
+
+    /// RFC 046 — result of the save-file dialog opened when `definition_path` is empty.
+    DefinitionSavePathPicked(Option<std::path::PathBuf>),
 
     // Batch
     ToggleBatchSelect(usize),
@@ -797,8 +814,35 @@ impl App {
                                         t!("toast.approved").as_ref(),
                                         &path,
                                     );
-                                    // RFC 037 — async rerun; result arrives via RerunDiffReady.
-                                    return self.start_async_rerun();
+
+                                    // RFC 050 — auto-advance to next Pending entry so
+                                    // the user can keep approving without manual navigation.
+                                    let approved_path = path.clone();
+                                    let next_pending: Option<usize> =
+                                        self.audit_result.as_ref().and_then(|result| {
+                                            let n = result.results.len();
+                                            let start = (idx + 1) % n;
+                                            (0..n)
+                                                .map(|i| (start + i) % n)
+                                                .find(|&i| {
+                                                    let r = &result.results[i];
+                                                    r.status == AuditStatus::Pending
+                                                        && r.diff.path != approved_path
+                                                })
+                                        });
+
+                                    let rerun = self.start_async_rerun();
+                                    return if let Some(next_idx) = next_pending {
+                                        Task::batch([
+                                            rerun,
+                                            Task::perform(
+                                                async move { next_idx },
+                                                Message::SelectEntry,
+                                            ),
+                                        ])
+                                    } else {
+                                        rerun
+                                    };
                                 }
                             }
                             Err(e) => {
@@ -891,12 +935,20 @@ impl App {
             Message::SaveDefinition => {
                 let path = PathBuf::from(&self.definition_path);
                 if path.as_os_str().is_empty() {
-                    self.push_toast(
-                        ToastIntent::Error,
-                        t!("toast.save_failed").as_ref(),
-                        t!("toast.no_definition_path").as_ref(),
+                    // RFC 046 — open save-as dialog instead of showing a dead-end error.
+                    let title = t!("dialog.save_approvals_file").to_string();
+                    return Task::perform(
+                        async move {
+                            rfd::AsyncFileDialog::new()
+                                .set_title(title)
+                                .set_file_name("audit.yaml")
+                                .add_filter("YAML", &["yaml", "yml"])
+                                .save_file()
+                                .await
+                                .map(|h| h.path().to_path_buf())
+                        },
+                        Message::DefinitionSavePathPicked,
                     );
-                    return Task::none();
                 }
                 if let Some(def) = &self.definition {
                     match config_io::save(def, &path, true) {
@@ -954,6 +1006,47 @@ impl App {
                     },
                     Message::ReportPathPicked,
                 );
+            }
+
+            // RFC 046 — save-as dialog result ──────────────────────────
+            Message::DefinitionSavePathPicked(None) => {
+                // User cancelled the dialog — clear any pending-leave flag, no toast.
+                self.pending_leave_to_opening = false;
+            }
+
+            Message::DefinitionSavePathPicked(Some(chosen)) => {
+                self.definition_path = chosen.display().to_string();
+                // RFC 047 — make the newly-saved path visible in Optional settings.
+                self.optional_settings_expanded = true;
+                if let Some(def) = &self.definition {
+                    match config_io::save(def, &chosen, true) {
+                        Ok(()) => {
+                            self.dirty = false;
+                            self.last_saved_at = Some(chrono::Utc::now());
+                            self.push_toast(
+                                ToastIntent::Success,
+                                t!("toast.saved").as_ref(),
+                                t!("toast.saved_to_path",
+                                   path = chosen.display().to_string()).as_ref(),
+                            );
+                            if self.pending_leave_to_opening {
+                                self.pending_leave_to_opening = false;
+                                self.do_leave_to_opening();
+                            }
+                        }
+                        Err(e) => {
+                            let user_err = crate::error::UserError::from_i18n("error.save.failed");
+                            let full_message = format!("{}\n({})", user_err.message, e);
+                            self.push_toast_with_hint(
+                                ToastIntent::Error,
+                                t!("toast.save_failed").as_ref(),
+                                &full_message,
+                                &user_err.hint,
+                            );
+                            self.pending_leave_to_opening = false;
+                        }
+                    }
+                }
             }
 
             Message::ReportPathPicked(None) => { /* user cancelled */ }
@@ -1038,6 +1131,18 @@ impl App {
                 self.screen = Screen::Main;
                 self.selected_index = None;
                 self.dirty = false;
+
+                // RFC 052 — auto-select the first Pending entry so the user
+                // can start approving immediately without clicking in the tree.
+                let first_pending: Option<usize> = self.audit_result.as_ref().and_then(|r| {
+                    r.results.iter()
+                        .enumerate()
+                        .find(|(_, far)| far.status == AuditStatus::Pending)
+                        .map(|(idx, _)| idx)
+                });
+                if let Some(idx) = first_pending {
+                    return Task::perform(async move { idx }, Message::SelectEntry);
+                }
             }
             Message::DiffFailed(err) => {
                 self.is_loading = false;
@@ -1357,6 +1462,10 @@ impl App {
                     self.after_path      = p.after;
                     self.definition_path = p.definition.unwrap_or_default();
                     self.ignore_path     = p.ignore_file.unwrap_or_default();
+                    // RFC 047 — auto-expand so the user can see which approvals file loaded.
+                    if !self.definition_path.is_empty() {
+                        self.optional_settings_expanded = true;
+                    }
                     // RFC 023 FR-6: stamp last_used_at when loading so the
                     // Recent list re-orders on next view. We swallow the
                     // I/O error: failing to persist the timestamp must not
@@ -1423,13 +1532,22 @@ impl App {
                 // Inline save; navigate on success, show error and stay on failure.
                 let path = PathBuf::from(&self.definition_path);
                 if path.as_os_str().is_empty() {
-                    self.push_toast(
-                        ToastIntent::Error,
-                        t!("toast.save_failed").as_ref(),
-                        t!("toast.no_definition_path").as_ref(),
-                    );
+                    // RFC 046 — open save-as dialog; navigate after a successful pick+save.
                     self.nav_guard_open = false;
-                    return Task::none();
+                    self.pending_leave_to_opening = true;
+                    let title = t!("dialog.save_approvals_file").to_string();
+                    return Task::perform(
+                        async move {
+                            rfd::AsyncFileDialog::new()
+                                .set_title(title)
+                                .set_file_name("audit.yaml")
+                                .add_filter("YAML", &["yaml", "yml"])
+                                .save_file()
+                                .await
+                                .map(|h| h.path().to_path_buf())
+                        },
+                        Message::DefinitionSavePathPicked,
+                    );
                 }
                 if let Some(def) = &self.definition {
                     match config_io::save(def, &path, true) {
@@ -1464,6 +1582,11 @@ impl App {
                 else if self.nav_guard_open { self.nav_guard_open = false; }
                 else if self.settings_open  { self.settings_open = false; }
                 else { self.selected_index = None; }
+            }
+
+            // RFC 048 — Inspector progressive disclosure ───────────────
+            Message::ToggleAdvancedInspector => {
+                self.advanced_inspector_expanded = !self.advanced_inspector_expanded;
             }
 
             // RFC 039 — Revert selected OK entry to Pending ───────────
@@ -1577,6 +1700,12 @@ impl App {
                         (Key::Character("/"), m)
                             if !m.contains(Modifiers::CTRL) && !m.contains(Modifiers::ALT) =>
                             Message::FocusSearch,
+                        // RFC 051 — Ctrl+Enter submits approval (the reason text is
+                        // trimmed in the handler, so an accidental trailing newline
+                        // from the text_editor is harmless).
+                        (Key::Named(iced::keyboard::key::Named::Enter), m)
+                            if m.contains(Modifiers::CTRL) =>
+                            Message::ApproveAndSave,
                         // RFC 005: Enter → focus inspector reason
                         (Key::Named(iced::keyboard::key::Named::Enter), _) =>
                             Message::FocusInspectorReason,

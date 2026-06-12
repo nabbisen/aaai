@@ -130,6 +130,7 @@ These are RFC-documented and stable in v1.x:
 | Ctrl+R | Re-run audit |
 | Ctrl+Z | Undo last approval |
 | Ctrl+Shift+Z | Revert selected OK entry to Pending |
+| Ctrl+Enter | Approve and save current entry |
 | Ctrl+E | Export report (opens save-file dialog; format from extension) |
 | Arrow up / down | Move selection in the file tree |
 | Tab / Shift+Tab | Cycle pane focus |

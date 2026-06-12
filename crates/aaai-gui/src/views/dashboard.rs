@@ -2,7 +2,7 @@
 
 use iced::{
     Color, Element, Length, Padding,
-    widget::{column, container, row, space, text},
+    widget::{button, column, container, row, space, text},
 };
 use rust_i18n::t;
 
@@ -85,34 +85,60 @@ pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
         }
         col.into()
     } else {
-        container(
-            text(t!("empty_state.dashboard_all_clear").to_string()).size(13)
-                .color(Color::from_rgb(0.3, 0.6, 0.3))
+        // RFC 053 — all-clear state: show CTA buttons instead of static text.
+        let all_clear_label = text(t!("empty_state.dashboard_all_clear").to_string())
+            .size(13)
+            .color(Color::from_rgb(0.3, 0.6, 0.3));
+
+        let export_btn = button(
+            text(t!("toolbar.report_output").to_string()).size(13)
         )
+        .on_press(crate::app::Message::ExportReport)
+        .padding(Padding::from([8.0, 20.0]));
+
+        let new_audit_btn = button(
+            text(t!("dashboard.new_audit").to_string()).size(13)
+        )
+        .on_press(crate::app::Message::BackToOpening)
+        .padding(Padding::from([8.0, 20.0]))
+        .style(iced::widget::button::secondary);
+
+        column![
+            all_clear_label,
+            space().height(Length::Fixed(16.0)),
+            row![export_btn, new_audit_btn].spacing(12),
+        ]
+        .spacing(0)
         .into()
     };
 
-    // ── Hint ──────────────────────────────────────────────────────────
-    let hint = text(t!("empty_state.dashboard_select_file").to_string())
-        .size(12)
-        .color(Color::from_rgb(0.55, 0.55, 0.60));
+    // Hint — only shown when there ARE items needing attention.
+    // When all-clear, the CTA buttons above replace the hint.
+    let hint_visible = !attention.is_empty();
 
-    container(
-        column![
-            verdict_banner,
-            space().height(Length::Fixed(16.0)),
-            cards,
-            space().height(Length::Fixed(20.0)),
-            attention_section,
-            space().height(Length::Fill),
-            hint,
-        ]
-        .spacing(0)
-        .padding(Padding::from([24.0, 28.0])),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    let mut main_col = column![
+        verdict_banner,
+        space().height(Length::Fixed(16.0)),
+        cards,
+        space().height(Length::Fixed(20.0)),
+        attention_section,
+        space().height(Length::Fill),
+    ]
+    .spacing(0)
+    .padding(Padding::from([24.0, 28.0]));
+
+    if hint_visible {
+        main_col = main_col.push(
+            text(t!("empty_state.dashboard_select_file").to_string())
+                .size(12)
+                .color(Color::from_rgb(0.55, 0.55, 0.60))
+        );
+    }
+
+    container(main_col)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 #[allow(dead_code)]

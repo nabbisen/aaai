@@ -40,13 +40,16 @@ Two ways to fill the cards:
 
 ### Optional settings
 
-Below the cards is a collapsible section ("Optional settings"). It
-exposes two paths that the default behaviour infers when left blank:
+Below the cards is a collapsible section labelled **Optional settings**.
+Expand it to load an existing approvals file:
 
 | Field | Purpose |
 |---|---|
-| `audit.yaml` path | Existing audit definition. Leave empty to start with a fresh empty definition. |
-| `.aaaiignore` path | gitignore-style file specifying paths to skip. Leave empty to look for `<Before>/.aaaiignore` automatically. |
+| **Approvals file** | An existing `audit.yaml` containing saved approvals for this folder pair. Leave empty to start fresh — the first `Ctrl+S` will ask you where to save it. |
+
+Per-project path exclusions go in a `.aaaiignore` file in the Before
+folder (auto-detected). Global directory exclusions (`.git`, `target`,
+`node_modules`, …) are configured in **App Settings** (⚙).
 
 Once both folder cards are valid, the **Start audit** button enables.
 Clicking it saves the current paths as a profile (so they appear in
@@ -162,8 +165,10 @@ For binary files, the pane shows SHA-256 hashes, file sizes, and
 whether the contents match.
 
 When no file is selected, the centre pane shows the **dashboard**:
-a summary card per status and the top-priority items needing
-attention.
+a summary card per status and the top-priority items needing attention.
+When all entries are approved (Pending = 0), the dashboard shows
+**Export Report** and **New Audit** action buttons instead of the
+attention list.
 
 ### Inspector (right pane)
 
@@ -175,22 +180,30 @@ entry's **Expires at** date has passed, the header shows a red
 **EXPIRED** badge — the entry's file-tree status will be Pending until
 the approval is renewed.
 
-Below the header are the editable fields:
+The inspector uses **progressive disclosure**: essential fields are
+shown by default; expert fields are hidden behind a **▸ More options**
+toggle that stays expanded for the rest of the session once opened.
+
+**Always visible:**
 
 | Field | Required | Notes |
 |---|---|---|
 | Reason | ✅ | Multi-line textarea. Empty = cannot approve. |
-| Ticket | — | Link to an external tracker (e.g. `JIRA-123`). |
-| Approved by | — | Name or ID of the reviewer. |
-| Expires at | — | `YYYY-MM-DD`. Once this date passes, the entry reverts to Pending automatically. |
 | Strategy | — | None / Checksum / LineMatch / Regex / Exact. Fields adapt to the strategy. |
-| Note | — | Free-form notes; does not affect the verdict. |
+
+**Under ▸ More options:**
+
+| Field | Notes |
+|---|---|
+| Ticket | Link to an external tracker (e.g. `JIRA-123`). |
+| Approved by | Name or ID of the reviewer. |
+| Expires at | `YYYY-MM-DD`. Once this date passes, the entry reverts to Pending automatically. |
+| Note | Free-form notes; does not affect the verdict. |
 
 For approved entries (OK status), a **Revert to Pending** button
-appears at the bottom of the inspector. This removes the approval,
-resets the entry to Pending, and triggers a background rerun — useful
-for re-reviewing entries approved in a previous session. The keyboard
-shortcut `Ctrl+Shift+Z` performs the same action.
+appears below the strategy section. This removes the approval,
+resets the entry to Pending, and triggers a background rerun. The
+keyboard shortcut `Ctrl+Shift+Z` performs the same action.
 
 ### Bottom action bar
 
@@ -237,6 +250,7 @@ overlay at any time on the Main screen.
 | `Ctrl+R` | Re-run the audit |
 | `Ctrl+Z` | Undo the last approval |
 | `Ctrl+Shift+Z` | Revert the selected OK entry to Pending |
+| `Ctrl+Enter` | Approve and save the current entry |
 | `Ctrl+E` | Export report (opens save-file dialog) |
 | `↑` / `↓` | Move selection in the file tree |
 | `Tab` / `Shift+Tab` | Cycle pane focus |
@@ -286,14 +300,18 @@ See the [CLI Reference](cli.md) for the full set of report options.
 ```
 1. Launch aaai-gui.
 2. Drag the Before folder onto the screen, drag After on top, click Start.
-3. Look at the dashboard for an overall sense of what changed.
-4. Pick a Pending entry from the file tree.
-5. Review the diff in the centre pane.
-6. Type a reason in the inspector, pick a strategy if needed.
-7. Click Approve & Save (or press Enter then Ctrl+S).
-8. Press Ctrl+R to re-run and confirm the status badge turns green.
-9. Press Ctrl+E to export the report; choose Markdown or JSON.
+3. The first Pending entry is auto-selected — the inspector is ready.
+4. Review the diff in the centre pane.
+5. Type a reason in the inspector (expand ▸ More options if needed).
+6. Press Ctrl+Enter to approve and save.
+7. The next Pending entry loads automatically — repeat from step 4.
+8. When no Pending entries remain, the dashboard shows "Passed"
+   with Export Report and New Audit action buttons.
 ```
+
+The entire approval loop is keyboard-driven: no mouse needed after
+step 2. Use `Enter` to focus the Reason field, `Ctrl+Enter` to
+submit, and let the auto-advance carry you through the list.
 
 ---
 

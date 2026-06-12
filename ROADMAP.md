@@ -357,3 +357,27 @@ v1.0.0 ソーク中に別 RFC で議論する候補:
 - スクリーンリーダー対応（iced 側の a11y サポート待ち）
 - 追加言語（zh / ko）
 - `aaai-core` の独立 crate 化
+
+## Phase 16 — Workflow & UX Completeness ✅ (v0.24.0)
+
+9 RFCs shipped in v0.24.0, focused on making the approval workflow frictionless:
+
+- **RFC 045** — Opening screen Optional settings cleanup (remove `.aaaiignore`, rename "Audit definition" → "Approvals file", remove hint)
+- **RFC 046** — Save-as dialog for new approvals files (fixes new-user dead-end on first `Ctrl+S`)
+- **RFC 047** — Profile approvals visibility (auto-expand Optional settings when definition is loaded)
+- **RFC 048** — Inspector progressive disclosure + profile row simplification ("Less is more")
+- **RFC 049** — Inspector validation visibility + Approvals file placeholder
+- **RFC 050** — Auto-advance to next Pending entry after approval
+- **RFC 051** — `Ctrl+Enter` keyboard shortcut for approval
+- **RFC 052** — Auto-select first Pending entry on audit start
+- **RFC 053** — Dashboard all-clear CTA buttons (Export Report / New Audit)
+
+### Phase 16 metrics
+
+| Metric | v0.23.0 end | v0.24.0 end |
+|---|---|---|
+| RFCs done | 45 | 54 |
+| Total tests | 186 | 186 |
+| i18n keys (EN/JA) | 216/216 | 219/219 |
+| Warnings | 0 | 0 |
+

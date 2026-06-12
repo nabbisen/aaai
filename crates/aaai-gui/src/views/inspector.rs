@@ -242,17 +242,44 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     children.extend([
         reason_label.into(), reason_input.into(),
         iced::widget::rule::horizontal(1).into(),
-        ticket_label.into(), ticket_input.into(),
-        approved_by_label.into(), approved_by_input.into(),
-        expires_label.into(), expires_input.into(),
-        iced::widget::rule::horizontal(1).into(),
         strategy_label.into(),
         row![strategy_pick, space().width(Length::Fill)].spacing(4).into(),
         strategy_desc.into(),
-        tmpl_label.into(), tmpl_pick.into(),
         strategy_form,
-        note_label.into(), note_input.into(),
     ]);
+
+    // RFC 048 — progressive disclosure: expert fields behind a toggle.
+    // RFC 049 — if an advanced field has a validation error, force the
+    // section open so the user can see the field and fix it.
+    let effective_advanced_expanded = app.advanced_inspector_expanded
+        || ins.validation.expires_at_error.is_some();
+    let toggle_label = if effective_advanced_expanded {
+        t!("inspector.advanced_toggle_hide").to_string()
+    } else {
+        t!("inspector.advanced_toggle_show").to_string()
+    };
+    let toggle_btn = button(
+        text(format!("{} {}", if effective_advanced_expanded { "▾" } else { "▸" }, toggle_label))
+            .size(11)
+            .color(Color::from_rgb(0.40, 0.44, 0.55))
+    )
+    .on_press(Message::ToggleAdvancedInspector)
+    .style(iced::widget::button::text)
+    .padding(iced::Padding::from([4.0, 0.0]));
+
+    children.push(toggle_btn.into());
+
+    if effective_advanced_expanded {
+        children.extend([
+            iced::widget::rule::horizontal(1).into(),
+            ticket_label.into(), ticket_input.into(),
+            approved_by_label.into(), approved_by_input.into(),
+            expires_label.into(), expires_input.into(),
+            iced::widget::rule::horizontal(1).into(),
+            tmpl_label.into(), tmpl_pick.into(),
+            note_label.into(), note_input.into(),
+        ]);
+    }
 
     if let Some(err) = val_err {
         children.push(err);

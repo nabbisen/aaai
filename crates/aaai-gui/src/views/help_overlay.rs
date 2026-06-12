@@ -39,16 +39,17 @@ pub fn view<'a>() -> Element<'a, Message> {
 
     // Shortcut rows — (key_label, action_key)
     let shortcuts: &[(&str, &str)] = &[
-        ("Ctrl + S",        "help.save"),
-        ("Ctrl + R",        "help.rerun"),
-        ("Ctrl + Z",        "help.undo"),
-        ("Ctrl + Shift + Z","help.revert"),
-        ("Ctrl + E",        "help.export"),
-        ("↑ / ↓",          "help.navigate"),
-        ("Tab / Shift+Tab", "help.cycle_pane"),
-        ("Enter",           "help.approve"),
-        ("/",               "help.search"),
-        ("?",               "help.show_help"),
+        ("Ctrl + S",          "help.save"),
+        ("Ctrl + R",          "help.rerun"),
+        ("Ctrl + Z",          "help.undo"),
+        ("Ctrl + Shift + Z",  "help.revert"),
+        ("Ctrl + Enter",      "help.approve_and_save"),
+        ("Ctrl + E",          "help.export"),
+        ("↑ / ↓",            "help.navigate"),
+        ("Tab / Shift+Tab",   "help.cycle_pane"),
+        ("Enter",             "help.approve"),
+        ("/",                 "help.search"),
+        ("?",                 "help.show_help"),
     ];
 
     let rows: Vec<Element<'_, Message>> = shortcuts

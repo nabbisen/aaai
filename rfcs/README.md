@@ -63,6 +63,15 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [042](done/042-title-and-auto-profile.md) | Dynamic window title + auto-profile on audit run | v0.23.0 |
 | [043](done/043-filter-bar-counts.md) | Status counts in filter bar + bottom-bar count i18n | v0.23.0 |
 | [044](done/044-expires-at-enforcement.md) | expires_at enforcement in audit engine | v0.23.0 |
+| [045](done/045-opening-optional-settings-cleanup.md) | Opening screen Optional settings cleanup | v0.24.0 |
+| [046](done/046-save-as-dialog.md) | Save-as dialog for new approvals files | v0.24.0 |
+| [047](done/047-profile-approvals-visibility.md) | Opening screen: profile approvals visibility | v0.24.0 |
+| [048](done/048-less-is-more.md) | Inspector progressive disclosure + profile row simplification | v0.24.0 |
+| [049](done/049-validation-visibility.md) | Inspector validation visibility + Approvals file placeholder | v0.24.0 |
+| [050](done/050-auto-advance.md) | Auto-advance to next Pending entry after approval | v0.24.0 |
+| [051](done/051-ctrl-enter-approve.md) | Ctrl+Enter keyboard shortcut for approval | v0.24.0 |
+| [052](done/052-auto-select-first-pending.md) | Auto-select first Pending entry on audit start | v0.24.0 |
+| [053](done/053-dashboard-all-clear-cta.md) | Dashboard all-clear CTA buttons | v0.24.0 |
 
 > **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
 > RFC 017 のハーネスでエビデンスを取得し、判明した差分は個別 fix RFC を別途切る。

@@ -8,6 +8,155 @@ Format: `## [version] — description`
 
 ---
 
+## [0.24.0] — Phase 16: Workflow & UX Completeness (2026-06-09)
+
+### RFC 053 — Dashboard all-clear CTA buttons
+
+When all entries are approved (Pending = Failed = Error = 0), the dashboard now shows action buttons instead of static text:
+
+```
+All entries are in order.
+
+  [↑ Export Report]   [□ New Audit]
+```
+
+The misleading hint "Select a file from the left panel to inspect it." is hidden in the all-clear state — there is nothing to inspect. It still appears when items need attention. This completes the natural workflow: finish approvals → dashboard auto-guides to export or starting a new audit.
+
+1 new i18n key (`dashboard.new_audit` = "New Audit" / "新しい監査"). Total: **219/219/219**.
+
+
+### RFC 052 — Auto-select first Pending entry on audit start
+
+Completes the zero-friction approval workflow started in RFC 050–051.
+
+After `Message::DiffReady` sets the audit result, the handler now dispatches `Message::SelectEntry(idx)` for the first `AuditStatus::Pending` entry — so the inspector loads immediately without the user clicking anything.
+
+**Full keyboard-only approval loop (RFC 050 + 051 + 052):**
+```
+[start audit from opening screen]
+→ [inspector auto-loads first Pending]      ← RFC 052
+→ type reason
+→ Ctrl+Enter                                ← RFC 051
+→ [auto-advance to next Pending]            ← RFC 050
+→ type reason
+→ Ctrl+Enter
+   … repeat until Pending = 0 …
+→ dashboard shows "Passed"
+```
+
+No change to `RerunDiffReady` — reruns during an active session don't disturb the current selection. No i18n changes. 218/218/218.
+
+
+### RFC 051 — Ctrl+Enter keyboard shortcut for approval
+
+Combined with RFC 050's auto-advance, the approval loop is now fully keyboard-driven:
+
+```
+type reason → Ctrl+Enter → [auto-advances to next Pending] → type reason → Ctrl+Enter → …
+```
+
+`Ctrl+Enter` triggers `Message::ApproveAndSave` (approve + save in one action, same as the "Approve & Save" bottom-bar button). The shortcut is placed before the plain `Enter` handler, so `Enter` alone still focuses the Reason field. The reason text is trimmed before approval, so any accidental newline from the text_editor widget is harmless.
+
+Updated: `?` help overlay shortcut table (new `Ctrl + Enter` row). 1 new i18n key (`help.approve_and_save`). Total: **218/218/218**.
+
+
+### RFC 050 — Auto-advance to next Pending entry after approval
+
+After a successful approval, the inspector now automatically selects the next entry with `AuditStatus::Pending`, removing the manual tree-click between every approval.
+
+**Algorithm:** scan `audit_result.results` starting from `idx + 1` (wrapping around), skipping the just-approved path (whose status is still Pending in the current results because the background rerun hasn't completed yet). If a next Pending is found, dispatch `Message::SelectEntry(next_idx)` alongside the rerun task via `Task::batch`. If no more Pending entries exist, the selection stays on the approved entry.
+
+**Workflow change:**
+```
+Before: type reason → Approve & Save → click next file → type reason → ...
+After:  type reason → Approve & Save → type reason → ...  (inspector advances automatically)
+```
+
+No i18n changes. No new messages. i18n stays at 217/217/217.
+
+
+### RFC 049 — Inspector validation visibility + Approvals file placeholder
+
+Two fixes following RFC 048's progressive disclosure:
+
+**Fix A — validation error orphaned behind collapsed toggle:** if a loaded entry has a malformed `expires_at` value, the validation error was displayed *outside* the `▸ More options` section while the field itself was hidden inside it — error visible, field invisible. Fix: `effective_advanced_expanded = toggle_state || expires_at_error.is_some()`. The advanced section now auto-opens whenever the `expires_at` field has an error.
+
+**Fix B — Approvals file field has no placeholder:** `file_picker_row` was called with an empty string placeholder. The Approvals file input now shows "Leave empty to be prompted on first Save" / "空欄の場合は初回保存時に保存先を選択します" when empty, giving users clear guidance about what the field does and what happens if they skip it.
+
+Also: `file_picker_row` signature changed from `placeholder: &'a str` to `placeholder: String` to avoid lifetime conflicts with `t!()` temporaries.
+
+1 new i18n key (`opening.definition_placeholder`). Total: **217/217/217**.
+
+
+### RFC 048 — Inspector progressive disclosure + profile row simplification
+
+Applying the "Less is more" design principle:
+
+**Inspector:** The Inspector previously showed 8–10 fields simultaneously — Reason, Ticket, Approved by, Expires at, Strategy, Template, Note, strategy rules, and contextual buttons. A first-time user who just needs to type a reason and approve faced a form that implied complexity before they understood the app.
+
+The inspector now shows by default:
+- Header (path, type, status, EXPIRED badge if applicable)
+- Reason textarea (the required field)
+- Strategy picker + rules (essential even for new users)
+- `▸ More options` / `▾ Fewer options` toggle
+
+Clicking the toggle reveals: Ticket, Approved by, Expires at, Template, Note. The expanded state is session-global (`advanced_inspector_expanded: bool`) — once a user expands, the advanced fields stay visible for the session.
+
+**Profile rows (RFC 047 Fix A reverted):** RFC 047 added a `📋 audit.yaml` third line to each profile row. Reverted — the profile name is already auto-derived from the definition stem (RFC 042), so `▸ audit` already implies `audit.yaml`. Three-line rows add density without differentiation.
+
+Net i18n: +2 new (`inspector.advanced_toggle_show`, `inspector.advanced_toggle_hide`), −1 removed (`opening.recent_project_definition` from RFC 047 Fix A). Total: **216/216/216**.
+
+
+### RFC 047 — Opening screen: profile approvals visibility
+
+Two gaps in how the approvals file is surfaced on the Opening screen:
+
+**Fix A — approvals filename in profile rows:** when a saved profile has an associated approvals file, the Recent Projects row now shows a third sub-line `📋 audit.yaml` (just the filename, not the full path). Profiles without a definition show no third line. This lets users distinguish profiles that point to the same Before/After folders but use different approvals files.
+
+**Fix B — auto-expand Optional settings:** the "Optional settings" section now auto-expands whenever `definition_path` becomes non-empty:
+- `LoadProfile` — when the loaded profile has a `definition` set
+- `DefinitionSavePathPicked(Some(...))` — after a save-as completes
+
+Previously, a user who loaded a profile with an associated approvals file would never see it (the section stayed collapsed). Now the Approvals file field is immediately visible.
+
+1 new i18n key (`opening.recent_project_definition`). Total: **215/215/215**.
+
+
+### RFC 046 — Save-as dialog for new approvals files
+
+**Bug fixed:** pressing `Ctrl+S` (or the Save toolbar button) when no approvals
+file was specified showed a dead-end error toast ("No definition file path set.")
+with no way forward. A user who starts a fresh audit, approves entries, and tries
+to save had no recovery path.
+
+**Fix:** the empty-path branch in `SaveDefinition` now opens a native
+`rfd::AsyncFileDialog::save_file()` dialog (default filename `audit.yaml`, YAML
+filter). After the user picks a path:
+- `definition_path` is set (so subsequent `Ctrl+S` saves go directly to disk)
+- The file is saved
+- The window title updates to show the new filename (via RFC 042 dynamic title)
+
+`NavGuardSaveAndLeave` with an empty path follows the same path: opens the dialog,
+and if the user picks a file, saves and navigates to the Opening screen. If the
+user cancels, the nav guard closes silently (no navigation, no error).
+
+**i18n:** net 0 — added `dialog.save_approvals_file`, removed now-unreachable
+`toast.no_definition_path`. Total remains **214/214/214**.
+
+
+### RFC 045 — Opening screen Optional settings cleanup
+
+Three changes to the Opening screen's "Optional settings" collapsible:
+
+- **`.aaaiignore` picker removed.** The per-project `.aaaiignore` file picker is no longer shown. Global ignored directories in App Settings (RFC 036) cover the common case; per-project `.aaaiignore` files are still auto-detected from the Before folder silently. The `ignore_path` state is kept for backward compatibility with saved profiles.
+- **"Approvals file" label.** The field label was "Audit definition" (jargon); renamed to "Approvals file" (EN) / "承認ファイル" (JA).
+- **Hint text removed.** The subtitle "Collapsed by default. Without these, a new audit definition is created." is removed — it was developer documentation, not user guidance.
+- Section header simplified: was "Optional settings (audit definition / .aaaiignore)", now "Optional settings".
+
+Net i18n: −2 keys (`opening.optional_hint`, `opening.ignore_label`). Total: **214/214/214**.
+
+---
+
 ## [0.23.0] — Phase 15: Polish & Correctness (2026-06-06)
 
 ### RFC 036 — App Settings dialog
