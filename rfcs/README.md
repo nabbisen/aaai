@@ -83,6 +83,7 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [063](done/063-aaai-dashboard.md) | aaai dashboard activation | v0.26.0 |
 | [065](done/065-aaai-init.md) | aaai init activation | v0.27.0 |
 | [066](done/066-definition-unit-tests.md) | AuditDefinition direct unit tests | v0.27.0 |
+| [068](done/068-snora-0-18.md) | snora 0.18.0 dependency update | v0.28.0 |
 | [067](done/067-readme-fix.md) | README accuracy fix | v0.27.0 |
 | [064](done/064-suggest-patterns-tests.md) | GUI suggest_patterns unit tests | v0.26.0 |
 | [058](done/058-pending-count-title.md) | Pending count in window title | v0.25.0 |

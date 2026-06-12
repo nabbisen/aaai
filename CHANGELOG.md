@@ -8,6 +8,24 @@ Format: `## [version] — description`
 
 ---
 
+## [0.28.0] — Dependency update: snora 0.18.0 (2026-06-10)
+
+### RFC 068 — snora 0.8 → 0.18.0
+
+**snora 0.18.0 released on crates.io; aaai updated.**
+
+snora uses pre-1.0 semver (minor = breaking). aaai upgraded across 10 minor versions. Migration audit confirmed zero breaking changes for aaai's API surface:
+
+- **0.11.0 `AppLayout` `#[non_exhaustive]`** — aaai constructs `AppLayout` exclusively via `AppLayout::new(body).footer(...).toasts(...).toast_position(...)`, never via struct literals. No change required.
+- **0.11.0 toast ordering fix** — inverted display predicate corrected; `ToastPosition::BottomEnd` now shows the newest toast at the correct anchor edge. Visual improvement only.
+- **0.14.0 `snora::keyboard::dismiss_on_escape`** — additive export, unused by aaai.
+- **0.17.0 `Icon` implements `PartialEq`** — additive; aaai does not import `Icon`.
+- **0.8–0.18 all other changes** — docs, test harness, examples, CI, ROADMAP. No public API changes.
+
+snora 0.18.0 still targets iced 0.14. No transitive version conflict. 220 tests pass; 0 warnings.
+
+---
+
 ## [0.27.0] — Phase 19: v1.0.0 Readiness (2026-06-09)
 
 ### RFC 065 — `aaai init` activation
