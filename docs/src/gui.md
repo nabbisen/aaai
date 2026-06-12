@@ -8,8 +8,9 @@ aaai-gui
 
 The app opens to the Opening screen. From there you pick the two
 folders to compare, then drive an audit through the main 3-pane
-workspace. The window title shows the current definition filename
-and a `●` marker when there are unsaved changes.
+workspace. The window title shows the current definition filename,
+a `●` marker when there are unsaved changes, and `(N pending)` when
+there are entries still awaiting approval.
 
 ---
 
@@ -204,6 +205,14 @@ For approved entries (OK status), a **Revert to Pending** button
 appears below the strategy section. This removes the approval,
 resets the entry to Pending, and triggers a background rerun. The
 keyboard shortcut `Ctrl+Shift+Z` performs the same action.
+
+**Glob patterns** — the **▸ Use pattern** toggle (between the path
+header and the Reason field) lets you approve a whole group of files
+with one rule. When toggled on, a Pattern input appears pre-filled
+with the current file's path. Edit it to a glob (e.g.
+`node_modules/**`, `**/*.lock`). Three clickable suggestion chips
+appear automatically based on the path. Approving saves the glob
+entry; the background rerun marks every matching file OK.
 
 ### Bottom action bar
 

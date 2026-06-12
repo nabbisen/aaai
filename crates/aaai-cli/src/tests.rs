@@ -1384,3 +1384,95 @@ fn rfc024_json_output_audit_suppresses_zone4_hint() {
     assert!(!stdout.contains("Next: "),
         "--json-output should suppress the Zone 4 hint, got:\n{stdout}");
 }
+
+// ── RFC 056: `aaai watch` ─────────────────────────────────────────────────
+
+#[test]
+fn rfc056_watch_help_available() {
+    // Smoke test: the watch subcommand exists and --help succeeds.
+    let out = aaai().args(["watch", "--help"]).output().unwrap();
+    assert!(out.status.success(), "watch --help failed:\n{}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("before"), "watch --help should mention the before path");
+    assert!(stdout.contains("config"), "watch --help should mention the config path");
+}
+
+// ── RFC 057: `aaai export` ────────────────────────────────────────────────
+
+#[test]
+fn rfc057_export_csv_to_stdout() {
+    let tmp    = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "a.txt", "old\n");
+    write(&after,  "a.txt", "new\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    let _ = aaai().args(["snap", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-o"]).arg(&audit_yaml)
+        .status();
+
+    let out = aaai()
+        .args(["export", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-c"]).arg(&audit_yaml)
+        .output().unwrap();
+    assert!(out.status.success(), "export failed: {}", String::from_utf8_lossy(&out.stderr));
+    let csv = String::from_utf8(out.stdout).unwrap();
+    assert!(csv.starts_with("path,"), "first line should be CSV header, got: {csv}");
+    assert!(csv.contains("a.txt"), "CSV should contain the changed file");
+}
+
+#[test]
+fn rfc057_export_tsv_format() {
+    let tmp    = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "b.txt", "x\n");
+    write(&after,  "b.txt", "y\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    let _ = aaai().args(["snap", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-o"]).arg(&audit_yaml)
+        .status();
+
+    let out = aaai()
+        .args(["export", "--format", "tsv", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-c"]).arg(&audit_yaml)
+        .output().unwrap();
+    assert!(out.status.success(), "export tsv failed");
+    let tsv = String::from_utf8(out.stdout).unwrap();
+    // TSV uses tab separators, not commas.
+    let header = tsv.lines().next().unwrap_or("");
+    assert!(header.contains('\t'), "TSV header should use tab separators");
+}
+
+#[test]
+fn rfc057_export_to_file() {
+    let tmp    = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "c.txt", "1\n");
+    write(&after,  "c.txt", "2\n");
+    let audit_yaml  = tmp.path().join("audit.yaml");
+    let output_csv  = tmp.path().join("out.csv");
+    let _ = aaai().args(["snap", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-o"]).arg(&audit_yaml)
+        .status();
+
+    let status = aaai()
+        .args(["export", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-c"]).arg(&audit_yaml)
+        .args(["-o"]).arg(&output_csv)
+        .status().unwrap();
+    assert!(status.success(), "export to file failed");
+    assert!(output_csv.exists(), "output CSV file should exist");
+    let content = std::fs::read_to_string(&output_csv).unwrap();
+    assert!(content.contains("c.txt"), "output file should contain the changed entry");
+}

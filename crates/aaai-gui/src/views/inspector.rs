@@ -83,6 +83,77 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         .height(Length::Fixed(72.0))
         .padding(Padding::from([8.0, 10.0]));
 
+    // ── RFC 054: glob-pattern toggle ─────────────────────────────────
+    let pattern_arrow = if ins.use_pattern { "▾" } else { "▸" };
+    let pattern_toggle = button(
+        text(format!("{} {}", pattern_arrow, t!("inspector.use_pattern")))
+            .size(11)
+            .color(Color::from_rgb(0.40, 0.44, 0.55))
+    )
+    .on_press(Message::ToggleUsePattern)
+    .style(iced::widget::button::text)
+    .padding(iced::Padding::from([3.0, 0.0]));
+
+    let pattern_section: Option<iced::Element<'_, Message>> = if ins.use_pattern {
+        let pattern_input = text_input(
+            &t!("inspector.pattern_placeholder"),
+            &ins.pattern_path,
+        )
+        .on_input(Message::PatternChanged)
+        .padding(Padding::from([6.0, 8.0]))
+        .size(12);
+
+        let pat_status: iced::Element<'_, Message> = match &ins.validation.pattern_error {
+            Some(err) => text(format!("✗ {}", err))
+                .size(11)
+                .color(Color::from_rgb(0.78, 0.10, 0.10))
+                .into(),
+            None if !ins.pattern_path.trim().is_empty() =>
+                text("✓")
+                    .size(11)
+                    .color(Color::from_rgb(0.18, 0.60, 0.18))
+                    .into(),
+            _ => iced::widget::space().height(0).into(),
+        };
+
+        // RFC 055 — suggestion chips
+        let suggestions_row: Option<iced::Element<'_, Message>> =
+            if !ins.pattern_suggestions.is_empty() {
+                let label = text(t!("inspector.pattern_suggestions").to_string())
+                    .size(10)
+                    .color(Color::from_rgb(0.55, 0.55, 0.60));
+                let chips: Vec<iced::Element<'_, Message>> = ins.pattern_suggestions
+                    .iter()
+                    .map(|s| {
+                        let s2 = s.clone();
+                        button(text(s).size(10).font(iced::Font::MONOSPACE))
+                            .on_press(Message::ApplyPatternSuggestion(s2))
+                            .padding(iced::Padding::from([3.0, 7.0]))
+                            .style(iced::widget::button::secondary)
+                            .into()
+                    })
+                    .collect();
+                let chip_row = iced::widget::row(chips).spacing(4);
+                Some(column![label, chip_row].spacing(4).into())
+            } else {
+                None
+            };
+
+        Some(column(
+            [
+                Some(semibold_text(t!("inspector.pattern_label").to_string(), 12.0).into()),
+                Some(pattern_input.into()),
+                Some(pat_status),
+                suggestions_row,
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+        ).spacing(4).into())
+    } else {
+        None
+    };
+
     // ── Section: Phase 3 traceability ────────────────────────────────
     let ticket_label = semibold_text(t!("inspector.ticket_label").to_string(), 12.0);
     let ticket_input = text_input(&t!("inspector.ticket_placeholder"), &ins.ticket)
@@ -217,6 +288,8 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         if let Some(e) = &ins.validation.expires_at_error {
             blocks.push(text(e.clone()).size(11).color(err_color).into());
         }
+        // pattern_error is shown inline in the pattern section when use_pattern is true;
+        // no duplicate display needed here.
 
         if blocks.is_empty() {
             None
@@ -241,6 +314,13 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
 
     children.extend([
         reason_label.into(), reason_input.into(),
+        iced::widget::rule::horizontal(1).into(),
+        pattern_toggle.into(),
+    ]);
+    if let Some(ps) = pattern_section {
+        children.push(ps);
+    }
+    children.extend([
         iced::widget::rule::horizontal(1).into(),
         strategy_label.into(),
         row![strategy_pick, space().width(Length::Fill)].spacing(4).into(),

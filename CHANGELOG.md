@@ -8,6 +8,82 @@ Format: `## [version] — description`
 
 ---
 
+## [0.25.0] — Phase 17: Glob Rules & Power Workflow (2026-06-09)
+
+### RFC 055 — Auto-suggest glob patterns from current path
+
+Completes RFC 054's glob toggle. When "▸ Use pattern" is opened, up to three clickable suggestion chips appear below the pattern input, derived from the current diff path:
+
+- `{first_dir}/**` — wildcard everything under the top directory  
+- `{first_dir}/**/*.{ext}` — wildcard intermediate dirs, preserve extension
+- `**/*.{ext}` — all files with the same extension
+
+Clicking a chip fills the input and re-validates immediately. No manual glob knowledge required for the common cases.
+
+1 new i18n key (`inspector.pattern_suggestions`). Total: **225/225/225**.
+
+### RFC 056 — `aaai watch` completion
+
+The `crates/aaai-cli/src/cmd/watch.rs` stub was already feature-complete. Activated by confirming it compiles, adding one smoke test, and wiring it into the release.
+
+```sh
+aaai watch --left ./before --right ./after --config audit.yaml
+```
+
+Debounced (default 500 ms) file-system watcher; re-runs the full audit on any Create/Modify/Remove event in Before, After, or the definition file. Compact timestamped output per run.
+
+### RFC 057 — `aaai export` completion
+
+The `crates/aaai-cli/src/cmd/export.rs` stub was already feature-complete. Activated by confirming it compiles, adding three integration tests (CSV stdout, TSV format, file output), and wiring into the release.
+
+```sh
+aaai export -l ./before -r ./after -c audit.yaml           # CSV to stdout
+aaai export -l ./before -r ./after -c audit.yaml -f tsv    # TSV format
+aaai export -l ./before -r ./after -c audit.yaml -o out.csv
+```
+
+Exports `path, diff_type, status, reason, strategy, ticket, approved_by, approved_at, expires_at, enabled, note, created_at, updated_at` with RFC 4180-compliant CSV escaping.
+
+**aaai-cli tests: 70 → 74 (+4)**
+
+
+### RFC 058 — Pending count in window title
+
+Window title now shows `(N pending)` when Pending > 0:
+
+| State | Title |
+|---|---|
+| 12 pending | `aaai — audit.yaml ● (12 pending)` |
+| All approved | `aaai — audit.yaml` |
+
+Users can track audit progress from the OS taskbar. The count drops to zero as
+approvals complete and the background rerun finishes. No i18n changes (the count
+format is language-neutral). 225/225/225.
+
+
+### RFC 054 — Glob pattern entries in Inspector
+
+`aaai-core` has always supported glob-pattern entries (`is_glob()`, `glob_matches()`, `find_entry()` already does exact-first then glob-fallback), but the GUI forced every approval to the exact diff path. RFC 054 exposes the glob engine through the Inspector.
+
+**New "▸ Use pattern" toggle** between the path header and the Reason field:
+
+- Off (default): approval saves the exact diff path (previous behaviour unchanged)
+- On: a Pattern text input appears, pre-filled with the diff path, editable to any glob (e.g. `node_modules/**`)
+  - Live validation: ✓ (valid glob) / ✗ (invalid pattern, empty)
+  - Approval uses the pattern as the entry path; the background rerun then marks every matching file as OK
+  - `Ctrl+Enter` works with the pattern active
+
+**Example workflow** — 40 `node_modules/` files, one approval:
+1. Select any node_modules file  
+2. Toggle ▸ Use pattern → type `node_modules/**`  
+3. Type "Third-party dependency update" as reason  
+4. `Ctrl+Enter` — creates one glob entry covering all 40 files  
+5. Background rerun marks all 40 as OK  
+
+`glob` crate added as a direct dependency of `aaai-gui`. 5 new i18n keys (`inspector.use_pattern`, `inspector.pattern_label`, `inspector.pattern_placeholder`, `inspector.pattern_empty`, `inspector.pattern_invalid`). Total: **224/224/224**.
+
+---
+
 ## [0.24.0] — Phase 16: Workflow & UX Completeness (2026-06-09)
 
 ### RFC 053 — Dashboard all-clear CTA buttons

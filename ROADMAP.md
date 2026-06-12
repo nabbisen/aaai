@@ -381,3 +381,66 @@ v1.0.0 ソーク中に別 RFC で議論する候補:
 | i18n keys (EN/JA) | 216/216 | 219/219 |
 | Warnings | 0 | 0 |
 
+## Phase 17 — Glob Rules & Power Workflow ✅ (v0.25.0)
+
+Theme: Make aaai practical for large repositories and team workflows.
+aaai-core already supports glob-pattern entries; this phase exposes
+them through the GUI, completes two nearly-finished CLI commands, and
+adds targeted power-user features.
+
+### GUI: glob pattern entries (RFC 054–055)
+
+**RFC 054 — Glob pattern entries in Inspector**
+When looking at a specific diff (e.g. `node_modules/lodash/README.md`),
+the user can choose to approve as a glob (`node_modules/**`) that covers
+many matching files at once. The Inspector gains a "Use pattern ▸"
+toggle that expands a pattern text input pre-filled with the current
+path. On approval, the glob entry is saved; auto-advance (RFC 050)
+skips all other diffs already matched by the new pattern.
+
+**RFC 055 — Auto-suggest glob patterns**
+When the "Use pattern" toggle opens, suggest two or three candidate
+patterns derived from the current path:
+- Parent-directory wildcard (`parent/**`)
+- Extension wildcard (`**/*.ext`)
+- Direct parent + filename (`parent/*.ext`)
+Clicking a chip fills the pattern field. User can also type freely.
+
+### CLI: complete near-done stubs (RFC 056–057)
+
+**RFC 056 — `aaai watch` completion**
+Complete the `watch.rs` stub: debounced file-system watcher using
+`notify`; re-runs audit on any change to Before, After, or the
+definition file; prints a compact diff-summary on each run.
+
+**RFC 057 — `aaai export` completion**
+Complete the `export.rs` stub: write `path, diff_type, status, reason,
+strategy, ticket, approved_by, approved_at, expires_at, note` as
+CSV or TSV to stdout or a file.
+
+### Polish (RFC 058)
+
+**RFC 058 — Pending count in window title**
+Window title shows `aaai — audit.yaml ● (12 pending)` so the user
+can see audit progress from the OS taskbar without switching focus.
+
+### Phase 17 metrics
+
+| Metric | v0.24.0 | v0.25.0 |
+|---|---|---|
+| RFCs done | 54 | 59 |
+| aaai-cli tests | 70 | 74 |
+| Total tests | 186 | 190 |
+| i18n keys | 219/219 | 225/225 |
+| GUI glob support | ✗ | ✓ |
+| `aaai watch` complete | stub | ✓ |
+| `aaai export` complete | stub | ✓ |
+
+| Metric | v0.24.0 | v0.25.0 target |
+|---|---|---|
+| RFCs done | 54 | 59 |
+| i18n keys | 219 | ~230 |
+| GUI glob support | ✗ | ✓ |
+| `aaai watch` complete | stub | ✓ |
+| `aaai export` complete | stub | ✓ |
+

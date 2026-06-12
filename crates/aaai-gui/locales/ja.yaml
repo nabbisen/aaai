@@ -80,6 +80,12 @@ inspector:
   revert_to_pending: Pending に戻す
   advanced_toggle_show: 詳細オプション
   advanced_toggle_hide: 詳細を隠す
+  use_pattern: パターンを使用
+  pattern_label: パターン
+  pattern_placeholder: '例: node_modules/**'
+  pattern_empty: パターンを入力してください。
+  pattern_invalid: 無効なグロブパターンです。
+  pattern_suggestions: '候補:'
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト

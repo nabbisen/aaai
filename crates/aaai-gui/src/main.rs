@@ -34,6 +34,7 @@ fn main() -> iced::Result {
     .subscription(app::App::subscription)
     .title(|app: &app::App| {
         // RFC 042 — dynamic title: `aaai — {filename}{dirty?}` on Main screen.
+        // RFC 058 — append `(N pending)` when Pending > 0.
         let base = t!("app.title").to_string();
         if matches!(app.screen, app::Screen::Main) {
             let fname: Option<&str> = if !app.definition_path.is_empty() {
@@ -44,10 +45,18 @@ fn main() -> iced::Result {
                 None
             };
             let dirty = if app.dirty { " ●" } else { "" };
+            let pending = app.audit_result.as_ref()
+                .map(|r| r.summary.pending)
+                .unwrap_or(0);
+            let pending_str = if pending > 0 {
+                format!(" ({pending} pending)")
+            } else {
+                String::new()
+            };
             if let Some(name) = fname {
-                return format!("{} — {}{}", base, name, dirty);
-            } else if app.dirty {
-                return format!("{}{}", base, dirty);
+                return format!("{} — {}{}{}", base, name, dirty, pending_str);
+            } else if app.dirty || pending > 0 {
+                return format!("{}{}{}", base, dirty, pending_str);
             }
         }
         base

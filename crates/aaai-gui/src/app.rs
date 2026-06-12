@@ -136,6 +136,7 @@ pub struct InspectorValidation {
     pub reason_error:     Option<String>,
     pub strategy_errors:  Vec<FieldError>,
     pub expires_at_error: Option<String>,
+    pub pattern_error:    Option<String>,   // RFC 054: invalid/empty glob
 }
 
 impl InspectorValidation {
@@ -143,6 +144,7 @@ impl InspectorValidation {
         self.reason_error.is_none()
             && self.strategy_errors.is_empty()
             && self.expires_at_error.is_none()
+            && self.pattern_error.is_none()
     }
 }
 
@@ -164,6 +166,13 @@ pub struct InspectorState {
     pub ticket: String,
     pub approved_by: String,
     pub expires_at_str: String,
+    // RFC 054 — glob pattern override
+    /// When true, `pattern_path` is used as the entry path instead of the diff path.
+    pub use_pattern: bool,
+    /// Editable path / glob; initialised to `far.diff.path` on selection.
+    pub pattern_path: String,
+    /// RFC 055 — auto-suggested glob chips derived from the diff path.
+    pub pattern_suggestions: Vec<String>,
 }
 
 impl Default for InspectorState {
@@ -179,6 +188,9 @@ impl Default for InspectorState {
             ticket: String::new(),
             approved_by: String::new(),
             expires_at_str: String::new(),
+            use_pattern: false,
+            pattern_path: String::new(),
+            pattern_suggestions: Vec::new(),
         }
     }
 }
@@ -412,6 +424,12 @@ pub enum Message {
 
     /// RFC 048 — toggle the expert fields section in the Inspector.
     ToggleAdvancedInspector,
+    /// RFC 054 — toggle glob-pattern override in the Inspector.
+    ToggleUsePattern,
+    /// RFC 054 — user edited the pattern text input.
+    PatternChanged(String),
+    /// RFC 055 — user clicked a suggestion chip.
+    ApplyPatternSuggestion(String),
 
     /// RFC 039 — removes the currently-selected OK entry from the definition,
     /// reverting it to Pending status. Triggers an async rerun.
@@ -662,9 +680,18 @@ impl App {
                             ticket: entry.ticket.clone().unwrap_or_default(),
                             approved_by: entry.approved_by.clone().unwrap_or_default(),
                             expires_at_str: entry.expires_at.map(|d| d.to_string()).unwrap_or_default(),
+                            // RFC 054 — reset pattern toggle; seed path from diff
+                            use_pattern: false,
+                            pattern_path: far.diff.path.clone(),
+                            pattern_suggestions: Vec::new(),
                         }
                     } else {
-                        InspectorState::default()
+                        InspectorState {
+                            use_pattern: false,
+                            pattern_path: far.diff.path.clone(),
+                            pattern_suggestions: Vec::new(),
+                            ..InspectorState::default()
+                        }
                     };
                 }
             }
@@ -797,9 +824,17 @@ impl App {
                         };
                         match entry.is_approvable() {
                             Ok(()) => {
-                                let path = far.diff.path.clone();
+                                // RFC 054: use pattern path if override is active
+                                let entry_path = if self.inspector.use_pattern
+                                    && !self.inspector.pattern_path.trim().is_empty()
+                                {
+                                    self.inspector.pattern_path.trim().to_string()
+                                } else {
+                                    far.diff.path.clone()
+                                };
+                                let path = entry_path.clone();
                                 if let Some(def) = &mut self.definition {
-                                    let mut stamped = entry;
+                                    let mut stamped = AuditEntry { path: entry_path, ..entry };
                                     stamped.stamp_now();
                                     let path_for_undo = stamped.path.clone();
                                     def.upsert_entry(stamped);
@@ -1589,6 +1624,29 @@ impl App {
                 self.advanced_inspector_expanded = !self.advanced_inspector_expanded;
             }
 
+            // RFC 054 — glob pattern toggle ───────────────────────────
+            Message::ToggleUsePattern => {
+                self.inspector.use_pattern = !self.inspector.use_pattern;
+                if self.inspector.use_pattern {
+                    // RFC 055 — populate suggestions from the current path
+                    self.inspector.pattern_suggestions =
+                        App::suggest_patterns(&self.inspector.pattern_path);
+                    self.validate_pattern();
+                } else {
+                    self.inspector.pattern_suggestions.clear();
+                    self.inspector.validation.pattern_error = None;
+                }
+            }
+            Message::PatternChanged(s) => {
+                self.inspector.pattern_path = s;
+                self.validate_pattern();
+            }
+            // RFC 055 — suggestion chip clicked
+            Message::ApplyPatternSuggestion(s) => {
+                self.inspector.pattern_path = s;
+                self.validate_pattern();
+            }
+
             // RFC 039 — Revert selected OK entry to Pending ───────────
             Message::RevertSelectedEntry => {
                 if let (Some(idx), Some(def)) = (self.selected_index, &mut self.definition) {
@@ -2059,6 +2117,50 @@ impl App {
 
         self.profiles.add(profile);
         let _ = self.profiles.save();
+    }
+
+    /// RFC 055 — derive up to 3 glob suggestions from a concrete path.
+    fn suggest_patterns(path: &str) -> Vec<String> {
+        let parts: Vec<&str> = path.split('/').collect();
+        let mut seen = std::collections::HashSet::new();
+        let mut out: Vec<String> = Vec::new();
+
+        let mut push = |s: String| {
+            if seen.insert(s.clone()) && out.len() < 3 { out.push(s); }
+        };
+
+        // Extension (last component after last '.', not in a dir name)
+        let ext: Option<&str> = path.rsplit('.').next()
+            .filter(|e| !e.contains('/') && !e.is_empty() && e.len() <= 6);
+
+        if parts.len() >= 2 {
+            push(format!("{}/**", parts[0]));
+            if let Some(e) = ext {
+                push(format!("{}/**/*.{}", parts[0], e));
+            }
+        }
+        if let Some(e) = ext {
+            push(format!("**/*.{}", e));
+        }
+        out
+    }
+
+    /// RFC 054 — validate the glob pattern in the Inspector.
+    fn validate_pattern(&mut self) {
+        if !self.inspector.use_pattern {
+            self.inspector.validation.pattern_error = None;
+            return;
+        }
+        let pat = self.inspector.pattern_path.trim();
+        if pat.is_empty() {
+            self.inspector.validation.pattern_error =
+                Some(t!("inspector.pattern_empty").to_string());
+        } else if glob::Pattern::new(pat).is_err() {
+            self.inspector.validation.pattern_error =
+                Some(t!("inspector.pattern_invalid").to_string());
+        } else {
+            self.inspector.validation.pattern_error = None;
+        }
     }
 
     /// RFC 041 — centralised navigation to the Opening screen.
