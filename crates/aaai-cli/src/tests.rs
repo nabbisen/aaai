@@ -1672,3 +1672,43 @@ fn rfc063_dashboard_basic_run() {
     assert!(stdout.contains("Pending") || stdout.contains("FAILED"),
         "dashboard output should show audit status:\n{stdout}");
 }
+
+// ── RFC 065: `aaai init` ──────────────────────────────────────────────────
+
+#[test]
+fn rfc065_init_non_interactive_creates_config() {
+    let tmp = tempfile::tempdir().unwrap();
+    let status = aaai()
+        .args(["init", "--non-interactive", "--dir"])
+        .arg(tmp.path())
+        .status().unwrap();
+    assert!(status.success(), "init --non-interactive should exit 0");
+    let config = tmp.path().join(".aaai.yaml");
+    assert!(config.exists(), ".aaai.yaml should be created");
+    let content = std::fs::read_to_string(&config).unwrap();
+    assert!(content.contains("version"), ".aaai.yaml should have a version field");
+}
+
+#[test]
+fn rfc065_init_existing_config_warns_and_exits_zero() {
+    let tmp = tempfile::tempdir().unwrap();
+    // Pre-create the config file
+    std::fs::write(tmp.path().join(".aaai.yaml"), "version: '1'\n").unwrap();
+
+    let out = aaai()
+        .args(["init", "--non-interactive", "--dir"])
+        .arg(tmp.path())
+        .output().unwrap();
+    assert!(out.status.success(), "init with existing config should still exit 0");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("already exists") || stdout.contains("⚠"),
+        "should warn that config exists:\n{stdout}");
+}
+
+#[test]
+fn rfc065_init_help_available() {
+    let out = aaai().args(["init", "--help"]).output().unwrap();
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("non-interactive"), "init --help should mention --non-interactive");
+}

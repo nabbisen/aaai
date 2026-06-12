@@ -8,6 +8,22 @@ Format: `## [version] — description`
 
 ---
 
+## [0.27.0] — Phase 19: v1.0.0 Readiness (2026-06-09)
+
+### RFC 065 — `aaai init` activation
+
+Last unactivated CLI stub. Interactive project setup wizard: prompts for Before/After paths, audit definition location, approver name, secret masking preference, and optionally runs snap to seed the initial definition. `--non-interactive` creates a default `.aaai.yaml` without prompts. 3 integration tests added. **aaai-cli tests: 86 → 89.**
+
+### RFC 066 — `AuditDefinition` direct unit tests
+
+10 unit tests added directly to `config/definition.rs` covering the methods that underpin the glob feature (RFC 054) and expiry enforcement (RFC 044): `find_entry` exact match, `find_entry` glob fallback, exact-wins-over-glob, `is_glob` detection, `glob_matches` depth and extension patterns, `upsert_entry` updates-in-place, `expired_entries`, `expiring_soon` within a time window, and `is_approvable` reason validation. **aaai-core tests: 101 → 111. Total: 220.**
+
+### RFC 067 — README accuracy fix
+
+Command count corrected: "15 commands" → "16 commands".
+
+---
+
 ## [0.26.0] — Phase 18: CLI Completeness II (2026-06-09)
 
 ### RFC 059-063 — CLI stub activations (5 commands)

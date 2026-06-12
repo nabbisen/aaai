@@ -70,7 +70,7 @@ aaai watch --left <BEFORE> --right <AFTER> --config <FILE> \
            [--debounce-ms <MS>]
 ```
 
-`--debounce-ms` (default: 250) controls how long the watcher coalesces
+`--debounce-ms` (default: 500) controls how long the watcher coalesces
 rapid file events before triggering a re-run. Raise it for noisy
 build directories; lower it for snappier feedback.
 

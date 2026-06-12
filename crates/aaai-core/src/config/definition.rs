@@ -304,3 +304,142 @@ impl std::fmt::Display for RegexTarget {
         }
     }
 }
+
+// ── RFC 066: AuditDefinition direct unit tests ────────────────────────────
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Duration, Utc};
+
+    fn entry(path: &str) -> AuditEntry {
+        AuditEntry {
+            path: path.to_string(),
+            diff_type: crate::DiffType::Modified,
+            reason: "test reason".into(),
+            strategy: AuditStrategy::None,
+            enabled: true,
+            ticket: None,
+            approved_by: None,
+            approved_at: None,
+            expires_at: None,
+            note: None,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+
+    // find_entry — exact match
+    #[test]
+    fn find_entry_exact_match() {
+        let mut def = AuditDefinition::new_empty();
+        def.upsert_entry(entry("src/main.rs"));
+        assert!(def.find_entry("src/main.rs").is_some());
+        assert!(def.find_entry("src/lib.rs").is_none());
+    }
+
+    // find_entry — glob fallback after exact miss
+    #[test]
+    fn find_entry_glob_fallback() {
+        let mut def = AuditDefinition::new_empty();
+        def.upsert_entry(entry("node_modules/**"));
+        // exact path should match via glob
+        assert!(def.find_entry("node_modules/lodash/index.js").is_some(),
+            "glob entry should match concrete path");
+        assert!(def.find_entry("src/main.rs").is_none(),
+            "glob should not match unrelated path");
+    }
+
+    // exact entry wins over glob when both present
+    #[test]
+    fn find_entry_exact_wins_over_glob() {
+        let mut def = AuditDefinition::new_empty();
+        def.upsert_entry(entry("node_modules/**"));
+        let mut specific = entry("node_modules/lodash/index.js");
+        specific.reason = "specific override".into();
+        def.upsert_entry(specific);
+        let found = def.find_entry("node_modules/lodash/index.js").unwrap();
+        assert_eq!(found.reason, "specific override",
+            "exact path should take precedence over glob");
+    }
+
+    // is_glob
+    #[test]
+    fn is_glob_detection() {
+        assert!(entry("src/**").is_glob());
+        assert!(entry("**/*.rs").is_glob());
+        assert!(entry("src/?.rs").is_glob());
+        assert!(entry("[ab].rs").is_glob());
+        assert!(!entry("src/main.rs").is_glob());
+        assert!(!entry("a/b/c.txt").is_glob());
+    }
+
+    // glob_matches edge cases
+    #[test]
+    fn glob_matches_depth() {
+        let e = entry("dist/**");
+        assert!(e.glob_matches("dist/bundle.js"));
+        assert!(e.glob_matches("dist/css/style.css"));
+        assert!(!e.glob_matches("src/main.rs"));
+    }
+
+    #[test]
+    fn glob_matches_extension_pattern() {
+        let e = entry("**/*.lock");
+        assert!(e.glob_matches("Cargo.lock"));
+        assert!(e.glob_matches("package-lock.json") == false,
+            "*.lock should not match .json");
+        assert!(e.glob_matches("sub/dir/yarn.lock"));
+    }
+
+    // upsert_entry — updates in place
+    #[test]
+    fn upsert_entry_updates_existing() {
+        let mut def = AuditDefinition::new_empty();
+        def.upsert_entry(entry("a.txt"));
+        assert_eq!(def.entries.len(), 1);
+        let mut updated = entry("a.txt");
+        updated.reason = "updated".into();
+        def.upsert_entry(updated);
+        assert_eq!(def.entries.len(), 1, "should not duplicate");
+        assert_eq!(def.entries[0].reason, "updated");
+    }
+
+    // expired_entries
+    #[test]
+    fn expired_entries_detects_past_date() {
+        let mut def = AuditDefinition::new_empty();
+        let mut e = entry("old.txt");
+        e.expires_at = Some((Utc::now() - Duration::days(1)).date_naive());
+        def.upsert_entry(e);
+        def.upsert_entry(entry("current.txt"));
+        let expired = def.expired_entries();
+        assert_eq!(expired.len(), 1);
+        assert_eq!(expired[0].path, "old.txt");
+    }
+
+    // expiring_soon
+    #[test]
+    fn expiring_soon_within_window() {
+        let mut def = AuditDefinition::new_empty();
+        let mut e = entry("soon.txt");
+        e.expires_at = Some((Utc::now() + Duration::days(10)).date_naive());
+        def.upsert_entry(e);
+        let mut far = entry("far.txt");
+        far.expires_at = Some((Utc::now() + Duration::days(60)).date_naive());
+        def.upsert_entry(far);
+        let soon = def.expiring_soon(30);
+        assert_eq!(soon.len(), 1);
+        assert_eq!(soon[0].path, "soon.txt");
+    }
+
+    // is_approvable
+    #[test]
+    fn is_approvable_requires_non_empty_reason() {
+        let mut e = entry("a.txt");
+        assert!(e.is_approvable().is_ok());
+        e.reason = "  ".into();   // whitespace-only
+        assert!(e.is_approvable().is_err(), "whitespace-only reason should fail");
+        e.reason = String::new();
+        assert!(e.is_approvable().is_err(), "empty reason should fail");
+    }
+}

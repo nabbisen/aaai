@@ -38,10 +38,10 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 | 1-1 | Launch `aaai-gui` | Opening screen displayed; no errors |
 | 1-2 | Leave all fields blank, press "Start Audit" | Button is disabled or shows validation error |
 | 1-3 | Enter Before / After paths that do not exist, press "Start Audit" | Error message shown |
-| 1-4 | Enter valid Before / After paths, no definition file, press "Start Audit" | Audit runs with empty definition; all entries Pending |
+| 1-4 | Enter valid Before / After paths, no definition file, press "Start Audit" | Audit runs with empty definition; all entries Pending; first Pending entry auto-selected in inspector |
 | 1-5 | Enter all valid paths, press "Start Audit" | Loading spinner shown; main screen opens |
-| 1-6 | Enter a `.aaaiignore` path, press "Start Audit" | Ignored files do not appear in the file tree |
-| 1-7 | Save a profile and reload it | Fields restored correctly |
+| 1-6 | Expand "Optional settings" | Section shows only "Approvals file" field with placeholder text |
+| 1-7 | Save a profile and reload it | Fields restored correctly; Optional settings expands showing loaded definition path |
 
 ---
 
@@ -78,14 +78,19 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 4-1 | Select an entry | Inspector shows path, diff type, status badge |
+| 4-1 | Select an entry | Inspector shows path, diff type, status badge; Reason field and Strategy picker visible by default |
 | 4-2 | Entry has `AuditWarning` | Yellow warning block shown below divider |
-| 4-3 | Leave reason blank, press "Approve" | Button disabled / validation error |
-| 4-4 | Enter reason, select strategy, press "Approve" | Entry moves to OK; file tree badge updates |
-| 4-5 | Enter ticket and approved_by | Values saved in definition YAML |
-| 4-6 | Enter expires_at in wrong format | Validation error shown |
-| 4-7 | Apply a template | Strategy fields populated from template |
-| 4-8 | Press Ctrl+Z after approval | Last approval undone; entry returns to Pending |
+| 4-3 | Leave reason blank, press Ctrl+Enter | Approve & Save button stays disabled; validation error shown |
+| 4-4 | Enter reason, press Ctrl+Enter | Entry approved and saved; inspector auto-advances to next Pending entry |
+| 4-5 | Approve last Pending entry | Inspector stays on entry; background rerun marks it OK; dashboard shows "All entries are in order" with action buttons |
+| 4-6 | Click "▸ More options" toggle | Ticket, Approved by, Expires at, Template, Note fields revealed |
+| 4-7 | Enter ticket and approved_by in More options | Values saved in definition YAML |
+| 4-8 | Enter expires_at in wrong format | Validation error shown; More options auto-expands |
+| 4-9 | Click "▸ Use pattern" toggle | Pattern input appears pre-filled with current path; suggestion chips shown |
+| 4-10 | Click a suggestion chip | Pattern input updated; ✓ valid indicator shown |
+| 4-11 | Approve with an active glob pattern | Glob entry saved; background rerun marks all matching files OK |
+| 4-12 | Apply a template | Strategy fields populated from template |
+| 4-13 | Press Ctrl+Z after approval | Last approval undone; entry returns to Pending |
 
 ---
 
@@ -159,14 +164,15 @@ The release is ready when:
 - [ ] All Opening screen cases (1-1 to 1-7) pass
 - [ ] All File tree cases (2-1 to 2-9) pass
 - [ ] All Diff viewer cases (3-1 to 3-6) pass
-- [ ] All Inspector cases (4-1 to 4-8) pass
+- [ ] All Inspector cases (4-1 to 4-13) pass
 - [ ] All Save/Re-run cases (5-1 to 5-4) pass
 - [ ] All Settings & Footer cases (6-1 to 6-5) pass
 - [ ] All Export cases (7-1 to 7-4) pass
 - [ ] All CLI smoke tests exit with expected codes
 - [ ] No `cargo check --all-targets` warnings
-- [ ] `cargo test -p aaai-core --lib` — 92 passing
-- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 54 passing
+- [ ] `cargo test -p aaai-core --lib` — 101 passing
+- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 86 passing
+- [ ] `cargo test -p aaai-gui` — 20 passing
 
 ---
 

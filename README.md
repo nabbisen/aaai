@@ -17,7 +17,7 @@
 | Content strategies | None / Checksum / LineMatch / Regex / Exact |
 | Reports | Markdown, JSON, HTML, SARIF (GitHub Actions) |
 | GUI | 3-pane resizable desktop UI with dark/light theme |
-| CLI | 15 commands — audit, snap, lint, diff, merge, watch, … |
+| CLI | 16 commands — audit, snap, lint, diff, merge, watch, … |
 | CI/CD | Granular exit codes (0 = PASSED … 4 = CONFIG_ERROR) |
 
 ## Quick Start

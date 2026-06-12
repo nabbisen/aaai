@@ -40,7 +40,7 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 | 1-3 | 存在しないパスを入力して「監査を開始」を押す | エラーメッセージが表示される |
 | 1-4 | Before / After のみ入力し定義ファイルなしで開始 | 空の定義で監査が実行され、全エントリが Pending |
 | 1-5 | 有効なパスを全て入力して「監査を開始」を押す | ローディングスピナーが表示された後、メイン画面が開く |
-| 1-6 | `.aaaiignore` のパスを入力して開始 | 除外されたファイルがファイルツリーに表示されない |
+| 1-6 | Expand "Optional settings" | Section shows only "Approvals file" field with placeholder text |
 | 1-7 | プロファイルを保存して再読み込み | フィールドが正しく復元される |
 
 ---
@@ -162,8 +162,9 @@ aaai history --stats
 - [ ] エクスポートケース（7-1 〜 7-4）全パス
 - [ ] CLI スモークテスト全コマンドが期待通りの終了コードで終了
 - [ ] `cargo check --all-targets` 警告ゼロ
-- [ ] `cargo test -p aaai-core --lib` — 92 件パス
-- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 30 件パス
+- [ ] `cargo test -p aaai-core --lib` — 101 件パス
+- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 86 件パス
+- [ ] `cargo test -p aaai-gui` — 20 件パス
 
 ---
 

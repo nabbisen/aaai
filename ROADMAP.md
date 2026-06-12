@@ -470,3 +470,26 @@ and wires them into the release.
 | Total tests | 190 | 207 |
 | Remaining unactivated stubs | 5 | 0 |
 
+## Phase 19 — v1.0.0 Readiness ✅ (v0.27.0)
+
+Theme: Close the last test coverage gaps before v1.0.0.
+Every feature ships with direct unit tests; all CLI stubs activated.
+
+| RFC | Description |
+|---|---|
+| 065 | `aaai init` activation — last unactivated stub; `--non-interactive` testable |
+| 066 | aaai-core `AuditDefinition` direct unit tests — `find_entry` exact + glob, `is_glob`, `glob_matches`, `expired_entries`, `expiring_soon`, `is_approvable` |
+| 067 | README fix + minor accuracy pass |
+
+### Phase 19 target metrics
+
+| Metric | v0.26.0 | v0.27.0 target |
+|---|---|---|
+| RFCs done | 65 | 68 |
+| aaai-cli tests | 86 | ~90 |
+| aaai-core tests | 101 | ~115 |
+| aaai-core tests | 101 | 111 |
+| aaai-cli tests | 86 | 89 |
+| Total tests | 207 | 220 |
+| Unactivated stubs | 1 (`init`) | 0 |
+
