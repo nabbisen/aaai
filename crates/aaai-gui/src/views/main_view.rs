@@ -70,7 +70,7 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     let open_btn   = toolbar_btn("□".into(), t!("toolbar.open").to_string(),          Message::BackToOpening);
     let save_btn   = toolbar_btn("□".into(), t!("toolbar.save").to_string(),          Message::SaveDefinition);
     let run_btn    = toolbar_btn("▶".into(), t!("toolbar.run_audit").to_string(),     Message::RerunAudit);
-    let report_btn = toolbar_btn("↑".into(), t!("toolbar.report_output").to_string(), Message::ExportReport("markdown".into()));
+    let report_btn = toolbar_btn("↑".into(), t!("toolbar.report_output").to_string(), Message::ExportReport);
 
     // RFC 021 §2.3 — small "✓ Saved Nm ago" / "✓ Reported Nm ago" marks
     // next to Save and Report buttons when those operations have happened
@@ -111,7 +111,13 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     };
 
     // Audit status label — right-aligned simple text
-    let status_label: Element<'_, Message> = if let Some(result) = &app.audit_result {
+    // RFC 037 — show "Re-running…" while async rerun is in progress
+    let status_label: Element<'_, Message> = if app.audit_dirty && app.is_loading {
+        text(t!("toolbar.rerunning").to_string())
+            .size(13)
+            .color(theme::PENDING_COLOR)
+            .into()
+    } else if let Some(result) = &app.audit_result {
         let s = &result.summary;
         let (label, color) = if s.is_passing() {
             (t!("toolbar.passed").to_string(), theme::OK_COLOR)
@@ -145,11 +151,30 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
 fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
     use crate::style::panel_style;
 
-    let make_btn = |label: &'static str, mode: FilterMode| {
+    // RFC 043 — pre-compute per-filter counts when audit is available.
+    let counts = app.audit_result.as_ref().map(|r| {
+        let s = &r.summary;
+        // "Changed only" passes non-unchanged diffs regardless of status;
+        // count = total - items with DiffType::Unchanged that also passed.
+        // Simplest approximation: total - OK-and-unchanged entries.
+        // We count the result list directly for accuracy.
+        let changed_n = r.results.iter()
+            .filter(|far| FilterMode::ChangedOnly.passes(far))
+            .count();
+        (s.total, changed_n, s.pending, s.failed + s.error)
+    });
+
+    // Build a button label: "Label (N)" when counts are available,
+    // "Label" otherwise.
+    let make_btn = |base_key: &'static str, mode: FilterMode, count: Option<usize>| {
+        let label = match count {
+            Some(n) => format!("{} ({})", t!(base_key), n),
+            None    => t!(base_key).to_string(),
+        };
         let active = app.filter_mode == mode;
-        let btn = button(text(t!(label).to_string()).size(11))
+        let btn = button(text(label).size(11))
             .on_press(Message::SetFilter(mode))
-            .padding(Padding::from([10.0, 14.0]));  // ABDD ≥44px
+            .padding(Padding::from([10.0, 14.0]));
         if active {
             container(btn)
                 .style(|_| iced::widget::container::Style {
@@ -164,16 +189,21 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         }
     };
 
+    let (all_n, changed_n, pending_n, errors_n) = match counts {
+        Some((a, c, p, e)) => (Some(a), Some(c), Some(p), Some(e)),
+        None               => (None, None, None, None),
+    };
+
     let undo_btn = button(text(t!("toolbar.undo").to_string()).size(11))
         .on_press(Message::UndoApproval)
         .padding(Padding::from([10.0, 14.0]));  // ABDD ≥44px
 
     container(
         row![
-            make_btn("filter.all",           FilterMode::All),
-            make_btn("filter.changed",        FilterMode::ChangedOnly),
-            make_btn("filter.pending",        FilterMode::PendingOnly),
-            make_btn("filter.errors",         FilterMode::FailedAndError),
+            make_btn("filter.all",     FilterMode::All,           all_n),
+            make_btn("filter.changed", FilterMode::ChangedOnly,   changed_n),
+            make_btn("filter.pending", FilterMode::PendingOnly,   pending_n),
+            make_btn("filter.errors",  FilterMode::FailedAndError, errors_n),
             space().width(Length::Fill),
             undo_btn,
         ]
@@ -479,7 +509,10 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
         } else {
             iced::Color::from_rgb(0.15, 0.60, 0.25)
         };
-        text(format!("{}件の差分中 {}件が未解決", s.total, unresolved))
+        // RFC 043 — i18n'd; was hardcoded Japanese.
+        text(t!("filter.count_summary",
+                total = s.total.to_string(),
+                unresolved = unresolved.to_string()).to_string())
             .size(12)
             .color(color)
             .into()

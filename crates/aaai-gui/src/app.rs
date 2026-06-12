@@ -254,6 +254,16 @@ pub struct App {
     pub focus_target: FocusTarget,
     pub prefs: UserPrefs,
 
+    // RFC 036: Settings dialog
+    pub settings_open: bool,
+    pub settings_draft: UserPrefs,
+
+    // RFC 038: keyboard help overlay
+    pub help_open: bool,
+
+    // RFC 041: navigation guard (unsaved-changes confirmation)
+    pub nav_guard_open: bool,
+
     // Phase 10: resizable pane layout
     pub panes: pane_grid::State<PaneKind>,
     pub focus: Option<pane_grid::Pane>,
@@ -303,9 +313,20 @@ impl Default for App {
             last_reported_at: None,
             toasts: Vec::new(),
             toast_id: 0,
+            prefs: {
+                // RFC 036 — load persisted settings; apply stored language immediately.
+                let p = UserPrefs::load();
+                if !p.language.is_empty() {
+                    rust_i18n::set_locale(&p.language);
+                }
+                p
+            },
             locale: rust_i18n::locale().to_string(),
-            prefs: UserPrefs::load(),
             theme: UserPrefs::load().theme,
+            settings_open: false,
+            settings_draft: UserPrefs::default(),
+            help_open: false,
+            nav_guard_open: false,
             diff_view_mode: DiffViewMode::default(),
             focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
@@ -359,6 +380,34 @@ pub enum Message {
     LineRuleLineChanged(usize, String),
     ExactContentChanged(String),
 
+    // RFC 036: Settings dialog
+    OpenSettings,
+    CloseSettings,
+    SaveSettings,
+    SettingsLanguageChanged(String),
+    SettingsIgnoreDirAdd,
+    SettingsIgnoreDirEdit(usize, String),
+    SettingsIgnoreDirRemove(usize),
+
+    /// RFC 037 — carries the diff result from a background rerun started
+    /// by `start_async_rerun()`. On Ok: re-evaluates audit + clears dirty.
+    RerunDiffReady(Result<Vec<aaai_core::DiffEntry>, String>),
+
+    // RFC 038: keyboard help overlay
+    ToggleHelp,
+    CloseHelp,
+    /// RFC 038 — routes Escape: closes open overlays before falling through to deselect.
+    EscapeKey,
+
+    /// RFC 039 — removes the currently-selected OK entry from the definition,
+    /// reverting it to Pending status. Triggers an async rerun.
+    RevertSelectedEntry,
+
+    // RFC 041: navigation guard messages
+    NavGuardSaveAndLeave,
+    NavGuardDiscardAndLeave,
+    NavGuardCancel,
+
     // Actions
     /// Internal approval step used by [`Message::ApproveAndSave`] and batch approval.
     /// Prefer `ApproveAndSave` for direct user actions.
@@ -366,7 +415,9 @@ pub enum Message {
     ApproveAndSave,  // RFC 002: approve + save in one action
     RerunAudit,
     SaveDefinition,
-    ExportReport(String),
+    /// RFC 040 — opens the native save-file dialog; format derived from extension.
+    ExportReport,
+    ReportPathPicked(Option<std::path::PathBuf>),
 
     // Batch
     ToggleBatchSelect(usize),
@@ -524,15 +575,34 @@ impl App {
                     AuditDefinition::new_empty()
                 };
 
-                // Resolve ignore rules from the ignore_path field.
+                // RFC 036 — Build merged ignore rules:
+                // 1. Global directory ignores from app settings (always applied)
+                // 2. Per-project .aaaiignore rules appended after
+                let mut ignore_text = String::new();
+                for dir in &self.prefs.global_ignored_dirs {
+                    let dir = dir.trim();
+                    if !dir.is_empty() {
+                        ignore_text.push_str(&format!("{}/**\n", dir));
+                    }
+                }
                 let ignore_path_str = self.ignore_path.trim().to_string();
-                let ignore = if ignore_path_str.is_empty() {
-                    IgnoreRules::load(&before.join(".aaaiignore"))
-                        .unwrap_or_default()
+                let project_file = if ignore_path_str.is_empty() {
+                    before.join(".aaaiignore")
                 } else {
-                    IgnoreRules::load(std::path::Path::new(&ignore_path_str))
-                        .unwrap_or_default()
+                    std::path::PathBuf::from(&ignore_path_str)
                 };
+                if project_file.exists() {
+                    if let Ok(project_text) = std::fs::read_to_string(&project_file) {
+                        ignore_text.push('\n');
+                        ignore_text.push_str(&project_text);
+                    }
+                }
+                let ignore = IgnoreRules::from_str(&ignore_text).unwrap_or_default();
+
+                // RFC 042 — auto-save a profile for this session so Recent
+                // Projects is always current without requiring an explicit
+                // "Save Profile" action.
+                self.auto_save_profile();
 
                 // Phase 8: run diff on a background thread to keep the GUI responsive.
                 self.is_loading = true;
@@ -721,21 +791,14 @@ impl App {
                                         self.undo_stack.remove(0);
                                     }
                                     self.dirty = true;
-                                    // RFC 021 §3.2: definition mutated;
-                                    // the immediately-following
-                                    // `rerun_audit()` will clear this
-                                    // again, so under the current sync
-                                    // architecture the banner doesn't
-                                    // visibly fire. The flag is still
-                                    // wired correctly for any future RFC
-                                    // that decouples mutation from rerun.
                                     self.audit_dirty = true;
-                                    self.rerun_audit();
                                     self.push_toast(
                                         ToastIntent::Success,
                                         t!("toast.approved").as_ref(),
                                         &path,
                                     );
+                                    // RFC 037 — async rerun; result arrives via RerunDiffReady.
+                                    return self.start_async_rerun();
                                 }
                             }
                             Err(e) => {
@@ -806,21 +869,23 @@ impl App {
                 }
 
                 self.dirty = true;
+                self.audit_dirty = true;
                 self.batch.selected.clear();
                 self.batch.shared_reason.clear();
                 self.batch_sheet_open = false;
-                self.rerun_audit();
                 self.push_toast(
                     ToastIntent::Success,
                     t!("toast.batch_approved").as_ref(),
-                    &format!("{} entries approved.", count),
+                    t!("toast.batch_approved_count", count = count.to_string()).as_ref(),
                 );
+                // RFC 037 — async rerun.
+                return self.start_async_rerun();
             }
 
             // ── Re-run / save / report ────────────────────────────────
             Message::RerunAudit => {
-                self.rerun_audit();
-                self.push_toast(ToastIntent::Info, t!("toast.rerun").as_ref(), "Audit re-evaluated.");
+                // RFC 037 — converted to async; toast fires from RerunDiffReady.
+                return self.start_async_rerun();
             }
 
             Message::SaveDefinition => {
@@ -865,27 +930,59 @@ impl App {
                 }
             }
 
-            Message::ExportReport(fmt) => {
+            Message::ExportReport => {
+                // RFC 040 — open native save-file dialog; format derived from extension.
+                if self.audit_result.is_none() {
+                    self.push_toast(
+                        ToastIntent::Info,
+                        t!("toast.export_failed").as_ref(),
+                        t!("toast.no_audit_result").as_ref(),
+                    );
+                    return Task::none();
+                }
+                let title = t!("dialog.save_report").to_string();
+                return Task::perform(
+                    async move {
+                        rfd::AsyncFileDialog::new()
+                            .set_title(title)
+                            .set_file_name("aaai-report.md")
+                            .add_filter("Markdown", &["md"])
+                            .add_filter("JSON",     &["json"])
+                            .save_file()
+                            .await
+                            .map(|h| h.path().to_path_buf())
+                    },
+                    Message::ReportPathPicked,
+                );
+            }
+
+            Message::ReportPathPicked(None) => { /* user cancelled */ }
+
+            Message::ReportPathPicked(Some(out)) => {
                 if let Some(result) = &self.audit_result {
-                    let before = PathBuf::from(&self.before_path);
-                    let after  = PathBuf::from(&self.after_path);
-                    let def_path =
-                        if self.definition_path.is_empty() { None }
-                        else { Some(PathBuf::from(&self.definition_path)) };
-                    let ext = if fmt == "json" { "json" } else { "md" };
-                    let out = PathBuf::from(format!("aaai-report.{ext}"));
-                    let res = match fmt.as_str() {
-                        "json" => aaai_core::report::generator::ReportGenerator::write_json(
+                    let before   = PathBuf::from(&self.before_path);
+                    let after    = PathBuf::from(&self.after_path);
+                    let def_path = if self.definition_path.is_empty() { None }
+                                   else { Some(PathBuf::from(&self.definition_path)) };
+
+                    // Derive format from chosen extension.
+                    let use_json = out.extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| e.eq_ignore_ascii_case("json"))
+                        .unwrap_or(false);
+
+                    let res = if use_json {
+                        aaai_core::report::generator::ReportGenerator::write_json(
                             result, &before, &after, def_path.as_deref(), &out, None,
-                        ),
-                        _ => aaai_core::report::generator::ReportGenerator::write_markdown(
+                        )
+                    } else {
+                        aaai_core::report::generator::ReportGenerator::write_markdown(
                             result, &before, &after, def_path.as_deref(), &out, None,
-                        ),
+                        )
                     };
+
                     match res {
                         Ok(()) => {
-                            // RFC 021 §3.2 — stamp report time so toolbar
-                            // can show "Reported Nm ago" until next mutation.
                             self.last_reported_at = Some(chrono::Utc::now());
                             self.push_toast(
                                 ToastIntent::Success,
@@ -958,13 +1055,14 @@ impl App {
                         if let Some(idx) = def.entries.iter().position(|e| e.path == path) {
                             def.entries.remove(idx);
                             self.dirty = true;
-                            self.audit_dirty = true;  // RFC 021 §3.2; rerun_audit clears.
-                            self.rerun_audit();
+                            self.audit_dirty = true;
                             self.push_toast(
                                 ToastIntent::Info,
                                 t!("toast.undo").as_ref(),
                                 t!("toast.removed_approval", path = path.clone()).as_ref(),
                             );
+                            // RFC 037 — async rerun.
+                            return self.start_async_rerun();
                         }
                     }
                 } else {
@@ -1170,18 +1268,10 @@ impl App {
             // ── RFC 007: navigation ───────────────────────────────────
             Message::BackToOpening => {
                 if self.dirty {
-                    self.push_toast(
-                        ToastIntent::Warning,
-                        t!("toast.unsaved_warning").as_ref(),
-                        t!("toast.save_before_leaving").as_ref(),
-                    );
+                    // RFC 041 — open confirmation dialog instead of passive toast.
+                    self.nav_guard_open = true;
                 } else {
-                    self.screen = Screen::Opening;
-                    self.audit_result = None;
-                    self.diffs.clear();
-                    self.definition = None;
-                    self.selected_index = None;
-                    self.inspector = InspectorState::default();
+                    self.do_leave_to_opening();
                 }
             }
             Message::FocusNext => {
@@ -1293,6 +1383,145 @@ impl App {
                 self.locale = code;
             }
 
+            // RFC 037 — async rerun completion ────────────────────────
+            Message::RerunDiffReady(result) => {
+                self.is_loading = false;
+                self.load_progress = None;
+                match result {
+                    Ok(fresh_diffs) => {
+                        self.diffs = fresh_diffs;
+                        if let Some(def) = self.definition.clone() {
+                            self.audit_result = Some(AuditEngine::evaluate(&self.diffs, &def));
+                        }
+                        self.audit_dirty = false;
+                        self.push_toast(
+                            ToastIntent::Info,
+                            t!("toast.rerun").as_ref(),
+                            t!("toast.rerun_complete").as_ref(),
+                        );
+                    }
+                    Err(e) => {
+                        self.push_toast(
+                            ToastIntent::Error,
+                            t!("toast.rerun").as_ref(),
+                            &e,
+                        );
+                    }
+                }
+            }
+
+            // ── RFC 041: navigation guard ─────────────────────────────
+            Message::NavGuardCancel => { self.nav_guard_open = false; }
+
+            Message::NavGuardDiscardAndLeave => {
+                self.nav_guard_open = false;
+                self.dirty = false;
+                self.do_leave_to_opening();
+            }
+
+            Message::NavGuardSaveAndLeave => {
+                // Inline save; navigate on success, show error and stay on failure.
+                let path = PathBuf::from(&self.definition_path);
+                if path.as_os_str().is_empty() {
+                    self.push_toast(
+                        ToastIntent::Error,
+                        t!("toast.save_failed").as_ref(),
+                        t!("toast.no_definition_path").as_ref(),
+                    );
+                    self.nav_guard_open = false;
+                    return Task::none();
+                }
+                if let Some(def) = &self.definition {
+                    match config_io::save(def, &path, true) {
+                        Ok(()) => {
+                            self.dirty = false;
+                            self.last_saved_at = Some(chrono::Utc::now());
+                            self.nav_guard_open = false;
+                            self.do_leave_to_opening();
+                        }
+                        Err(e) => {
+                            let user_err = crate::error::UserError::from_i18n("error.save.failed");
+                            let full_message = format!("{}\n({})", user_err.message, e);
+                            self.push_toast_with_hint(
+                                ToastIntent::Error,
+                                t!("toast.save_failed").as_ref(),
+                                &full_message,
+                                &user_err.hint,
+                            );
+                            self.nav_guard_open = false;
+                            // Do NOT navigate — user must resolve the save error.
+                        }
+                    }
+                }
+            }
+
+            // ── RFC 038: keyboard help overlay ────────────────────────
+            Message::ToggleHelp  => { self.help_open = !self.help_open; }
+            Message::CloseHelp   => { self.help_open = false; }
+            Message::EscapeKey   => {
+                // Prioritise overlay-close before falling through to deselect.
+                if self.help_open        { self.help_open = false; }
+                else if self.nav_guard_open { self.nav_guard_open = false; }
+                else if self.settings_open  { self.settings_open = false; }
+                else { self.selected_index = None; }
+            }
+
+            // RFC 039 — Revert selected OK entry to Pending ───────────
+            Message::RevertSelectedEntry => {
+                if let (Some(idx), Some(def)) = (self.selected_index, &mut self.definition) {
+                    if let Some(diff) = self.diffs.get(idx) {
+                        let path = diff.path.clone();
+                        if let Some(pos) = def.entries.iter().position(|e| e.path == path) {
+                            def.entries.remove(pos);
+                            self.dirty = true;
+                            self.push_toast(
+                                ToastIntent::Info,
+                                t!("toast.reverted").as_ref(),
+                                t!("toast.reverted_path", path = path).as_ref(),
+                            );
+                            return self.start_async_rerun();
+                        }
+                    }
+                }
+            }
+
+            // ── RFC 036: Settings dialog ──────────────────────────────
+            Message::OpenSettings => {
+                self.settings_draft = self.prefs.clone();
+                self.settings_open = true;
+            }
+            Message::CloseSettings => {
+                self.settings_open = false;
+                // draft is abandoned; prefs remain unchanged
+            }
+            Message::SaveSettings => {
+                self.prefs = self.settings_draft.clone();
+                // Trim empty entries before saving
+                self.prefs.global_ignored_dirs.retain(|d| !d.trim().is_empty());
+                // Apply language change immediately
+                if !self.prefs.language.is_empty() {
+                    rust_i18n::set_locale(&self.prefs.language);
+                    self.locale = self.prefs.language.clone();
+                }
+                self.prefs.save();
+                self.settings_open = false;
+            }
+            Message::SettingsLanguageChanged(code) => {
+                self.settings_draft.language = code;
+            }
+            Message::SettingsIgnoreDirAdd => {
+                self.settings_draft.global_ignored_dirs.push(String::new());
+            }
+            Message::SettingsIgnoreDirEdit(i, s) => {
+                if let Some(entry) = self.settings_draft.global_ignored_dirs.get_mut(i) {
+                    *entry = s;
+                }
+            }
+            Message::SettingsIgnoreDirRemove(i) => {
+                let dirs = &mut self.settings_draft.global_ignored_dirs;
+                if i < dirs.len() { dirs.remove(i); }
+            }
+
             // ── Overlays ──────────────────────────────────────────────
             Message::CloseModals => { self.batch_sheet_open = false; }
             Message::CloseMenus  => { /* snora overlay close — no state change needed */ }
@@ -1327,11 +1556,13 @@ impl App {
                             Message::SaveDefinition,
                         (Key::Character("r"), m) if m.contains(Modifiers::CTRL) =>
                             Message::RerunAudit,
+                        (Key::Character("z"), m) if m.contains(Modifiers::CTRL) && m.contains(Modifiers::SHIFT) =>
+                            Message::RevertSelectedEntry,
                         (Key::Character("z"), m) if m.contains(Modifiers::CTRL) =>
                             Message::UndoApproval,
                         // RFC 005: Ctrl+E → export report
                         (Key::Character("e"), m) if m.contains(Modifiers::CTRL) =>
-                            Message::ExportReport("markdown".into()),
+                            Message::ExportReport,
                         (Key::Named(iced::keyboard::key::Named::ArrowDown), _) =>
                             Message::SelectNext,
                         (Key::Named(iced::keyboard::key::Named::ArrowUp), _) =>
@@ -1349,9 +1580,11 @@ impl App {
                         // RFC 005: Enter → focus inspector reason
                         (Key::Named(iced::keyboard::key::Named::Enter), _) =>
                             Message::FocusInspectorReason,
-                        // RFC 005: Escape → deselect
+                        // RFC 038: ? key → toggle keyboard help overlay
+                        (Key::Character("?"), _) => Message::ToggleHelp,
+                        // Escape — handled via EscapeKey to avoid capturing self in the closure
                         (Key::Named(iced::keyboard::key::Named::Escape), _) =>
-                            Message::DeselectEntry,
+                            Message::EscapeKey,
                         _ => Message::Noop,
                     }
                 }
@@ -1400,39 +1633,109 @@ impl App {
             );
         }
 
-        render(layout)
+        let base: Element<'_, Message> = render(layout);
+
+        // RFC 036 — Settings dialog modal overlay
+        if self.settings_open {
+            use iced::{Color, Length};
+            use iced::widget::{container, mouse_area, stack};
+
+            let backdrop = mouse_area(
+                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .style(|_| container::Style {
+                        background: Some(iced::Background::Color(
+                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.35 }
+                        )),
+                        ..Default::default()
+                    })
+            )
+            .on_press(Message::CloseSettings);
+
+            let dialog = iced::widget::center(
+                crate::views::settings_dialog::view(&self.settings_draft, &self.locale)
+            );
+
+            stack![base, backdrop, dialog].into()
+
+        // RFC 038 — Keyboard help overlay (only on Main screen)
+        } else if self.help_open && matches!(self.screen, Screen::Main) {
+            use iced::{Color, Length};
+            use iced::widget::{container, mouse_area, stack};
+
+            let backdrop = mouse_area(
+                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .style(|_| container::Style {
+                        background: Some(iced::Background::Color(
+                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.35 }
+                        )),
+                        ..Default::default()
+                    })
+            )
+            .on_press(Message::CloseHelp);
+
+            let dialog = iced::widget::center(
+                crate::views::help_overlay::view()
+            );
+
+            stack![base, backdrop, dialog].into()
+
+        // RFC 041 — Navigation guard (only on Main screen)
+        } else if self.nav_guard_open && matches!(self.screen, Screen::Main) {
+            use iced::{Color, Length};
+            use iced::widget::{container, mouse_area, stack};
+
+            let backdrop = mouse_area(
+                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .style(|_| container::Style {
+                        background: Some(iced::Background::Color(
+                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.50 }
+                        )),
+                        ..Default::default()
+                    })
+            )
+            .on_press(Message::NavGuardCancel);
+
+            let dialog = iced::widget::center(
+                crate::views::nav_guard::view()
+            );
+
+            stack![base, backdrop, dialog].into()
+
+        } else {
+            base
+        }
     }
 
     fn view_footer(&self) -> Element<'_, Message> {
-        use iced::{Alignment::Center, Length, widget::{container, row, space, text}};
+        use iced::{Alignment::Center, Length, widget::{button, container, row, space, text, tooltip}};
+        use iced::widget::tooltip::Position;
         use crate::style::panel_style;
 
-        let locale_label = {
-            use iced::widget::pick_list;
-            let current = self.locale.as_str();
-            let labels: Vec<&str> = crate::i18n::SUPPORTED_LOCALES.iter()
-                .map(|(_, label)| *label)
-                .collect();
-            let current_label = crate::i18n::SUPPORTED_LOCALES
-                .iter()
-                .find(|(c, _)| *c == current)
-                .map(|(_, l)| *l)
-                .unwrap_or("English");
-            pick_list(
-                labels,
-                Some(current_label),
-                |label: &str| {
-                    let code = crate::i18n::SUPPORTED_LOCALES
-                        .iter()
-                        .find(|(_, l)| *l == label)
-                        .map(|(c, _)| c.to_string())
-                        .unwrap_or_default();
-                    Message::SwitchLocale(code)
-                },
-            )
-            .text_size(11)
-            .padding(2)
-        };
+        // RFC 036 — language picker moved to Settings dialog.
+        // RFC 038 — ? button (help overlay) + ⚙ settings button.
+        let help_btn = tooltip(
+            button(text("?").size(13))
+                .on_press(Message::ToggleHelp)
+                .padding(iced::Padding::from([2.0, 6.0]))
+                .style(iced::widget::button::text),
+            text(t!("help.title").to_string()).size(11),
+            Position::Top,
+        );
+
+        let settings_btn = tooltip(
+            button(text("⚙").size(13))
+                .on_press(Message::OpenSettings)
+                .padding(iced::Padding::from([2.0, 6.0]))
+                .style(iced::widget::button::text),
+            text(t!("settings.button_tooltip").to_string()).size(11),
+            Position::Top,
+        );
 
         let left: Element<'_, Message> = if self.dirty {
             text(t!("footer.unsaved")).size(12)
@@ -1446,7 +1749,8 @@ impl App {
             row![
                 left,
                 space().width(Length::Fill),
-                locale_label,
+                help_btn,
+                settings_btn,
                 text(format!("v{}", env!("CARGO_PKG_VERSION"))).size(11),
             ]
             .align_y(Center)
@@ -1588,21 +1892,89 @@ impl App {
         self.opening_validation = v;
     }
 
-    pub fn rerun_audit(&mut self) {
-        if let Some(def) = &self.definition {
-            // Re-run diff with the same ignore rules as the original scan.
-            let before = std::path::PathBuf::from(&self.before_path);
-            let after  = std::path::PathBuf::from(&self.after_path);
-            if before.is_dir() && after.is_dir() {
-                if let Ok(fresh_diffs) = DiffEngine::compare_with_ignore(&before, &after, &self.active_ignore) {
-                    self.diffs = fresh_diffs;
-                }
-            }
-            let result = AuditEngine::evaluate(&self.diffs, def);
-            self.audit_result = Some(result);
-            // RFC 021 §3.2: a fresh audit clears the dirty flag.
-            self.audit_dirty = false;
+    /// RFC 042 — silently upsert a profile for the current paths.
+    ///
+    /// Called at audit start so the Recent Projects list stays current
+    /// without requiring explicit "Save Profile" actions. Profile name is
+    /// derived from the definition file stem or before-folder name.
+    /// I/O errors are swallowed — a failing auto-save must never block the audit.
+    fn auto_save_profile(&mut self) {
+        let name = {
+            let from_def = (!self.definition_path.is_empty()).then(|| {
+                std::path::Path::new(&self.definition_path)
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string())
+            }).flatten();
+
+            let from_before = (!self.before_path.is_empty()).then(|| {
+                std::path::Path::new(&self.before_path)
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_string())
+            }).flatten();
+
+            from_def.or(from_before).unwrap_or_else(|| "untitled".to_string())
+        };
+
+        let profile = aaai_core::profile::store::AuditProfile {
+            name,
+            before:      self.before_path.clone(),
+            after:       self.after_path.clone(),
+            definition:  if self.definition_path.is_empty() { None }
+                         else { Some(self.definition_path.clone()) },
+            ignore_file: if self.ignore_path.is_empty() { None }
+                         else { Some(self.ignore_path.clone()) },
+            last_used_at: Some(chrono::Utc::now()),
+        };
+
+        self.profiles.add(profile);
+        let _ = self.profiles.save();
+    }
+
+    /// RFC 041 — centralised navigation to the Opening screen.
+    /// Clears all main-screen state and closes any open overlays.
+    fn do_leave_to_opening(&mut self) {
+        self.screen = Screen::Opening;
+        self.audit_result = None;
+        self.diffs.clear();
+        self.definition = None;
+        self.selected_index = None;
+        self.inspector = InspectorState::default();
+        self.audit_dirty = false;
+        self.help_open = false;
+        self.nav_guard_open = false;
+    }
+
+    /// RFC 037 — Non-blocking rerun helper.
+    /// Sets `is_loading = true`, `audit_dirty` stays true until the background
+    /// diff completes and `RerunDiffReady` fires.  Callers should push any
+    /// "what just happened" toast *before* returning this task so that the
+    /// toast is immediately visible while the diff runs.
+    fn start_async_rerun(&mut self) -> Task<Message> {
+        let before = std::path::PathBuf::from(&self.before_path);
+        let after  = std::path::PathBuf::from(&self.after_path);
+        let ignore = self.active_ignore.clone();
+
+        if !before.is_dir() || !after.is_dir() {
+            return Task::none();
         }
+
+        self.is_loading = true;
+        self.load_progress = Some(t!("progress.rerunning").to_string());
+
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || {
+                    DiffEngine::compare_with_ignore(&before, &after, &ignore)
+                        .map_err(|e| e.to_string())
+                })
+                .await
+                .map_err(|e| e.to_string())
+                .and_then(|r| r)
+            },
+            Message::RerunDiffReady,
+        )
     }
 
     pub fn push_toast(&mut self, intent: ToastIntent, title: &str, body: &str) {

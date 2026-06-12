@@ -256,3 +256,45 @@ fn unchanged_is_auto_ok_without_entry() {
         "Unchanged entries should be auto-OK even without a rule");
 }
 
+// ── RFC 044: expires_at enforcement ──────────────────────────────────────────
+
+/// RFC 044 — An entry whose `expires_at` is in the past must return
+/// `AuditStatus::Pending`, not `Ok`, even if strategy validation would pass.
+/// The entry itself is preserved in the result so the Inspector can display
+/// the expired approval details alongside the "EXPIRED" badge.
+#[test]
+fn expired_entry_returns_pending() {
+    use chrono::NaiveDate;
+
+    let diff  = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
+    let mut entry = make_entry("config.toml", DiffType::Modified, AuditStrategy::None);
+    // Set expiry to a date firmly in the past.
+    entry.expires_at = Some(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
+
+    let def    = make_def(vec![entry.clone()]);
+    let result = AuditEngine::evaluate(&[diff], &def);
+    let far    = &result.results[0];
+
+    assert_eq!(far.status, AuditStatus::Pending,
+        "Expired entries must be Pending — not Ok — so they surface for renewal");
+    assert!(far.entry.is_some(),
+        "Expired entry data must be preserved for Inspector display");
+    assert!(far.entry.as_ref().unwrap().is_expired(),
+        "Returned entry should self-report as expired");
+}
+
+/// RFC 044 — An entry whose `expires_at` is tomorrow (not yet expired) still
+/// returns `Ok`, with the "expiring soon" badge handled by the GUI layer.
+#[test]
+fn not_yet_expired_entry_is_ok() {
+    use chrono::{Duration, Utc};
+    let diff  = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
+    let mut entry = make_entry("config.toml", DiffType::Modified, AuditStrategy::None);
+    let tomorrow = (Utc::now() + Duration::days(1)).date_naive();
+    entry.expires_at = Some(tomorrow);
+
+    let def    = make_def(vec![entry]);
+    let result = AuditEngine::evaluate(&[diff], &def);
+    assert_eq!(result.results[0].status, AuditStatus::Ok,
+        "An entry expiring tomorrow is still valid today");
+}

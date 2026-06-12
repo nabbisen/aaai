@@ -32,7 +32,26 @@ fn main() -> iced::Result {
         app::App::view,
     )
     .subscription(app::App::subscription)
-    .title(|_: &app::App| t!("app.title").to_string())
+    .title(|app: &app::App| {
+        // RFC 042 — dynamic title: `aaai — {filename}{dirty?}` on Main screen.
+        let base = t!("app.title").to_string();
+        if matches!(app.screen, app::Screen::Main) {
+            let fname: Option<&str> = if !app.definition_path.is_empty() {
+                std::path::Path::new(&app.definition_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+            } else {
+                None
+            };
+            let dirty = if app.dirty { " ●" } else { "" };
+            if let Some(name) = fname {
+                return format!("{} — {}{}", base, name, dirty);
+            } else if app.dirty {
+                return format!("{}{}", base, dirty);
+            }
+        }
+        base
+    })
     .theme(|app: &app::App| match app.theme {
         AppTheme::Dark   => iced::Theme::Dark,
         AppTheme::Light  => iced::Theme::Light,

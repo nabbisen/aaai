@@ -116,6 +116,19 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
         };
     }
 
+    // RFC 044 — Expired approval → Pending (needs renewal).
+    // `entry` data is preserved so the Inspector can show the old approval
+    // details alongside the expiry badge.
+    if entry.is_expired() {
+        return FileAuditResult {
+            diff: diff.clone(),
+            entry: Some(entry.clone()),
+            status: AuditStatus::Pending,
+            detail: Some("Approval has expired and needs renewal.".into()),
+            warnings: Vec::new(),
+        };
+    }
+
     // Empty reason → treat as Pending (not yet human-approved).
     if entry.reason.trim().is_empty() {
         return FileAuditResult {

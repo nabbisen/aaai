@@ -340,6 +340,14 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
             .on_press(Message::LoadProfile(*orig_idx))
             .padding(Padding::from([8.0, 14.0]));
 
+        // RFC 039 — delete button at right edge of each profile row.
+        let delete_btn = button(
+            text("×").size(12).color(Color::from_rgb(0.55, 0.55, 0.55))
+        )
+        .on_press(Message::DeleteProfile(*orig_idx))
+        .padding(Padding::from([8.0, 10.0]))
+        .style(iced::widget::button::text);
+
         let header_row: Element<'_, Message> = if let Some(when) = when_text {
             row![
                 label,
@@ -360,6 +368,7 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
                 column![header_row, detail].spacing(2),
                 space().width(Length::Fill),
                 open_btn,
+                delete_btn,
             ]
             .spacing(8)
             .align_y(Center)

@@ -54,6 +54,15 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [033](done/033-picklist-display-value-separation.md) | pick_list display/value separation | v0.22.0 |
 | [034](done/034-toast-dialog-format-i18n-sweep.md) | Toast / dialog / format-string i18n sweep | v0.22.0 |
 | [035](done/035-strategy-label-display-value-separation.md) | Strategy label display/value separation | v0.22.0 |
+| [036](done/036-app-settings-dialog.md) | App Settings dialog | v0.23.0 |
+| [037](done/037-async-rerun.md) | Async rerun with audit-dirty indicator | v0.23.0 |
+| [038](done/038-keyboard-help-overlay.md) | Keyboard shortcuts help overlay | v0.23.0 |
+| [039](done/039-revert-to-pending.md) | Revert-to-Pending + Opening profile delete | v0.23.0 |
+| [040](done/040-report-file-picker.md) | Report export with native file picker | v0.23.0 |
+| [041](done/041-nav-guard.md) | Unsaved-changes navigation guard dialog | v0.23.0 |
+| [042](done/042-title-and-auto-profile.md) | Dynamic window title + auto-profile on audit run | v0.23.0 |
+| [043](done/043-filter-bar-counts.md) | Status counts in filter bar + bottom-bar count i18n | v0.23.0 |
+| [044](done/044-expires-at-enforcement.md) | expires_at enforcement in audit engine | v0.23.0 |
 
 > **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
 > RFC 017 のハーネスでエビデンスを取得し、判明した差分は個別 fix RFC を別途切る。

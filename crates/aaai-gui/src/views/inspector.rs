@@ -258,6 +258,25 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         children.push(err);
     }
 
+    // RFC 039 — Revert to Pending button (only when entry is OK).
+    // The approve button is in the bottom action bar (RFC 008); the revert
+    // button lives here in the inspector so it's contextually near the
+    // approval details, not mixed with the main save/rerun actions.
+    if far.status == AuditStatus::Ok {
+        let revert_btn = button(
+            text(t!("inspector.revert_to_pending").to_string()).size(12)
+        )
+        .on_press(Message::RevertSelectedEntry)
+        .padding(iced::Padding::from([5.0, 12.0]))
+        .style(iced::widget::button::secondary);
+
+        children.push(
+            container(revert_btn)
+                .padding(iced::Padding::from([4.0, 0.0]))
+                .into(),
+        );
+    }
+
     let col = column(children)
         .spacing(8)
         .padding(Padding::from([14.0, 14.0]));

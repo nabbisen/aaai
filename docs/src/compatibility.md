@@ -129,10 +129,14 @@ These are RFC-documented and stable in v1.x:
 | Ctrl+S | Save audit definition |
 | Ctrl+R | Re-run audit |
 | Ctrl+Z | Undo last approval |
-| Ctrl+E | Export Markdown report |
+| Ctrl+Shift+Z | Revert selected OK entry to Pending |
+| Ctrl+E | Export report (opens save-file dialog; format from extension) |
 | Arrow up / down | Move selection in the file tree |
+| Tab / Shift+Tab | Cycle pane focus |
 | Enter | Focus the inspector's reason field |
-| Escape | Deselect the current entry |
+| / | Focus the search bar |
+| ? | Toggle keyboard shortcuts overlay |
+| Escape | Close open overlay, or deselect the current entry |
 
 Adding a new shortcut is a minor change. Removing or remapping an
 existing one is a major change.

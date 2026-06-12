@@ -100,14 +100,15 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 ---
 
-## 6. Theme & Footer
+## 6. Settings & Footer
 
 | # | Step | Expected |
 |---|---|---|
-| 6-1 | Switch to Dark theme in footer | UI switches to dark palette immediately |
-| 6-2 | Restart `aaai-gui` | Previous theme restored |
-| 6-3 | Switch language to English | Labels change to English |
-| 6-4 | Main screen footer | Shortcut legend visible (`Ctrl+S`, `Ctrl+R`, …) |
+| 6-1 | Click `⚙` (footer) | Settings dialog opens as a modal overlay |
+| 6-2 | Switch language to Japanese in Settings, click Save | Labels change to Japanese; dialog closes |
+| 6-3 | Add `dist` to Ignored Directories, click Save; re-run audit | `dist/` entries excluded from diff |
+| 6-4 | Click `?` (footer) | Keyboard shortcuts overlay opens; `?` again or `Escape` closes it |
+| 6-5 | Main screen footer | Shows `?` and `⚙` buttons and the version string |
 
 ---
 
@@ -115,8 +116,8 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 7-1 | Press "Export Report" (toolbar) | `aaai-report.md` created in current directory |
-| 7-2 | `aaai report --format json` | `aaai-report.json` created, valid JSON |
+| 7-1 | Press "Export Report" (toolbar) | Native save-file dialog opens with `aaai-report.md` as default name |
+| 7-2 | Save with `.json` extension | JSON file created; valid JSON |
 | 7-3 | `aaai report --format html` | Valid HTML file with summary cards |
 | 7-4 | `aaai report --format sarif` | Valid SARIF 2.1.0 JSON |
 
@@ -160,7 +161,7 @@ The release is ready when:
 - [ ] All Diff viewer cases (3-1 to 3-6) pass
 - [ ] All Inspector cases (4-1 to 4-8) pass
 - [ ] All Save/Re-run cases (5-1 to 5-4) pass
-- [ ] All Theme cases (6-1 to 6-4) pass
+- [ ] All Settings & Footer cases (6-1 to 6-5) pass
 - [ ] All Export cases (7-1 to 7-4) pass
 - [ ] All CLI smoke tests exit with expected codes
 - [ ] No `cargo check --all-targets` warnings

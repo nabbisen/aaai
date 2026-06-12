@@ -6,7 +6,29 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
-(no entries yet)
+---
+
+## [0.23.0] — Phase 15: Polish & Correctness (2026-06-06)
+
+### RFC 036 — App Settings dialog
+
+New ⚙ **Settings dialog** replaces the language picker in the footer. Opens as a modal overlay with a semi-transparent backdrop.
+
+**Settings content:**
+
+- **Language** — the existing locale picker (moved from footer `pick_list` into the dialog)
+- **Ignored Directories** — a configurable list of directory names that are silently excluded from every audit before any per-project `.aaaiignore` patterns. Defaults: `.git`, `target`, `node_modules`, `.DS_Store`
+
+**Persistence:** settings are saved to `~/.aaai/prefs.yaml` (existing file). Two new fields added to `UserPrefs` in aaai-core with `#[serde(default)]` so old files are forward-compatible.
+
+**Audit integration:** global ignored dirs are converted to `<name>/**` glob patterns and prepended to `IgnoreRules` at audit start, before any per-project rules. No aaai-core API changes.
+
+**Draft pattern:** `OpenSettings` clones prefs into a draft; `Cancel`/backdrop-click discards; `Save` applies + persists + applies language immediately.
+
+**i18n:** 9 new keys under `settings.*` namespace (EN + JA). Total: 189/189/189.
+
+**Tests:** 2 new aaai-core tests for `UserPrefs` new-field round-trip and backwards-compatible defaults. aaai-core: 97 → 99.
+
 
 ## [0.22.0] — 2026-06-05 — Phase 14: GUI i18n endgame
 

@@ -302,6 +302,33 @@ Phase 13 で deferred になった項目および v0.21.0 リリース時点で�
 
 ---
 
+## Phase 15 — Polish & Correctness ✅ (v0.23.0)
+
+9 RFCs shipped in v0.23.0, focused on UX completeness, data correctness, and docs:
+
+- **RFC 036** — App Settings dialog (language switcher + global ignored directories)
+- **RFC 037** — Async rerun with audit-dirty toolbar indicator
+- **RFC 038** — Keyboard shortcuts `?` help overlay
+- **RFC 039** — Revert-to-Pending in Inspector + Opening screen profile delete
+- **RFC 040** — Report export with native save-file picker (MD + JSON from GUI)
+- **RFC 041** — Unsaved-changes navigation guard dialog
+- **RFC 042** — Dynamic window title + auto-profile on audit run
+- **RFC 043** — Status counts in filter bar + bottom-bar count i18n fix
+- **RFC 044** — `expires_at` enforcement in audit engine (bug fix; 2 new tests)
+
+### Phase 15 metrics
+
+| Metric | v0.22.0 end | v0.23.0 end |
+|---|---|---|
+| RFCs done | 36 | 45 |
+| aaai-core tests | 99 | 101 |
+| aaai-cli tests | 70 | 70 |
+| aaai-gui tests | 15 | 15 |
+| Total tests | 184 | 186 |
+| i18n keys (EN/JA) | 192/192 | 216/216 |
+| Warnings | 0 | 0 |
+
+
 ## Phase 16 — v1.0.0 リリース判定 (改めて)
 
 v0.20.0 で RFC 025 docs groundwork は landed したが、**実リリースゲート通過 → tag/publish → GitHub Release** は別個に行う。

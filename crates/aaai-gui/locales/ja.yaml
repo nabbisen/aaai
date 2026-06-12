@@ -40,6 +40,7 @@ filter:
   changed: 変更のみ
   errors: エラー
   pending: 未承認
+  count_summary: '%{total}件中 %{unresolved}件が未解決'
 footer:
   unsaved: ● 未保存の変更があります
 inspector:
@@ -76,6 +77,7 @@ inspector:
   strategy_linematch: 行マッチ
   strategy_regex: 正規表現
   strategy_exact: 完全一致
+  revert_to_pending: Pending に戻す
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト
@@ -107,8 +109,6 @@ status:
   pending: Pending
   result_failed: 不合格
 toast:
-  save_before_leaving: 保存してから移動してください。変更が失われます。
-  unsaved_warning: 未保存の変更があります
   approved: 承認しました
   batch_approved: 一括承認しました
   export_failed: 出力失敗
@@ -124,6 +124,11 @@ toast:
   profile: プロファイル
   profile_name_empty: プロファイル名を入力してください。
   profile_loaded: プロファイルを読み込みました。
+  rerun_complete: 再評価完了。
+  batch_approved_count: '%{count} 件を承認しました。'
+  reverted: Pending に戻しました
+  reverted_path: '取り消し: %{path}'
+  no_audit_result: レポートを出力する前に監査を実行してください。
 toolbar:
   audit_status: 監査ステータス
   report_output: レポート出力
@@ -133,6 +138,7 @@ toolbar:
   passed: 合格
   failed: 不合格
   undo: 元に戻す
+  rerunning: 再実行中…
 bottombar:
   selected: '選択中:'
   approve_and_save: 承認して保存
@@ -213,6 +219,7 @@ banner:
   reported_label: レポート出力
 progress:
   comparing_folders: フォルダを比較中…
+  rerunning: 監査を再実行中…
 dashboard:
   needs_attention: 要対応
 main:
@@ -222,3 +229,35 @@ dialog:
   pick_after: After フォルダを選択
   pick_audit_yaml: audit.yaml を選択
   pick_aaaiignore: .aaaiignore を選択
+  save_report: レポートを保存
+settings:
+  title: 設定
+  button_tooltip: 設定
+  language: 言語
+  ignored_dirs: 除外ディレクトリ
+  ignored_dirs_hint: 'すべての監査で除外するディレクトリ名 (例: .git, target)。'
+  dir_placeholder: ディレクトリ名
+  add_dir: + ディレクトリを追加
+  save: 保存
+  cancel: キャンセル
+help:
+  title: キーボードショートカット
+  shortcut_label: ショートカット
+  action_label: 操作
+  close: 閉じる
+  save: 定義ファイルを保存
+  rerun: 監査を再実行
+  undo: 最後の承認を取り消し
+  export: レポートを出力
+  navigate: ファイルリストを移動
+  cycle_pane: ペインフォーカスを切り替え
+  approve: 承認のトグル
+  search: 検索フォーカス
+  show_help: このヘルプを表示 / 非表示
+  revert: 選択エントリを Pending に戻す
+nav_guard:
+  title: 未保存の変更があります
+  message: 未保存の変更があります。保存してから離れますか？
+  save_and_leave: 保存して離れる
+  discard_and_leave: 破棄して離れる
+  cancel: キャンセル
