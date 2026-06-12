@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.25.0"
+version = "0.26.0"
 edition = "2024"
 # MSRV — minimum supported Rust version, fixed at 1.91 per the
 # project's development-environment specification. This is the

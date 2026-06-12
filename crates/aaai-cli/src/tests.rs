@@ -1476,3 +1476,199 @@ fn rfc057_export_to_file() {
     let content = std::fs::read_to_string(&output_csv).unwrap();
     assert!(content.contains("c.txt"), "output file should contain the changed entry");
 }
+
+// ── RFC 059: `aaai lint` ──────────────────────────────────────────────────
+
+#[test]
+fn rfc059_lint_clean_file_exits_zero() {
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "a.txt", "hello\n");
+    write(&after,  "a.txt", "world\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    // snap, then manually set a proper reason so lint passes
+    let _ = aaai().args(["snap", "-l"]).arg(&before).args(["-r"]).arg(&after)
+        .args(["-o"]).arg(&audit_yaml).status();
+    // Set a long-enough reason via audit --approve-all-pending is not available;
+    // write the YAML directly
+    std::fs::write(&audit_yaml,
+        "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: 'Changed for testing purposes'\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let out = aaai().args(["lint"]).arg(&audit_yaml).output().unwrap();
+    assert!(out.status.success(), "lint should exit 0 on clean file");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("No issues") || !stdout.contains("error"),
+        "clean file should have no errors:\n{stdout}");
+}
+
+#[test]
+fn rfc059_lint_short_reason_warns() {
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    std::fs::write(&audit_yaml,
+        "version: '1'\nentries:\n- path: b.txt\n  diff_type: Modified\n  reason: ok\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let out = aaai().args(["lint"]).arg(&audit_yaml).output().unwrap();
+    // short reason → warning, not error → still exits 0
+    assert!(out.status.success(), "short reason is a warning not an error");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("short-reason"), "should warn about short reason:\n{stdout}");
+}
+
+#[test]
+fn rfc059_lint_json_output() {
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    std::fs::write(&audit_yaml,
+        "version: '1'\nentries:\n- path: c.txt\n  diff_type: Modified\n  reason: hi\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let out = aaai().args(["lint", "--json-output"]).arg(&audit_yaml).output().unwrap();
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    // Must be valid JSON array
+    let parsed: serde_json::Value = serde_json::from_str(&stdout)
+        .expect("--json-output must produce valid JSON");
+    assert!(parsed.is_array(), "output must be a JSON array");
+}
+
+// ── RFC 060: `aaai merge` ─────────────────────────────────────────────────
+
+#[test]
+fn rfc060_merge_combine_two_definitions() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base_yaml    = tmp.path().join("base.yaml");
+    let overlay_yaml = tmp.path().join("overlay.yaml");
+    let out_yaml     = tmp.path().join("merged.yaml");
+
+    std::fs::write(&base_yaml,
+        "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: Base reason\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+    std::fs::write(&overlay_yaml,
+        "version: '1'\nentries:\n- path: b.txt\n  diff_type: Added\n  reason: Overlay reason\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let status = aaai().args(["merge"]).arg(&base_yaml).arg(&overlay_yaml)
+        .args(["-o"]).arg(&out_yaml).status().unwrap();
+    assert!(status.success(), "merge should succeed");
+    let merged = std::fs::read_to_string(&out_yaml).unwrap();
+    assert!(merged.contains("a.txt"), "merged file should contain base entry");
+    assert!(merged.contains("b.txt"), "merged file should contain overlay entry");
+}
+
+#[test]
+fn rfc060_merge_dry_run_does_not_write() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base_yaml    = tmp.path().join("base.yaml");
+    let overlay_yaml = tmp.path().join("overlay.yaml");
+
+    std::fs::write(&base_yaml,
+        "version: '1'\nentries:\n- path: x.txt\n  diff_type: Modified\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+    std::fs::write(&overlay_yaml,
+        "version: '1'\nentries:\n- path: y.txt\n  diff_type: Added\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+    let original = std::fs::read_to_string(&base_yaml).unwrap();
+
+    let status = aaai().args(["merge", "--dry-run"]).arg(&base_yaml).arg(&overlay_yaml)
+        .status().unwrap();
+    assert!(status.success());
+    assert_eq!(std::fs::read_to_string(&base_yaml).unwrap(), original,
+        "--dry-run must not modify the base file");
+}
+
+#[test]
+fn rfc060_merge_detect_conflicts() {
+    let tmp = tempfile::tempdir().unwrap();
+    let base_yaml    = tmp.path().join("base.yaml");
+    let overlay_yaml = tmp.path().join("overlay.yaml");
+
+    std::fs::write(&base_yaml,
+        "version: '1'\nentries:\n- path: conflict.txt\n  diff_type: Modified\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+    std::fs::write(&overlay_yaml,
+        "version: '1'\nentries:\n- path: conflict.txt\n  diff_type: Added\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let out = aaai().args(["merge", "--detect-conflicts"])
+        .arg(&base_yaml).arg(&overlay_yaml).output().unwrap();
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("conflict.txt"), "should report the conflicting path:\n{stdout}");
+}
+
+// ── RFC 061: `aaai check` ─────────────────────────────────────────────────
+
+#[test]
+fn rfc061_check_valid_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    std::fs::write(&audit_yaml,
+        "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: All good\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
+
+    let out = aaai().args(["check"]).arg(&audit_yaml).output().unwrap();
+    assert!(out.status.success(), "valid file should exit 0");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("valid"), "should say entries are valid:\n{stdout}");
+}
+
+#[test]
+fn rfc061_check_invalid_yaml_exits_nonzero() {
+    let tmp = tempfile::tempdir().unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    std::fs::write(&audit_yaml, "not: valid: aaai: yaml: [\n").unwrap();
+
+    let status = aaai().args(["check"]).arg(&audit_yaml).status().unwrap();
+    assert!(!status.success(), "invalid YAML should exit non-zero");
+}
+
+// ── RFC 062: `aaai history` ───────────────────────────────────────────────
+
+#[test]
+fn rfc062_history_empty_exits_zero() {
+    // Run with a clean HOME so ~/.aaai/history.jsonl doesn't exist.
+    let tmp = tempfile::tempdir().unwrap();
+    let out = aaai()
+        .env("HOME", tmp.path())
+        .args(["history"]).output().unwrap();
+    assert!(out.status.success(), "history on empty store should exit 0");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("No audit runs") || stdout.contains("history"),
+        "should mention no records:\n{stdout}");
+}
+
+#[test]
+fn rfc062_history_stats_empty() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out = aaai()
+        .env("HOME", tmp.path())
+        .args(["history", "--stats"]).output().unwrap();
+    assert!(out.status.success());
+}
+
+// ── RFC 063: `aaai dashboard` ─────────────────────────────────────────────
+
+#[test]
+fn rfc063_dashboard_help_available() {
+    let out = aaai().args(["dashboard", "--help"]).output().unwrap();
+    assert!(out.status.success(), "dashboard --help failed");
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("left") || stdout.contains("before"),
+        "dashboard --help should mention input paths:\n{stdout}");
+}
+
+#[test]
+fn rfc063_dashboard_basic_run() {
+    let tmp    = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after  = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&before, "f.txt", "old\n");
+    write(&after,  "f.txt", "new\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    std::fs::write(&audit_yaml, "version: '1'\nentries: []\n").unwrap();
+
+    let out = aaai()
+        .args(["dashboard", "-l"]).arg(&before)
+        .args(["-r"]).arg(&after)
+        .args(["-c"]).arg(&audit_yaml)
+        .output().unwrap();
+    assert!(out.status.success(), "dashboard should succeed:\n{}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(stdout.contains("Pending") || stdout.contains("FAILED"),
+        "dashboard output should show audit status:\n{stdout}");
+}

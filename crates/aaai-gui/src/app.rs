@@ -2311,4 +2311,46 @@ mod tests {
         assert_eq!(fe.field, "expected_content");
         assert!(fe.hint.is_none());
     }
+
+    // ── RFC 064 — suggest_patterns unit tests ────────────────────────
+
+    #[test]
+    fn rfc064_suggest_patterns_depth2() {
+        let s = App::suggest_patterns("src/main.rs");
+        assert!(s.contains(&"src/**".to_string()), "should suggest parent/**");
+        assert!(s.contains(&"**/*.rs".to_string()), "should suggest **/*.ext");
+    }
+
+    #[test]
+    fn rfc064_suggest_patterns_depth3() {
+        let s = App::suggest_patterns("node_modules/lodash/README.md");
+        assert!(s.contains(&"node_modules/**".to_string()));
+        assert!(s.contains(&"node_modules/**/*.md".to_string()));
+        assert!(s.contains(&"**/*.md".to_string()));
+        assert!(s.len() <= 3, "at most 3 suggestions");
+    }
+
+    #[test]
+    fn rfc064_suggest_patterns_no_extension() {
+        let s = App::suggest_patterns("dist/output");
+        // depth 2, no extension: only parent/**
+        assert!(s.contains(&"dist/**".to_string()));
+        assert!(!s.iter().any(|p| p.contains("**/*.")),
+            "no ext-based chip when file has no extension");
+    }
+
+    #[test]
+    fn rfc064_suggest_patterns_single_component() {
+        let s = App::suggest_patterns("README.md");
+        // single component (no /): no parent chip, only ext
+        assert!(!s.iter().any(|p| p.contains("/**")),
+            "no parent/** for single-component path");
+        assert!(s.contains(&"**/*.md".to_string()));
+    }
+
+    #[test]
+    fn rfc064_suggest_patterns_empty() {
+        let s = App::suggest_patterns("");
+        assert!(s.is_empty(), "empty path → no suggestions");
+    }
 }

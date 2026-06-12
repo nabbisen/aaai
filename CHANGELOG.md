@@ -8,6 +8,29 @@ Format: `## [version] — description`
 
 ---
 
+## [0.26.0] — Phase 18: CLI Completeness II (2026-06-09)
+
+### RFC 059-063 — CLI stub activations (5 commands)
+
+Five pre-written CLI stubs confirmed, tested, and activated:
+
+- **`aaai lint`** — duplicate paths, short reasons, expired entries, empty LineMatch rules, strategy mismatches; `--json-output`; exits 1 on errors only
+- **`aaai merge`** — overlay wins on conflict; `--detect-conflicts`, `--dry-run`, `--out`
+- **`aaai check`** — YAML validation, approvability, expired/expiring-soon; `--all`
+- **`aaai history`** — recent runs from `~/.aaai/history.jsonl`; `--stats` trend; `--prune N`
+- **`aaai dashboard`** — stat cards, attention list, next-action hint; `--detail`
+
+**aaai-cli tests: 74 → 86 (+12)**
+
+### RFC 064 — GUI `suggest_patterns` unit tests
+
+5 unit tests for the RFC 055 glob-suggestion algorithm (depth-2, depth-3,
+no extension, single component, empty path).
+
+**aaai-gui tests: 15 → 20 (+5). Total tests: 190 → 207.**
+
+---
+
 ## [0.25.0] — Phase 17: Glob Rules & Power Workflow (2026-06-09)
 
 ### RFC 055 — Auto-suggest glob patterns from current path

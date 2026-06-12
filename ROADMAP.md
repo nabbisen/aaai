@@ -444,3 +444,29 @@ can see audit progress from the OS taskbar without switching focus.
 | `aaai watch` complete | stub | ✓ |
 | `aaai export` complete | stub | ✓ |
 
+## Phase 18 — CLI Completeness II ✅ (v0.26.0)
+
+Theme: Activate the final batch of pre-written CLI stubs with tests.
+Every command below was already feature-complete as a stub;
+Phase 18 confirms each compiles, adds integration tests,
+and wires them into the release.
+
+| RFC | Command | Highlights |
+|---|---|---|
+| 059 | `aaai lint` | Best-practice linter: duplicate paths, short reasons, expired entries, empty LineMatch rules, disabled entries; `--json-output`; exits 1 on errors |
+| 060 | `aaai merge` | Merge two definition files; overlay wins on conflict; `--detect-conflicts`, `--dry-run`; atomic write |
+| 061 | `aaai check` | Validate a definition file; expired/expiring-soon detection; `--all` to list every entry |
+| 062 | `aaai history` | Show recent audit runs from `~/.aaai/history.jsonl`; `--stats` trend analysis; `--prune N` rotation |
+| 063 | `aaai dashboard` | CLI dashboard with stat cards, attention list, next-action hint |
+| 064 | GUI: `suggest_patterns` tests | Unit tests for glob suggestion algorithm; validates all 3 chip types and edge cases |
+
+### Phase 18 metrics
+
+| Metric | v0.25.0 | v0.26.0 |
+|---|---|---|
+| RFCs done | 59 | 65 |
+| aaai-cli tests | 74 | 86 |
+| aaai-gui tests | 15 | 20 |
+| Total tests | 190 | 207 |
+| Remaining unactivated stubs | 5 | 0 |
+

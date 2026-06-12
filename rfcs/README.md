@@ -76,6 +76,12 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [055](done/055-pattern-suggestions.md) | Auto-suggest glob patterns from current path | v0.25.0 |
 | [056](done/056-aaai-watch.md) | aaai watch completion | v0.25.0 |
 | [057](done/057-aaai-export.md) | aaai export completion | v0.25.0 |
+| [059](done/059-aaai-lint.md) | aaai lint activation | v0.26.0 |
+| [060](done/060-aaai-merge.md) | aaai merge activation | v0.26.0 |
+| [061](done/061-aaai-check.md) | aaai check activation | v0.26.0 |
+| [062](done/062-aaai-history.md) | aaai history activation | v0.26.0 |
+| [063](done/063-aaai-dashboard.md) | aaai dashboard activation | v0.26.0 |
+| [064](done/064-suggest-patterns-tests.md) | GUI suggest_patterns unit tests | v0.26.0 |
 | [058](done/058-pending-count-title.md) | Pending count in window title | v0.25.0 |
 
 > **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
