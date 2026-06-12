@@ -1,9 +1,9 @@
 # aaai — audit for asset integrity
 
 [![crates.io](https://img.shields.io/crates/v/aaai-core?label=aaai-core)](https://crates.io/crates/aaai-core)
-[![License](https://img.shields.io/github/license/nabbisen/aaai)](https://github.com/nabbisen/aaai/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/nabbisen/aaai)](LICENSE)
 [![Rust Documentation](https://docs.rs/aaai-core/badge.svg?version=latest)](https://docs.rs/aaai-core)
-[![Dependency Status](https://deps.rs/crate/aaai/latest/status.svg)](https://deps.rs/crate/aaai)
+[![Dependency Status](https://deps.rs/crate/aaai-core/latest/status.svg)](https://deps.rs/crate/aaai-core)
 [![CI](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml/badge.svg)](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml)
 
 **aaai** is a folder-diff auditor that requires every detected change to carry a human-readable reason before it can be marked as accepted. It provides a CLI and a desktop GUI built with [iced](https://github.com/iced-rs/iced).
