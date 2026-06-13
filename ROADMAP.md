@@ -493,3 +493,17 @@ Every feature ships with direct unit tests; all CLI stubs activated.
 | Total tests | 207 | 220 |
 | Unactivated stubs | 1 (`init`) | 0 |
 
+## Phase 20 — GUI & UI/UX Quality ✅ (v0.29.0)
+
+Theme: Address layout, visual stability, and interaction quality issues
+that have accumulated across feature phases. No new functionality —
+purely improving the user experience of what already exists.
+
+| RFC | Issue | File |
+|---|---|---|
+| 069 | Diff pane scroll sync — left/right panels now scroll together | `diff_view.rs`, `app.rs` |
+| 070 | Toolbar layout stability + Undo relocation | `main_view.rs` |
+| 071 | Search bar moved inside file tree pane | `main_view.rs` |
+| 072 | Status badge compact pill + cleaner icon glyphs | `main_view.rs` |
+| 073 | Bottom bar hidden when no file is selected | `main_view.rs` |
+

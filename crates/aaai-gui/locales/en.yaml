@@ -136,7 +136,6 @@ toast:
   reverted_path: 'Reverted: %{path}'
   no_audit_result: Run an audit first before exporting a report.
 toolbar:
-  audit_status: Audit status
   report_output: Export Report
   run_audit: Run Audit
   open: Open
@@ -223,9 +222,7 @@ empty_state:
   dashboard_all_clear: All entries are in order.
   dashboard_select_file: Select a file from the left panel to inspect it.
   no_entries_match_filter: No entries match the current filter.
-banner:
-  saved_label: Saved
-  reported_label: Reported
+banner: {}
 progress:
   comparing_folders: Comparing folders…
   rerunning: Re-running audit…

@@ -10,6 +10,12 @@ use similar::{ChangeTag, TextDiff};
 use aaai_core::{DiffType, diff::entry::DiffEntry};
 use crate::app::Message;
 
+/// RFC 069 — stable IDs for the side-by-side diff panes, used for scroll sync.
+pub static DIFF_BEFORE_ID: std::sync::LazyLock<iced::widget::Id> =
+    std::sync::LazyLock::new(|| iced::widget::Id::new("diff_before"));
+pub static DIFF_AFTER_ID: std::sync::LazyLock<iced::widget::Id> =
+    std::sync::LazyLock::new(|| iced::widget::Id::new("diff_after"));
+
 pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode) -> Element<'a, Message> {
     use crate::app::DiffViewMode;
 
@@ -249,11 +255,17 @@ fn side_by_side<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 
     let before_col: Element<'_, Message> = scrollable(
         column(before_lines).spacing(0).width(Length::Fill)
-    ).width(Length::Fill).height(Length::Fill).into();
+    )
+    .id(DIFF_BEFORE_ID.clone())
+    .on_scroll(Message::DiffBeforeScrolled)
+    .width(Length::Fill).height(Length::Fill).into();
 
     let after_col: Element<'_, Message> = scrollable(
         column(after_lines).spacing(0).width(Length::Fill)
-    ).width(Length::Fill).height(Length::Fill).into();
+    )
+    .id(DIFF_AFTER_ID.clone())
+    .on_scroll(Message::DiffAfterScrolled)
+    .width(Length::Fill).height(Length::Fill).into();
 
     let header = row![
         container(text(t!("diff.before").to_string()).size(12).font(iced::Font {

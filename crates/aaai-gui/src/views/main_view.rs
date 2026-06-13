@@ -19,8 +19,8 @@ use crate::views::{dashboard, diff_view, inspector};
 pub fn view(app: &App) -> Element<'_, Message> {
     let toolbar    = build_toolbar(app);
     let filter_bar = build_filter_bar(app);
-    let search_bar = build_search_bar(app);
-    let bottom_bar = build_bottom_bar(app);   // RFC 008
+    // RFC 071 — search bar is now inside build_file_tree, not a top-level row.
+    let bottom_bar = build_bottom_bar(app);
     // ── PaneGrid ──────────────────────────────────────────────────────────
     let pg = pane_grid::PaneGrid::new(&app.panes, |_pane, kind, _is_maximized| {
         let content: Element<'_, Message> = match kind {
@@ -38,7 +38,6 @@ pub fn view(app: &App) -> Element<'_, Message> {
     column![
         toolbar,
         filter_bar,
-        search_bar,
         pg,
         bottom_bar,   // RFC 008: fixed bottom action bar
     ]
@@ -49,11 +48,18 @@ pub fn view(app: &App) -> Element<'_, Message> {
 // ── Toolbar ──────────────────────────────────────────────────────────────────
 
 fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
-    // RFC 007 + RFC 014: Design-doc toolbar
-    //  [ □ 開く ] [ □ 保存 ] [ ▶ 監査実行 ] [ ↑ レポート出力 ]   監査ステータス: XX
+    // RFC 007 + RFC 014 + RFC 070 (layout stability, Undo relocation)
+    //
+    // Layout:  [← Open]  [↓ Save]  [▶ Run]  [↑ Export]  [↩ Undo]  ─────  [● STATUS]
+    //
+    // RFC 070 changes from the previous layout:
+    //  • "✓ saved Nm ago" marks moved BELOW their buttons (not inline) so the
+    //    button row never shifts width when the marks appear/disappear.
+    //  • Undo moved here from the filter bar (where it was semantically wrong).
+    //  • Icon glyphs clarified: Save = ↓, Open = ←, Export = ↑, Undo = ↩
     use crate::style::panel_style;
 
-    let toolbar_btn = |icon: String, label: String, msg: Message| -> Element<'_, Message> {
+    let toolbar_btn = |icon: &'a str, label: String, msg: Message| -> Element<'a, Message> {
         button(
             row![
                 text(icon).size(12),
@@ -67,56 +73,39 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
         .into()
     };
 
-    let open_btn   = toolbar_btn("□".into(), t!("toolbar.open").to_string(),          Message::BackToOpening);
-    let save_btn   = toolbar_btn("□".into(), t!("toolbar.save").to_string(),          Message::SaveDefinition);
-    let run_btn    = toolbar_btn("▶".into(), t!("toolbar.run_audit").to_string(),     Message::RerunAudit);
-    let report_btn = toolbar_btn("↑".into(), t!("toolbar.report_output").to_string(), Message::ExportReport);
+    let open_btn   = toolbar_btn("←", t!("toolbar.open").to_string(),          Message::BackToOpening);
+    let save_btn   = toolbar_btn("↓", t!("toolbar.save").to_string(),          Message::SaveDefinition);
+    let run_btn    = toolbar_btn("▶", t!("toolbar.run_audit").to_string(),     Message::RerunAudit);
+    let report_btn = toolbar_btn("↑", t!("toolbar.report_output").to_string(), Message::ExportReport);
+    let undo_btn   = toolbar_btn("↩", t!("toolbar.undo").to_string(),          Message::UndoApproval);
 
-    // RFC 021 §2.3 — small "✓ Saved Nm ago" / "✓ Reported Nm ago" marks
-    // next to Save and Report buttons when those operations have happened
-    // at least once. These persist (no auto-dismiss like toasts) so the
-    // user can always tell at a glance how fresh the on-disk state is.
-    // The relative time updates via the 30-second tick subscription.
-    let save_with_mark: Element<'_, Message> = if let Some(t_saved) = app.last_saved_at {
-        row![
-            save_btn,
-            text(format!("✓ {} {}",
-                t!("banner.saved_label"),
-                crate::util::humanize_since(t_saved),
-            ))
-            .size(10)
-            .color(Color::from_rgb(0.40, 0.55, 0.40)),
-        ]
-        .spacing(4)
-        .align_y(iced::Alignment::Center)
-        .into()
-    } else {
-        save_btn
-    };
-    let report_with_mark: Element<'_, Message> = if let Some(t_rep) = app.last_reported_at {
-        row![
-            report_btn,
-            text(format!("✓ {} {}",
-                t!("banner.reported_label"),
-                crate::util::humanize_since(t_rep),
-            ))
-            .size(10)
-            .color(Color::from_rgb(0.40, 0.55, 0.40)),
-        ]
-        .spacing(4)
-        .align_y(iced::Alignment::Center)
-        .into()
-    } else {
-        report_btn
-    };
+    let save_mark_text = app.last_saved_at.map(|t| format!("✓ {}",
+        crate::util::humanize_since(t)));
+    let report_mark_text = app.last_reported_at.map(|t| format!("✓ {}",
+        crate::util::humanize_since(t)));
 
-    // Audit status label — right-aligned simple text
-    // RFC 037 — show "Re-running…" while async rerun is in progress
-    let status_label: Element<'_, Message> = if app.audit_dirty && app.is_loading {
-        text(t!("toolbar.rerunning").to_string())
-            .size(13)
-            .color(theme::PENDING_COLOR)
-            .into()
+    // RFC 070 — "✓ saved Nm ago" marks stack BELOW their button in a fixed-height
+    // sub-column so the row width is stable regardless of mark presence.
+    let save_mark: Element<'_, Message> = match save_mark_text {
+        Some(m) => text(m).size(9).color(Color::from_rgb(0.35, 0.55, 0.35)).into(),
+        None    => space().height(Length::Fixed(13.0)).into(),
+    };
+    let save_col = column![save_btn, save_mark]
+        .spacing(1)
+        .align_x(iced::Alignment::Center);
+
+    let report_mark: Element<'_, Message> = match report_mark_text {
+        Some(m) => text(m).size(9).color(Color::from_rgb(0.35, 0.55, 0.35)).into(),
+        None    => space().height(Length::Fixed(13.0)).into(),
+    };
+    let report_col = column![report_btn, report_mark]
+        .spacing(1)
+        .align_x(iced::Alignment::Center);
+
+    // Audit status — compact colored pill: "● PASSED" / "● FAILED"
+    let status_element: Element<'_, Message> = if app.audit_dirty && app.is_loading {
+        text(format!("○ {}", t!("toolbar.rerunning")))
+            .size(12).color(theme::PENDING_COLOR).into()
     } else if let Some(result) = &app.audit_result {
         let s = &result.summary;
         let (label, color) = if s.is_passing() {
@@ -124,22 +113,21 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
         } else {
             (t!("toolbar.failed").to_string(), theme::FAILED_COLOR)
         };
-        text(format!("{}: {}", t!("toolbar.audit_status"), label))
-            .size(13).color(color)
-            .into()
+        text(format!("● {}", label))
+            .size(12).color(color).into()
     } else {
-        space().width(Length::Fill).into()
+        space().width(Length::Fixed(1.0)).into()
     };
 
     container(
         row![
-            open_btn, save_with_mark, run_btn, report_with_mark,
+            open_btn, save_col, run_btn, report_col, undo_btn,
             space().width(Length::Fill),
-            status_label,
+            status_element,
         ]
-        .spacing(6)
+        .spacing(4)
         .align_y(iced::Alignment::Center)
-        .padding(Padding::from([4.0, 10.0])),
+        .padding(Padding::from([3.0, 10.0])),
     )
     .width(Length::Fill)
     .style(panel_style)
@@ -194,18 +182,12 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         None               => (None, None, None, None),
     };
 
-    let undo_btn = button(text(t!("toolbar.undo").to_string()).size(11))
-        .on_press(Message::UndoApproval)
-        .padding(Padding::from([10.0, 14.0]));  // ABDD ≥44px
-
     container(
         row![
             make_btn("filter.all",     FilterMode::All,           all_n),
             make_btn("filter.changed", FilterMode::ChangedOnly,   changed_n),
             make_btn("filter.pending", FilterMode::PendingOnly,   pending_n),
             make_btn("filter.errors",  FilterMode::FailedAndError, errors_n),
-            space().width(Length::Fill),
-            undo_btn,
         ]
         .spacing(4)
         .align_y(iced::Alignment::Center)
@@ -217,15 +199,13 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
 }
 
 // ── Search bar ───────────────────────────────────────────────────────────────
-
+// RFC 071 — search bar now lives at the top of the file tree pane, not
+// as a standalone row above the entire pane grid. This function is kept
+// as a building block called from build_file_tree.
 fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     if app.audit_result.is_none() {
         return space().height(0).into();
     }
-    // RFC 005: focus management is handled by iced's `id`/`focus` plumbing,
-    // not by per-state placeholder text. RFC 032: i18n migration. Both
-    // branches of the previous `if focus == Search` produced the same
-    // string, so the conditional is collapsed.
     let search_placeholder = t!("main.search_placeholder").to_string();
     container(
         row![
@@ -234,18 +214,24 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
                 .on_input(Message::SearchQueryChanged)
                 .padding(Padding::from([3.0, 6.0]))
                 .size(12)
-                .width(Length::Fixed(220.0)),
+                .width(Length::Fill),
         ]
         .spacing(6)
         .align_y(iced::Alignment::Center),
     )
-    .padding(Padding::from([10.0, 14.0]))  // ABDD ≥44px
+    .padding(Padding::from([6.0, 10.0]))
     .width(Length::Fill)
     .style(|_| iced::widget::container::Style {
         background: Some(iced::Background::Color(Color::from_rgb(0.95, 0.96, 0.97))),
         ..Default::default()
     })
     .into()
+}
+
+// Kept for backward compatibility with existing call sites; unused variable suppressed.
+#[allow(dead_code)]
+fn _build_search_bar_unused<'a>(_app: &'a App) -> Element<'a, Message> {
+    space().height(0).into()
 }
 
 // ── File tree pane ───────────────────────────────────────────────────────────
@@ -255,6 +241,9 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
         Some(r) => r,
         None    => return empty_state_file_tree(),
     };
+
+    // RFC 071 — search bar lives at the top of this pane, not above the grid.
+    let search = build_search_bar(app);
 
     let q = app.search_query.to_lowercase();
 
@@ -309,18 +298,26 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     }
 
     if items.is_empty() {
-        return container(
-            text(t!("empty_state.no_entries_match_filter").to_string()).size(12)
-                .color(Color::from_rgb(0.55, 0.55, 0.58))
-        ).padding(12).into();
+        return column![
+            search,
+            container(
+                text(t!("empty_state.no_entries_match_filter").to_string()).size(12)
+                    .color(Color::from_rgb(0.55, 0.55, 0.58))
+            ).padding(12),
+        ].spacing(0).width(Length::Fill).height(Length::Fill).into();
     }
 
-    scrollable(
+    let tree_scroll = scrollable(
         column(items).spacing(0).width(Length::Fill)
     )
     .width(Length::Fill)
-    .height(Length::Fill)
-    .into()
+    .height(Length::Fill);
+
+    column![search, tree_scroll]
+        .spacing(0)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
 
 fn build_file_row<'a>(
@@ -469,6 +466,13 @@ fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
 
 fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     use crate::style::panel_style;
+
+    // RFC 073 — hide entirely when no file is selected: the bar implies
+    // there is something actionable, which is misleading when the user is
+    // looking at the dashboard or has just opened the screen.
+    if app.selected_index.is_none() {
+        return space().height(0).into();
+    }
 
     // "承認して保存" button — enabled only when an entry is selected and valid
     let can_approve = app.selected_index.is_some()

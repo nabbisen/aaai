@@ -8,6 +8,41 @@ Format: `## [version] — description`
 
 ---
 
+## [0.29.0] — Phase 20: GUI & UI/UX Quality (2026-06-12)
+
+### RFC 069 — Diff pane scroll synchronisation
+
+The side-by-side diff view now scrolls both panels in lock-step. Each pane gets
+a stable `Id` and `on_scroll` callback; `iced::widget::operation::scroll_to` mirrors
+the scroll offset to the peer. A `diff_scroll_syncing` guard breaks the feedback loop.
+
+### RFC 070 — Toolbar layout stability and Undo relocation
+
+Saved/reported marks now stack *below* their buttons (stable column widths; no
+more horizontal shift when marks appear/disappear). Undo moved from the filter
+bar into the toolbar where document-level actions belong. Icon glyphs clarified:
+Open = `←`, Save = `↓`, Export = `↑`, Undo = `↩`.
+
+### RFC 071 — Search bar moved inside file tree pane
+
+The search bar was a full-width row above the entire pane grid even though it
+only filters the file tree. Now lives at the top of the file tree pane as its
+header — scoped to where it operates, one fewer top bar.
+
+### RFC 072 — Compact status badge + i18n cleanup
+
+`Audit Status: PASSED` → `● PASSED` / `● FAILED` / `○ Re-running…`. Shorter,
+immediately scannable. Three now-unused i18n keys removed (`banner.saved_label`,
+`banner.reported_label`, `toolbar.audit_status`). Total: **222/222/222**.
+
+### RFC 073 — Bottom bar hidden when no file selected
+
+`build_bottom_bar` returns `space().height(0)` when `selected_index` is `None`.
+The "Approve & Save" bar no longer appears disabled-but-visible on the dashboard —
+it only renders when there is an actionable file selection.
+
+---
+
 ## [0.28.0] — Dependency update: snora 0.18.0 (2026-06-10)
 
 ### RFC 068 — snora 0.8 → 0.18.0

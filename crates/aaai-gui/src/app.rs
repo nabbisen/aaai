@@ -285,6 +285,11 @@ pub struct App {
     /// `true`  = show all fields (expert mode, global across entries).
     pub advanced_inspector_expanded: bool,
 
+    /// RFC 069 — scroll-sync guard for side-by-side diff panes.
+    /// Prevents the programmatic scroll that syncs the peer pane from
+    /// bouncing back through on_scroll and creating an infinite loop.
+    pub diff_scroll_syncing: bool,
+
     // Phase 10: resizable pane layout
     pub panes: pane_grid::State<PaneKind>,
     pub focus: Option<pane_grid::Pane>,
@@ -350,6 +355,7 @@ impl Default for App {
             nav_guard_open: false,
             pending_leave_to_opening: false,
             advanced_inspector_expanded: false,
+            diff_scroll_syncing: false,
             diff_view_mode: DiffViewMode::default(),
             focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
@@ -430,6 +436,11 @@ pub enum Message {
     PatternChanged(String),
     /// RFC 055 — user clicked a suggestion chip.
     ApplyPatternSuggestion(String),
+
+    /// RFC 069 — diff pane scroll synchronisation.
+    /// Fired when the user scrolls either side of the side-by-side diff.
+    DiffBeforeScrolled(iced::widget::scrollable::Viewport),
+    DiffAfterScrolled(iced::widget::scrollable::Viewport),
 
     /// RFC 039 — removes the currently-selected OK entry from the definition,
     /// reverting it to Pending status. Triggers an async rerun.
@@ -1645,6 +1656,32 @@ impl App {
             Message::ApplyPatternSuggestion(s) => {
                 self.inspector.pattern_path = s;
                 self.validate_pattern();
+            }
+
+            // RFC 069 — diff pane scroll sync ──────────────────────────
+            Message::DiffBeforeScrolled(vp) => {
+                if self.diff_scroll_syncing {
+                    self.diff_scroll_syncing = false;
+                    return Task::none();
+                }
+                self.diff_scroll_syncing = true;
+                let abs = vp.absolute_offset();
+                return iced::widget::operation::scroll_to(
+                    crate::views::diff_view::DIFF_AFTER_ID.clone(),
+                    iced::widget::operation::AbsoluteOffset { x: Some(abs.x), y: Some(abs.y) },
+                );
+            }
+            Message::DiffAfterScrolled(vp) => {
+                if self.diff_scroll_syncing {
+                    self.diff_scroll_syncing = false;
+                    return Task::none();
+                }
+                self.diff_scroll_syncing = true;
+                let abs = vp.absolute_offset();
+                return iced::widget::operation::scroll_to(
+                    crate::views::diff_view::DIFF_BEFORE_ID.clone(),
+                    iced::widget::operation::AbsoluteOffset { x: Some(abs.x), y: Some(abs.y) },
+                );
             }
 
             // RFC 039 — Revert selected OK entry to Pending ───────────
