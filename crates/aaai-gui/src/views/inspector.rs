@@ -456,6 +456,12 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
                 text(t!("inspector.checksum_label").to_string()).size(12),
                 text_input(&t!("inspector.checksum_placeholder"), expected_sha256)
                     .on_input(Message::ChecksumChanged).padding(6).font(iced::Font::MONOSPACE),
+                // RFC 080 — show how to obtain the hash value so the user
+                // doesn't have to look it up. Greyed, small — expert users
+                // will already know; newcomers get the command they need.
+                text(t!("inspector.checksum_how_to").to_string())
+                    .size(9)
+                    .color(Color::from_rgb(0.60, 0.62, 0.68)),
             ].spacing(4).into()
         }
         AuditStrategy::LineMatch { rules } => {

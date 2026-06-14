@@ -94,6 +94,8 @@ inspector:
   reason_example_modified: e.g. "Port changed 80 → 8080 per infra ticket INF-42."
   reason_example_generic: e.g. "Expected change — see the linked ticket for details."
   strategy_recommended: recommended
+  checksum_how_to: 'Get the hash: sha256sum <file>  (Linux/macOS) or Get-FileHash
+    <file> -Algorithm SHA256  (Windows PowerShell)'
 opening:
   open_recent: Open
   recent_section: Or open a recent project
@@ -224,12 +226,15 @@ empty_state:
     here.
   diff_no_audit_title: No audit result yet
   diff_no_audit_step1: Click '▶ Run audit' in the toolbar
-  diff_no_audit_step2: Or click '□ Open' to start a new project
+  diff_no_audit_step2: Or click '← Open' to start a new project
   inspector_no_selection: Pick a file to inspect
   inspector_no_selection_hint: Choose an entry from the file tree on the left.
   dashboard_all_clear: All entries are in order.
   dashboard_select_file: Select a file from the left panel to inspect it.
   no_entries_match_filter: No entries match the current filter.
+  onboarding_context: aaai compares two folder snapshots, then asks you to document
+    why each change was expected. The result is a reusable record of what changed
+    and why it was acceptable.
 banner: {}
 progress:
   comparing_folders: Comparing folders…

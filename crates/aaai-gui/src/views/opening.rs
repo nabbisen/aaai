@@ -396,6 +396,13 @@ fn onboarding_section<'a>() -> Element<'a, Message> {
             ..Default::default()
         });
 
+    // RFC 079 — one-sentence WHY before the step-by-step HOW.
+    // A newcomer who has never done a structured audit doesn't know what
+    // they'll get at the end; this sentence closes that gap.
+    let context = text(t!("empty_state.onboarding_context").to_string())
+        .size(12)
+        .color(Color::from_rgb(0.38, 0.40, 0.46));
+
     // Numbered steps using ① ② ③ — Unicode bullets that carry meaning
     // without color (ABDD §2 colour independence) and are unambiguous
     // across en/ja.
@@ -415,6 +422,8 @@ fn onboarding_section<'a>() -> Element<'a, Message> {
 
     let body = column![
         title,
+        space().height(Length::Fixed(8.0)),
+        context,
         space().height(Length::Fixed(10.0)),
         step1,
         space().height(Length::Fixed(4.0)),

@@ -92,6 +92,8 @@ inspector:
   reason_example_modified: '例: 「ポート番号を 80 → 8080 に変更（インフラチケット INF-42）。」'
   reason_example_generic: '例: 「想定内の変更 — 詳細はリンク先のチケットを参照。」'
   strategy_recommended: 推奨
+  checksum_how_to: 'ハッシュの取得方法: sha256sum <ファイル>（Linux/macOS）または Get-FileHash <ファイル>
+    -Algorithm SHA256（Windows PowerShell）'
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト
@@ -219,12 +221,13 @@ empty_state:
   file_tree_no_result_hint: ツールバーの「▶ 監査実行」を押すと差分一覧がここに表示されます。
   diff_no_audit_title: 監査結果がまだありません
   diff_no_audit_step1: ツールバーの「▶ 監査実行」を押す
-  diff_no_audit_step2: または「□ 開く」から新しい監査を開始
+  diff_no_audit_step2: または「← 開く」から新しい監査を開始
   inspector_no_selection: ファイルを選んでください
   inspector_no_selection_hint: 左のファイル一覧から確認したい項目を選択。
   dashboard_all_clear: すべてのエントリが整っています。
   dashboard_select_file: 左パネルからファイルを選択してください。
   no_entries_match_filter: 現在のフィルタに合致するエントリがありません。
+  onboarding_context: aaai は 2 つのフォルダのスナップショットを比較し、それぞれの変更がなぜ想定内だったかを記録します。「何が変わり、なぜ問題なかったか」という再利用可能な記録が残ります。
 banner: {}
 progress:
   comparing_folders: フォルダを比較中…
