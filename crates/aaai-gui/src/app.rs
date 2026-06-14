@@ -290,6 +290,12 @@ pub struct App {
     /// bouncing back through on_scroll and creating an infinite loop.
     pub diff_scroll_syncing: bool,
 
+    /// RFC 077 — first-audit coach line: hidden once the user dismisses it.
+    pub coach_dismissed: bool,
+
+    /// RFC 076 — status legend popover is open.
+    pub status_legend_open: bool,
+
     // Phase 10: resizable pane layout
     pub panes: pane_grid::State<PaneKind>,
     pub focus: Option<pane_grid::Pane>,
@@ -356,6 +362,8 @@ impl Default for App {
             pending_leave_to_opening: false,
             advanced_inspector_expanded: false,
             diff_scroll_syncing: false,
+            coach_dismissed: false,
+            status_legend_open: false,
             diff_view_mode: DiffViewMode::default(),
             focus_target: FocusTarget::default(),
             profiles: ProfileStore::load().unwrap_or_default(),
@@ -428,6 +436,10 @@ pub enum Message {
     /// RFC 038 — routes Escape: closes open overlays before falling through to deselect.
     EscapeKey,
 
+    /// RFC 076 — toggle the status-legend popover.
+    ToggleStatusLegend,
+    /// RFC 077 — dismiss the first-audit coach line.
+    DismissCoach,
     /// RFC 048 — toggle the expert fields section in the Inspector.
     ToggleAdvancedInspector,
     /// RFC 054 — toggle glob-pattern override in the Inspector.
@@ -697,7 +709,13 @@ impl App {
                             pattern_suggestions: Vec::new(),
                         }
                     } else {
+                        // RFC 075 — pre-select the recommended strategy for this
+                        // diff type so newcomers don't face a blank "None" with
+                        // no guidance. The user can always change it.
+                        let rec = App::recommended_strategy(far.diff.diff_type);
                         InspectorState {
+                            strategy_kind: rec,
+                            strategy: rec.to_default_strategy(),
                             use_pattern: false,
                             pattern_path: far.diff.path.clone(),
                             pattern_suggestions: Vec::new(),
@@ -1630,6 +1648,15 @@ impl App {
                 else { self.selected_index = None; }
             }
 
+            // RFC 076 — status legend popover ─────────────────────────
+            Message::ToggleStatusLegend => {
+                self.status_legend_open = !self.status_legend_open;
+            }
+            // RFC 077 — first-audit coach line ────────────────────────
+            Message::DismissCoach => {
+                self.coach_dismissed = true;
+            }
+
             // RFC 048 — Inspector progressive disclosure ───────────────
             Message::ToggleAdvancedInspector => {
                 self.advanced_inspector_expanded = !self.advanced_inspector_expanded;
@@ -2154,6 +2181,16 @@ impl App {
 
         self.profiles.add(profile);
         let _ = self.profiles.save();
+    }
+
+    /// RFC 075 — pre-select the most helpful strategy for a given diff type.
+    /// Applied only to new (unapproved) entries so it doesn't override
+    /// existing user choices. `pub` so the inspector view can read it.
+    pub fn recommended_strategy(diff_type: DiffType) -> StrategyKind {
+        match diff_type {
+            DiffType::Modified => StrategyKind::LineMatch,
+            _                  => StrategyKind::None,
+        }
     }
 
     /// RFC 055 — derive up to 3 glob suggestions from a concrete path.

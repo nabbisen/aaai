@@ -8,6 +8,59 @@ Format: `## [version] — description`
 
 ---
 
+## [0.31.0] — Phase 22: Newcomer UX Continuation (2026-06-12)
+
+Three targeted fixes uncovered by post-Phase-21 audit.
+
+### RFC 078 — Fix stale `□ Open` icon reference
+
+The diff-pane empty-state hint still read "Or click '□ Open' to start a new project" after RFC 070 changed the Open button icon to `←`. Updated in EN and JA.
+
+### RFC 079 — Opening onboarding: WHY before HOW
+
+The first-run onboarding panel explained the steps (HOW) but not the purpose (WHY). A context paragraph now appears before the numbered steps:
+
+> *"aaai compares two folder snapshots, then asks you to document why each change was expected. The result is a reusable record of what changed and why it was acceptable."*
+
+A newcomer who has never done a structured audit now understands what they are working toward before they start. 1 new i18n key (`empty_state.onboarding_context`).
+
+### RFC 080 — Checksum strategy: how-to hint
+
+When the Checksum strategy is selected, the SHA-256 input field now shows a greyed hint line with the exact shell command needed to obtain the hash:
+
+> *Get the hash: `sha256sum <file>` (Linux/macOS) or `Get-FileHash <file> -Algorithm SHA256` (Windows PowerShell)*
+
+A user who chose Checksum but doesn't know how to obtain a SHA-256 hash no longer has to leave the app to look it up. 1 new i18n key (`inspector.checksum_how_to`).
+
+**i18n: 235 → 237 (+2). Total: 237/237/237.**
+
+---
+
+## [0.30.0] — Phase 21: Explainable to Newcomers (2026-06-12)
+
+Four targeted improvements for users who are new to structured audit workflows.
+No new functionality — purely adding just-in-time guidance at the moments it matters.
+
+### RFC 074 — Reason field guidance
+
+The reason textarea shows a placeholder ("Why is this change allowed?") when empty, plus a diff-type-aware example line (e.g. for Modified: *"e.g. 'Port changed 80 → 8080 per infra ticket INF-42.'"*). Both disappear the moment the user types. 5 new i18n keys.
+
+### RFC 075 — Strategy pre-selection + plain-language descriptions
+
+For new (unapproved) entries, aaai now pre-selects `LineMatch` for `Modified` files and `None` for all others. The recommended option is labelled "(recommended)" in the dropdown. Strategy descriptions rewritten without expert jargon ("SHA-256 digest" → "byte-for-byte identical"; "primary strategy" → "best choice for config file changes"). 1 new i18n key.
+
+### RFC 076 — Status legend popover
+
+A `?` at the right of the filter bar opens a 4-line plain-language legend explaining Pending / OK / Failed / Error in terms of what to *do*, not what the state *is*. 5 new i18n keys.
+
+### RFC 077 — First-audit coach line
+
+After the first audit, a pale blue banner appears above the file tree: *"Each item is a file that changed. Select one, explain why it's OK, and approve."* A "Got it" button dismisses it for the session. 2 new i18n keys.
+
+**Total i18n: 228 → 235 (+7 across RFCs 075-077; RFC 074 added +5 previously tracked)**
+
+---
+
 ## [0.29.0] — Phase 20: GUI & UI/UX Quality (2026-06-12)
 
 ### RFC 069 — Diff pane scroll synchronisation

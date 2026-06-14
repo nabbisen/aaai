@@ -87,6 +87,13 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [070](done/070-toolbar-layout.md) | Toolbar layout stability and Undo relocation | v0.29.0 |
 | [071](done/071-search-in-filetree.md) | Search bar moved inside file tree pane | v0.29.0 |
 | [072](done/072-status-badge.md) | Compact status badge and i18n cleanup | v0.29.0 |
+| [075](done/075-strategy-recommendation.md) | Strategy pre-selection and plain-language descriptions | v0.30.0 |
+| [076](done/076-status-legend.md) | Status legend popover | v0.30.0 |
+| [078](done/078-fix-stale-icon-ref.md) | Fix stale □ Open icon reference | v0.31.0 |
+| [079](done/079-onboarding-context.md) | Opening onboarding WHY context | v0.31.0 |
+| [080](done/080-checksum-howto.md) | Checksum how-to hint | v0.31.0 |
+| [077](done/077-coach-line.md) | First-audit coach line | v0.30.0 |
+| [074](done/074-reason-guidance.md) | Reason field guidance for newcomers | v0.30.0 |
 | [073](done/073-bottom-bar-visibility.md) | Bottom bar hidden when no file selected | v0.29.0 |
 | [068](done/068-snora-0-18.md) | snora 0.18.0 dependency update | v0.28.0 |
 | [067](done/067-readme-fix.md) | README accuracy fix | v0.27.0 |

@@ -182,16 +182,65 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         None               => (None, None, None, None),
     };
 
+    // RFC 076 — status legend ? button at the right of the filter bar
+    let legend_btn = button(text("?").size(11))
+        .on_press(Message::ToggleStatusLegend)
+        .padding(Padding::from([8.0, 12.0]))
+        .style(iced::widget::button::text);
+
+    let filter_row = row![
+        make_btn("filter.all",     FilterMode::All,           all_n),
+        make_btn("filter.changed", FilterMode::ChangedOnly,   changed_n),
+        make_btn("filter.pending", FilterMode::PendingOnly,   pending_n),
+        make_btn("filter.errors",  FilterMode::FailedAndError, errors_n),
+        space().width(Length::Fill),
+        legend_btn,
+    ]
+    .spacing(4)
+    .align_y(iced::Alignment::Center)
+    .padding(Padding::from([3.0, 8.0]));
+
+    // RFC 076 — status legend popover (shown inline below the filter bar
+    // so it stays close to the ? button and the status badges it explains)
+    let legend_popup: Element<'_, Message> = if app.status_legend_open {
+        let line = |key: &str| -> Element<'_, Message> {
+            text(t!(key).to_string())
+                .size(11)
+                .color(Color::from_rgb(0.30, 0.32, 0.38))
+                .into()
+        };
+        container(
+            column![
+                text(t!("main.status_legend_title").to_string())
+                    .size(12)
+                    .color(Color::from_rgb(0.20, 0.22, 0.28))
+                    .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
+                space().height(Length::Fixed(6.0)),
+                line("main.status_legend_pending"),
+                line("main.status_legend_ok"),
+                line("main.status_legend_failed"),
+                line("main.status_legend_error"),
+            ]
+            .spacing(3)
+        )
+        .padding(Padding::from([10.0, 14.0]))
+        .width(Length::Fill)
+        .style(|_| iced::widget::container::Style {
+            background: Some(iced::Background::Color(Color::from_rgb(0.96, 0.97, 0.99))),
+            border: iced::Border {
+                color: Color::from_rgb(0.80, 0.82, 0.88),
+                width: 1.0,
+                radius: 4.0.into(),
+            },
+            ..Default::default()
+        })
+        .into()
+    } else {
+        space().height(0).into()
+    };
+
     container(
-        row![
-            make_btn("filter.all",     FilterMode::All,           all_n),
-            make_btn("filter.changed", FilterMode::ChangedOnly,   changed_n),
-            make_btn("filter.pending", FilterMode::PendingOnly,   pending_n),
-            make_btn("filter.errors",  FilterMode::FailedAndError, errors_n),
-        ]
-        .spacing(4)
-        .align_y(iced::Alignment::Center)
-        .padding(Padding::from([3.0, 8.0])),
+        column![filter_row, legend_popup].spacing(0)
     )
     .width(Length::Fill)
     .style(panel_style)
@@ -244,6 +293,42 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
 
     // RFC 071 — search bar lives at the top of this pane, not above the grid.
     let search = build_search_bar(app);
+
+    // RFC 077 — first-audit coach line: shown once per session above the
+    // file tree after the first audit completes. Gives newcomers a one-line
+    // explanation of what they're looking at without interrupting experts
+    // (they dismiss it once and it stays gone for the session).
+    let coach_line: Option<Element<'_, Message>> =
+        if !app.coach_dismissed {
+            let dismiss_btn = button(text(t!("main.coach_dismiss").to_string()).size(10))
+                .on_press(Message::DismissCoach)
+                .padding(Padding::from([3.0, 8.0]))
+                .style(iced::widget::button::text);
+            Some(
+                container(
+                    row![
+                        text(t!("main.coach_line").to_string())
+                            .size(11)
+                            .color(Color::from_rgb(0.28, 0.38, 0.56)),
+                        space().width(Length::Fill),
+                        dismiss_btn,
+                    ]
+                    .align_y(iced::Alignment::Center)
+                    .spacing(4),
+                )
+                .padding(Padding::from([6.0, 10.0]))
+                .width(Length::Fill)
+                .style(|_| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(
+                        Color::from_rgb(0.93, 0.96, 1.00)
+                    )),
+                    ..Default::default()
+                })
+                .into()
+            )
+        } else {
+            None
+        };
 
     let q = app.search_query.to_lowercase();
 
@@ -298,13 +383,14 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     }
 
     if items.is_empty() {
-        return column![
-            search,
+        let mut col = column![search];
+        if let Some(coach) = coach_line { col = col.push(coach); }
+        return col.push(
             container(
                 text(t!("empty_state.no_entries_match_filter").to_string()).size(12)
                     .color(Color::from_rgb(0.55, 0.55, 0.58))
-            ).padding(12),
-        ].spacing(0).width(Length::Fill).height(Length::Fill).into();
+            ).padding(12)
+        ).spacing(0).width(Length::Fill).height(Length::Fill).into();
     }
 
     let tree_scroll = scrollable(
@@ -313,7 +399,9 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     .width(Length::Fill)
     .height(Length::Fill);
 
-    column![search, tree_scroll]
+    let mut col = column![search];
+    if let Some(coach) = coach_line { col = col.push(coach); }
+    col.push(tree_scroll)
         .spacing(0)
         .width(Length::Fill)
         .height(Length::Fill)

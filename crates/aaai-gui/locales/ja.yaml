@@ -86,6 +86,12 @@ inspector:
   pattern_empty: パターンを入力してください。
   pattern_invalid: 無効なグロブパターンです。
   pattern_suggestions: '候補:'
+  reason_placeholder: この変更が許容される理由は？
+  reason_example_added: '例: 「ステージング環境向けの新規設定ファイル（チケット INF-42）。」'
+  reason_example_removed: '例: 「廃止されたログ設定を削除 — 構造化ログに置き換え。」'
+  reason_example_modified: '例: 「ポート番号を 80 → 8080 に変更（インフラチケット INF-42）。」'
+  reason_example_generic: '例: 「想定内の変更 — 詳細はリンク先のチケットを参照。」'
+  strategy_recommended: 推奨
 opening:
   open_recent: 開く
   recent_section: または最近使ったプロジェクト
@@ -228,6 +234,13 @@ dashboard:
   new_audit: 新しい監査
 main:
   search_placeholder: パスを検索… (/ でフォーカス)
+  status_legend_title: ステータスの意味
+  status_legend_pending: Pending — まだ確認されていません。選択して理由を書き、承認してください。
+  status_legend_ok: OK — 承認済みでルールが一致しています。対応不要です。
+  status_legend_failed: Failed — 承認ルールは存在しますが、ファイルが一致しなくなっています。ルールを更新するか再承認してください。
+  status_legend_error: Error — ファイルの読み取りまたは比較ができませんでした。ファイルのアクセス権を確認してください。
+  coach_line: 各項目は変更されたファイルです。選択して、なぜ許容されるかを説明し、承認してください。
+  coach_dismiss: 了解
 dialog:
   pick_before: Before フォルダを選択
   pick_after: After フォルダを選択

@@ -507,3 +507,35 @@ purely improving the user experience of what already exists.
 | 072 | Status badge compact pill + cleaner icon glyphs | `main_view.rs` |
 | 073 | Bottom bar hidden when no file is selected | `main_view.rs` |
 
+## Phase 21 — Explainable to Newcomers ✅ (v0.30.0)
+
+Theme: Close the knowledge gaps a first-time user faces, with
+just-in-time micro-guidance rather than tutorials or tooltip clutter.
+Follows "less is more" — one sentence or example at the exact moment
+the question arises, ignorable by experts.
+
+| RFC | Novice gap | Approach |
+|---|---|---|
+| 074 | "What do I write in the reason box?" | Wire a placeholder into the reason field + show a diff-type-aware example line ("e.g. Port changed 80→8080 per ticket INF-42") |
+| 075 | "Which strategy, and why?" | Pre-select the recommended strategy per diff type; mark it "(recommended)"; rewrite descriptions in plain language |
+| 076 | "What does this status mean?" | A `?` by the status filters opens a 4-line plain-language legend |
+| 077 | First-audit orientation | One dismissible coach line above the file tree after the first audit |
+
+### Phase 21 target metrics
+
+| Metric | v0.29.0 | v0.30.0 target |
+|---|---|---|
+| RFCs done | 74 | 78 |
+| i18n keys | 222 | ~240 |
+
+## Phase 22 — Newcomer UX Continuation ✅ (v0.31.0)
+
+Continuing the Phase 21 theme with three targeted fixes uncovered by
+the post-21 audit.
+
+| RFC | Gap | Fix |
+|---|---|---|
+| 078 | `□ Open` stale icon in diff empty-state strings | Update to `← Open` |
+| 079 | Opening onboarding explains HOW but not WHY | Add a one-line context sentence before the numbered steps |
+| 080 | Checksum strategy: no hint on how to get the hash | Add a "how to get this" micro-hint below the SHA-256 field |
+

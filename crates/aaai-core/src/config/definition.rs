@@ -210,15 +210,15 @@ impl AuditStrategy {
     pub fn description(&self) -> &'static str {
         match self {
             AuditStrategy::None =>
-                "Checks only that the expected change type occurred. No content inspection.",
+                "Only checks that the expected change happened — no content inspection.",
             AuditStrategy::Checksum { .. } =>
-                "Verifies the file's SHA-256 digest. Best for binaries, images, archives.",
+                "Verifies the file is byte-for-byte identical to when you approved it. Good for images, ZIPs, or any binary.",
             AuditStrategy::LineMatch { .. } =>
-                "Verifies specific lines were added or removed. Primary strategy for config changes.",
+                "Verifies specific lines were added or removed. Best choice for config file changes.",
             AuditStrategy::Regex { .. } =>
-                "Verifies changed lines match a regular expression. Good for environment-dependent values.",
+                "Verifies changed lines match a text pattern. Good for values that vary by environment (URLs, ports, version numbers).",
             AuditStrategy::Exact { .. } =>
-                "Verifies the file's full content exactly matches expected text. Avoid for large files.",
+                "Verifies the entire file content matches exactly. Use only for small, critical files.",
         }
     }
 

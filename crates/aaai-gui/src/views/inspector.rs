@@ -7,7 +7,7 @@ use iced::{
 use rust_i18n::t;
 
 use aaai_core::{
-    AuditStatus, FileAuditResult,
+    AuditStatus, FileAuditResult, DiffType,
     config::definition::{AuditStrategy, LineAction, RegexTarget},
     templates::library as tmpl,
 };
@@ -79,9 +79,30 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         13.0,
     );
     let reason_input = iced::widget::text_editor(&ins.reason_content)
+        .placeholder(t!("inspector.reason_placeholder").to_string())
         .on_action(Message::ReasonAction)
         .height(Length::Fixed(72.0))
         .padding(Padding::from([8.0, 10.0]));
+
+    // RFC 074 — diff-type-aware example line, shown only while the reason is
+    // empty. Teaches a newcomer the shape of a good justification without
+    // adding clutter for experts (it disappears the moment they type).
+    let reason_example: Option<Element<'_, Message>> = if ins.reason.trim().is_empty() {
+        let key = match far.diff.diff_type {
+            DiffType::Added       => "inspector.reason_example_added",
+            DiffType::Removed     => "inspector.reason_example_removed",
+            DiffType::Modified    => "inspector.reason_example_modified",
+            _                     => "inspector.reason_example_generic",
+        };
+        Some(
+            text(t!(key).to_string())
+                .size(10)
+                .color(Color::from_rgb(0.62, 0.64, 0.70))
+                .into()
+        )
+    } else {
+        None
+    };
 
     // ── RFC 054: glob-pattern toggle ─────────────────────────────────
     let pattern_arrow = if ins.use_pattern { "▾" } else { "▸" };
@@ -175,6 +196,9 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     let strategy_desc = text(ins.strategy.description().to_string()).size(11)
         .color(Color::from_rgb(0.45, 0.45, 0.45));
     // RFC 035 — LocalizedOption<StrategyKind> pattern
+    // RFC 075 — mark the recommended option with "(recommended)" for newcomers.
+    let recommended_kind = crate::app::App::recommended_strategy(far.diff.diff_type);
+    let rec_label = format!(" ({})", t!("inspector.strategy_recommended"));
     let strategy_options: Vec<LocalizedOption<StrategyKind>> = [
         StrategyKind::None,
         StrategyKind::Checksum,
@@ -183,7 +207,15 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         StrategyKind::Exact,
     ]
     .into_iter()
-    .map(|k| LocalizedOption { value: k, label: k.label() })
+    .map(|k| {
+        let base = k.label();
+        let label = if k == recommended_kind {
+            format!("{}{}", base, rec_label).into()
+        } else {
+            base
+        };
+        LocalizedOption { value: k, label }
+    })
     .collect();
     let strategy_selected = strategy_options.iter()
         .find(|o| o.value == ins.strategy_kind)
@@ -314,6 +346,11 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
 
     children.extend([
         reason_label.into(), reason_input.into(),
+    ]);
+    if let Some(ex) = reason_example {
+        children.push(ex);
+    }
+    children.extend([
         iced::widget::rule::horizontal(1).into(),
         pattern_toggle.into(),
     ]);
