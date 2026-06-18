@@ -277,11 +277,6 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     .into()
 }
 
-// Kept for backward compatibility with existing call sites; unused variable suppressed.
-#[allow(dead_code)]
-fn _build_search_bar_unused<'a>(_app: &'a App) -> Element<'a, Message> {
-    space().height(0).into()
-}
 
 // ── File tree pane ───────────────────────────────────────────────────────────
 

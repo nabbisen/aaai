@@ -10,7 +10,6 @@ use aaai_core::{AuditResult, AuditStatus};
 use crate::app::Message;
 use crate::theme;
 
-#[allow(dead_code)]
 pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
     let s = &result.summary;
 
@@ -141,7 +140,6 @@ pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
         .into()
 }
 
-#[allow(dead_code)]
 fn stat_card<'a>(label: String, count: usize, color: Color) -> Element<'a, Message> {
     container(
         column![

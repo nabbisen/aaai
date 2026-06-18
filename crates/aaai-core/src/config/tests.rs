@@ -151,3 +151,45 @@ fn find_entry_falls_back_to_glob() {
     let found = def.find_entry("config/database.toml").unwrap();
     assert_eq!(found.reason, "glob match");
 }
+
+// ── Tests migrated from definition.rs inner mod (project convention: tests live in tests.rs) ──
+
+#[test]
+fn glob_matches_extension_pattern() {
+    let mut e = sample_entry();
+    e.path = "**/*.lock".to_string();
+    assert!(e.glob_matches("Cargo.lock"));
+    assert!(!e.glob_matches("package-lock.json"), "*.lock should not match .json");
+    assert!(e.glob_matches("sub/dir/yarn.lock"));
+}
+
+#[test]
+fn expired_entries_detects_past_date() {
+    use chrono::{Duration, Utc};
+    let mut def = AuditDefinition::new_empty();
+    let mut expired = sample_entry();
+    expired.path = "old.txt".to_string();
+    expired.expires_at = Some((Utc::now() - Duration::days(1)).date_naive());
+    def.entries.push(expired);
+    def.entries.push(sample_entry());
+    let exp = def.expired_entries();
+    assert_eq!(exp.len(), 1);
+    assert_eq!(exp[0].path, "old.txt");
+}
+
+#[test]
+fn expiring_soon_within_window() {
+    use chrono::{Duration, Utc};
+    let mut def = AuditDefinition::new_empty();
+    let mut soon = sample_entry();
+    soon.path = "soon.txt".to_string();
+    soon.expires_at = Some((Utc::now() + Duration::days(10)).date_naive());
+    def.entries.push(soon);
+    let mut far = sample_entry();
+    far.path = "far.txt".to_string();
+    far.expires_at = Some((Utc::now() + Duration::days(60)).date_naive());
+    def.entries.push(far);
+    let soon_vec = def.expiring_soon(30);
+    assert_eq!(soon_vec.len(), 1);
+    assert_eq!(soon_vec[0].path, "soon.txt");
+}

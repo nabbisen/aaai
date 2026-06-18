@@ -83,16 +83,6 @@ pub enum FilterMode {
 }
 
 impl FilterMode {
-    #[allow(dead_code)]
-    pub fn label(self) -> &'static str {
-        match self {
-            FilterMode::All           => "filter.all",
-            FilterMode::ChangedOnly   => "filter.changed",
-            FilterMode::PendingOnly   => "filter.pending",
-            FilterMode::FailedAndError => "filter.errors",
-        }
-    }
-
     pub fn passes(self, far: &FileAuditResult) -> bool {
         match self {
             FilterMode::All => true,
@@ -118,9 +108,11 @@ pub struct BatchApproveState {
 
 // ── Inspector validation (RFC 002) ────────────────────────────────────────
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FieldError {
+    /// Which inspector field triggered the error. Currently stored for
+    /// future use in field-level focus/highlight; not yet read by view code.
+    #[allow(dead_code)]
     pub field:   String,
     pub message: String,
     /// RFC 028 — optional next-action hint. Rendered beneath

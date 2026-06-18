@@ -167,9 +167,9 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if diff.before_sha256.as_ref() == diff.after_sha256.as_ref()
         && diff.before_sha256.is_some()
     {
-        rows.push(text(t!("diff.hashes_match").to_string()).size(12).color(Color::from_rgb(0.18,0.65,0.32)).into());
+        rows.push(text(t!("diff.hashes_match").to_string()).size(12).color(crate::theme::ADDED_COLOR).into());
     } else if diff.before_sha256.is_some() && diff.after_sha256.is_some() {
-        rows.push(text(t!("diff.hashes_differ").to_string()).size(12).color(Color::from_rgb(0.82,0.18,0.18)).into());
+        rows.push(text(t!("diff.hashes_differ").to_string()).size(12).color(crate::theme::REMOVED_COLOR).into());
     }
 
     container(
@@ -189,12 +189,12 @@ fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if let Some(stats) = &diff.stats {
         parts.push(
             text(format!("+{} lines", stats.lines_added)).size(11)
-                .color(Color::from_rgb(0.18, 0.65, 0.32))
+                .color(crate::theme::ADDED_COLOR)
                 .into()
         );
         parts.push(
             text(format!("  −{} lines", stats.lines_removed)).size(11)
-                .color(Color::from_rgb(0.82, 0.18, 0.18))
+                .color(crate::theme::REMOVED_COLOR)
                 .into()
         );
     }

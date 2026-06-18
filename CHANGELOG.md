@@ -8,6 +8,35 @@ Format: `## [version] — description`
 
 ---
 
+## [0.32.1] — Codebase Audit (2026-06-14)
+
+Housekeeping pass across five audit dimensions.
+
+**Dead code removed:**
+`_build_search_bar_unused` (dead stub); `FilterMode::label()` (never called);
+`i18n::switch_locale()` (dead wrapper over `rust_i18n::set_locale`; app uses it directly).
+`theme::ADDED_COLOR/REMOVED_COLOR` promoted from dead constants to live named constants
+used by `diff_view.rs` (previously duplicated as magic-number RGB triples).
+Three stale `#[allow(dead_code)]` annotations removed from items that were actually in use
+(`dashboard::view`, `AuditStrategy::label`, `FieldError` struct).
+
+**Test deduplication:**
+`crates/aaai-core/src/config/definition.rs` had an inner `#[cfg(test)] mod tests` with
+10 tests, 7 of which duplicated `config/tests.rs`. The 3 unique tests
+(`glob_matches_extension_pattern`, `expired_entries_detects_past_date`,
+`expiring_soon_within_window`) were migrated to `config/tests.rs` per the project convention
+(tests live in `tests.rs`). The inner module was removed.
+Core test count: 111 → 104 (no coverage lost).
+
+**Docs updated:**
+`docs/src/testing.md` and `docs/ja/src/testing.md` — stale GUI labels replaced
+("Start Audit"→"Check changes", "Approve & Save"→"Save and continue", etc.)
+and test counts corrected (101→104 core, 86→89 CLI).
+
+**Total: 213 tests · 0 warnings · 238/238/238 i18n**
+
+---
+
 ## [0.32.0] — Phase 24: Plain-Language GUI (2026-06-13)
 
 Adopts the UI/UX architect review's plain-language recommendations so the

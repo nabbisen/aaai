@@ -36,10 +36,10 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 | # | Step | Expected |
 |---|---|---|
 | 1-1 | Launch `aaai-gui` | Opening screen displayed; no errors |
-| 1-2 | Leave all fields blank, press "Start Audit" | Button is disabled or shows validation error |
-| 1-3 | Enter Before / After paths that do not exist, press "Start Audit" | Error message shown |
-| 1-4 | Enter valid Before / After paths, no definition file, press "Start Audit" | Audit runs with empty definition; all entries Pending; first Pending entry auto-selected in inspector |
-| 1-5 | Enter all valid paths, press "Start Audit" | Loading spinner shown; main screen opens |
+| 1-2 | Leave all fields blank, press "Check changes" | Button is disabled or shows validation error |
+| 1-3 | Enter Before / After paths that do not exist, press "Check changes" | Error message shown |
+| 1-4 | Enter valid Before / After paths, no definition file, press "Check changes" | Audit runs with empty definition; all entries needing review; first item auto-selected in inspector |
+| 1-5 | Enter all valid paths, press "Check changes" | Loading spinner shown; main screen opens |
 | 1-6 | Expand "Optional settings" | Section shows only "Approvals file" field with placeholder text |
 | 1-7 | Save a profile and reload it | Fields restored correctly; Optional settings expands showing loaded definition path |
 
@@ -51,10 +51,10 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 |---|---|---|
 | 2-1 | Open main screen | File tree shows changed files; dashboard visible |
 | 2-2 | Click "Changed only" filter | Unchanged entries hidden |
-| 2-3 | Click "Pending only" filter | Only Pending entries shown |
+| 2-3 | Click "Needs review" filter | Only Pending entries shown |
 | 2-4 | Type a path fragment in the search bar | File tree filters live |
 | 2-5 | Click a directory header (▼/▶) | Children collapse / expand |
-| 2-6 | Select a Pending entry | Diff viewer and inspector update |
+| 2-6 | Select a "Needs review" entry | Diff viewer and inspector update |
 | 2-7 | Press ↓ key | Next entry selected |
 | 2-8 | Press ↑ key | Previous entry selected |
 | 2-9 | Entry with `AuditWarning` | `⚠N` badge visible on the row |
@@ -80,9 +80,9 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 |---|---|---|
 | 4-1 | Select an entry | Inspector shows path, diff type, status badge; Reason field and Strategy picker visible by default |
 | 4-2 | Entry has `AuditWarning` | Yellow warning block shown below divider |
-| 4-3 | Leave reason blank, press Ctrl+Enter | Approve & Save button stays disabled; validation error shown |
-| 4-4 | Enter reason, press Ctrl+Enter | Entry approved and saved; inspector auto-advances to next Pending entry |
-| 4-5 | Approve last Pending entry | Inspector stays on entry; background rerun marks it OK; dashboard shows "All entries are in order" with action buttons |
+| 4-3 | Leave reason blank, press Ctrl+Enter | "Save and continue" button is disabled; validation error shown |
+| 4-4 | Enter reason, press Ctrl+Enter | Entry approved and saved; inspector auto-advances to next item needing review |
+| 4-5 | Save the last item needing review | Inspector stays on entry; background re-check marks it "All set"; dashboard shows "All entries are in order" with action buttons |
 | 4-6 | Click "▸ More options" toggle | Ticket, Approved by, Expires at, Template, Note fields revealed |
 | 4-7 | Enter ticket and approved_by in More options | Values saved in definition YAML |
 | 4-8 | Enter expires_at in wrong format | Validation error shown; More options auto-expands |
@@ -90,7 +90,7 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 | 4-10 | Click a suggestion chip | Pattern input updated; ✓ valid indicator shown |
 | 4-11 | Approve with an active glob pattern | Glob entry saved; background rerun marks all matching files OK |
 | 4-12 | Apply a template | Strategy fields populated from template |
-| 4-13 | Press Ctrl+Z after approval | Last approval undone; entry returns to Pending |
+| 4-13 | Press Ctrl+Z after approval | Last approval undone; entry returns to "Needs review" |
 
 ---
 
@@ -98,7 +98,7 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 5-1 | Approve an entry via bottom bar | Definition file saved automatically; no "Unsaved" indicator |
+| 5-1 | Save an entry via bottom bar | Definition file saved automatically; no "Unsaved" indicator |
 | 5-2 | Press Ctrl+S | Definition file saved (can also save without approving) |
 | 5-3 | Press Ctrl+R | Audit re-runs; results refresh |
 | 5-4 | Modify before/after files externally, Ctrl+R | Updated diff shown |
@@ -121,7 +121,7 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 
 | # | Step | Expected |
 |---|---|---|
-| 7-1 | Press "Export Report" (toolbar) | Native save-file dialog opens with `aaai-report.md` as default name |
+| 7-1 | Press "Save report" (toolbar) | Native save-file dialog opens with `aaai-report.md` as default name |
 | 7-2 | Save with `.json` extension | JSON file created; valid JSON |
 | 7-3 | `aaai report --format html` | Valid HTML file with summary cards |
 | 7-4 | `aaai report --format sarif` | Valid SARIF 2.1.0 JSON |
@@ -134,7 +134,7 @@ aaai snap --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
 # Audit — PASSED
 aaai audit --left /tmp/aaai-test/before --right /tmp/aaai-test/after \
            --config /tmp/aaai-test/audit.yaml --no-history
-# Expected exit 2 (Pending entries)
+# Expected exit 2 (entries needing review)
 
 # Fill in reasons
 sed -i 's/reason: .*/reason: "test change"/' /tmp/aaai-test/audit.yaml
@@ -170,8 +170,8 @@ The release is ready when:
 - [ ] All Export cases (7-1 to 7-4) pass
 - [ ] All CLI smoke tests exit with expected codes
 - [ ] No `cargo check --all-targets` warnings
-- [ ] `cargo test -p aaai-core --lib` — 101 passing
-- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 86 passing
+- [ ] `cargo test -p aaai-core --lib` — 104 passing
+- [ ] `cargo test -p aaai-cli -- --test-threads=1` — 89 passing
 - [ ] `cargo test -p aaai-gui` — 20 passing
 
 ---
@@ -236,7 +236,7 @@ operator performs to fill that sheet.
 | 12-4 | Click "Start audit" with an invalid Before path | Banner above the Start button shows a message line and a hint line (no silent failure) |
 | 12-5 | Enter an invalid regex in the Inspector | Below the field: message line ("Invalid regex") + hint line explaining the next step |
 | 12-6 | Hover toolbar / Start / Approve buttons | Click target is at least 44 px on the smaller dimension |
-| 12-7 | Look at Approve & Save versus any destructive (delete-rule) button | They are not adjacent and have distinct visual weight |
+| 12-7 | Look at "Save and continue" versus any destructive (delete-rule) button | They are not adjacent and have distinct visual weight |
 
 The operator transcribes the observations into the corresponding rows of
 `docs/src/abdd-audit.md`, then marks the sheet as verified.
