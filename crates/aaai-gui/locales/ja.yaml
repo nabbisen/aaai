@@ -40,7 +40,7 @@ filter:
   changed: 変更のみ
   errors: 要対応
   pending: 要確認
-  count_summary: '%{total}件中 %{unresolved}件が未解決'
+  count_summary: '%{unresolved} / %{total} が要確認'
 footer:
   unsaved: ● 未保存の変更があります
 inspector:
@@ -112,6 +112,9 @@ opening:
   drop_here: フォルダをこの画面のどこかにドロップしてください
   recent_project_paths: '  before: %{before}  →  after: %{after}'
   definition_placeholder: 空欄の場合は初回保存時に保存先を選択します
+  start_disabled_both: 上の 2 つのフォルダを選んでから続けてください。
+  start_disabled_before: 上の「古いフォルダ」を選んでから続けてください。
+  start_disabled_after: 上の「新しいフォルダ」を選んでから続けてください。
 profile:
   deleted: プロファイルを削除しました
   saved: プロファイルを保存しました
@@ -155,6 +158,9 @@ toolbar:
 bottombar:
   selected: '選択中:'
   approve_and_save: 保存して次へ
+  disabled_no_file: まずリストからファイルを選んでください。
+  disabled_no_reason: まずこの変更が OK な理由を書いてください。
+  disabled_fix_hint: その後、保存できます。
 error:
   opening:
     before_not_found:
@@ -268,15 +274,15 @@ help:
   close: 閉じる
   save: 定義ファイルを保存
   rerun: 監査を再実行
-  undo: 最後の承認を取り消し
-  export: レポートを出力
+  undo: 最後の保存を元に戻す
+  export: レポートを保存
   navigate: ファイルリストを移動
   cycle_pane: ペインフォーカスを切り替え
   approve: 承認のトグル
   search: 検索フォーカス
   show_help: このヘルプを表示 / 非表示
-  revert: 選択エントリを Pending に戻す
-  approve_and_save: 現在のエントリを承認して保存
+  revert: 選択中のアイテムを「要確認」に戻す
+  approve_and_save: 理由を保存して次のアイテムへ
 nav_guard:
   title: 未保存の変更があります
   message: 未保存の変更があります。保存してから離れますか？

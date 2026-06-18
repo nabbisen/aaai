@@ -94,6 +94,38 @@ pub fn view(app: &App) -> Element<'_, Message> {
     .on_press_maybe(if can_start { Some(Message::StartAudit) } else { None })
     .padding(Padding::from([12.0, 32.0]));
 
+    // RFC 088 — explain why the button is disabled so the user knows
+    // exactly what is still needed. Shown only when neither folder is
+    // picked (most common first-time situation).
+    let start_hint: Option<String> = if !can_start {
+        let has_before = !app.before_path.trim().is_empty();
+        let has_after  = !app.after_path.trim().is_empty();
+        if !has_before && !has_after {
+            Some(t!("opening.start_disabled_both").to_string())
+        } else if !has_before {
+            Some(t!("opening.start_disabled_before").to_string())
+        } else if !has_after {
+            Some(t!("opening.start_disabled_after").to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let start_col: Element<'_, Message> = if let Some(hint) = start_hint {
+        iced::widget::column![
+            start_btn,
+            iced::widget::text(hint)
+                .size(12)
+                .color(iced::Color::from_rgb(0.50, 0.52, 0.58)),
+        ]
+        .spacing(6)
+        .align_x(iced::Alignment::Center)
+        .into()
+    } else {
+        start_btn.into()
+    };
+
     // ── Recent projects ─────────────────────────────────────────────
     let recent_section = recent_projects_section(app);
 
@@ -115,7 +147,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
         space().height(Length::Fixed(4.0)),
         error_banner,
         space().height(Length::Fixed(8.0)),
-        container(start_btn).width(Length::Fill).center_x(Length::Fill),
+        container(start_col).width(Length::Fill).center_x(Length::Fill),
         space().height(Length::Fixed(32.0)),
         recent_section,
         space().height(Length::Fixed(32.0)),

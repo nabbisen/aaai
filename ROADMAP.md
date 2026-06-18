@@ -564,3 +564,15 @@ GUI approachable to non-technical reviewers.
 | 085 | Plain-language strategy labels — picker options + section header + inspector title |
 | 086 | Navigation guard — hide "Discard and Leave" behind a secondary step |
 
+## Phase 25 — Guided Interactions ✅ (v0.33.0)
+
+Theme: Close the final gaps identified in the architect review's acceptance
+criteria. Every disabled primary action now explains what is missing.
+
+| RFC | Gap | Fix |
+|---|---|---|
+| 087 | "Save and continue" silently disabled | Tooltip: "Write why this change is OK first." / "Choose a file first." |
+| 088 | "Check changes" silently disabled | Inline hint below button: what is still needed |
+| 089 | Help overlay uses old pre-Phase-24 labels | Update to plain-language action names |
+| 090 | Bottom bar count says "N of M unresolved" | Reword to "N of M need review" / "All N reviewed" |
+

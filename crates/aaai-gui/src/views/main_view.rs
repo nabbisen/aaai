@@ -557,11 +557,24 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
         return space().height(0).into();
     }
 
-    // "承認して保存" button — enabled only when an entry is selected and valid
+    // "Save and continue" button — enabled only when an entry is selected and valid
     let can_approve = app.selected_index.is_some()
         && app.inspector.validation.can_approve();
 
-    let approve_btn = button(
+    // RFC 087 — disabled state explanation.
+    // The disabled reason drives a tooltip on the button so the user
+    // knows exactly what to do before the action becomes available.
+    let disabled_reason: Option<String> = if !can_approve {
+        if app.selected_index.is_none() {
+            Some(t!("bottombar.disabled_no_file").to_string())
+        } else {
+            Some(t!("bottombar.disabled_no_reason").to_string())
+        }
+    } else {
+        None
+    };
+
+    let approve_btn_inner = button(
         text(t!("bottombar.approve_and_save").to_string())
             .size(13)
             .font(iced::Font {
@@ -571,6 +584,27 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     )
     .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
     .padding(Padding::from([10.0, 20.0]));  // ABDD ≥44px
+
+    let approve_btn: Element<'_, Message> = match disabled_reason {
+        Some(reason) => {
+            let hint = t!("bottombar.disabled_fix_hint").to_string();
+            iced::widget::tooltip(
+                approve_btn_inner,
+                iced::widget::container(
+                    iced::widget::column![
+                        iced::widget::text(reason).size(12),
+                        iced::widget::text(hint).size(11)
+                            .color(iced::Color::from_rgb(0.55, 0.57, 0.62)),
+                    ]
+                    .spacing(3)
+                )
+                .padding(iced::Padding::from([6.0, 10.0])),
+                iced::widget::tooltip::Position::Top,
+            )
+            .into()
+        }
+        None => approve_btn_inner.into(),
+    };
 
     // Selected file label
     let selected_label: Element<'_, Message> = if let Some(idx) = app.selected_index {

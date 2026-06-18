@@ -7,19 +7,23 @@ members = [
 ]
 
 [workspace.package]
-version = "0.32.1"
+version = "0.33.0"
 edition = "2024"
 # MSRV — minimum supported Rust version, fixed at 1.91 per the
 # project's development-environment specification. This is the
 # version the workspace is built and tested against; the explicit
 # `rust-version` makes cargo refuse to build on older toolchains.
 rust-version = "1.91"
-authors = ["nabbisen"]
-license = "Apache-2.0"
+authors    = ["nabbisen"]
+license    = "Apache-2.0"
+categories = ["development-tools", "visualization"]
+keywords   = ["audit", "file-integrity", "diff-algorithm", "desktop-app"]
 repository = "https://github.com/nabbisen/aaai"
 homepage   = "https://nabbisen.github.io/aaai"
 
 [workspace.dependencies]
+aaai-core = { version = "0.33.0", path = "crates/aaai-core" }
+
 # Serialization
 serde       = { version = "1",    features = ["derive"] }
 serde_yaml  = "0.9"
@@ -55,6 +59,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # GUI
 iced  = { version = "0.14", features = ["tokio"] }
 snora = { version = "0.18" }
+rfd   = { version = "0.17" }
 
 # i18n (Phase 2)
 rust-i18n = "4"
@@ -70,6 +75,9 @@ indicatif = "0.18"
 
 # Shell completion
 clap_complete = "4"
+
+# Testing
+tempfile = "3"
 
 # Property-based testing
 proptest = "1"

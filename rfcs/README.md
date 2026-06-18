@@ -95,6 +95,10 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [083](done/083-plain-language-actions.md) | Plain-language action labels | v0.32.0 |
 | [084](done/084-plain-language-status.md) | Plain-language status labels and hints | v0.32.0 |
 | [085](done/085-plain-language-strategy.md) | Plain-language strategy labels | v0.32.0 |
+| [087](done/087-disabled-save-tooltip.md) | Save and continue disabled tooltip | v0.33.0 |
+| [088](done/088-disabled-check-hint.md) | Check changes disabled inline hint | v0.33.0 |
+| [089](done/089-help-overlay-labels.md) | Help overlay plain-language update | v0.33.0 |
+| [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |
 | [082](done/082-readme-path-releasing.md) | Fix aaai-core README path + RELEASING.md | v0.31.1 |
 | [080](done/080-checksum-howto.md) | Checksum how-to hint | v0.31.0 |

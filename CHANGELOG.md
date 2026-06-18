@@ -8,6 +8,35 @@ Format: `## [version] — description`
 
 ---
 
+## [0.33.0] — Phase 25: Guided Interactions (2026-06-14)
+
+Closes the final gaps in the architect review's acceptance criteria.
+Every disabled primary action now tells the user what is missing.
+
+### RFC 087 — "Save and continue" disabled tooltip
+
+Hovering the disabled bottom-bar button now shows a tooltip:
+"Choose a file from the list first." / "Write why this change is OK first."
+Sub-hint: "Then you can save."
+
+### RFC 088 — "Check changes" disabled inline hint
+
+A greyed line appears below the disabled "Check changes" button:
+"Choose both folders above to continue." / "Choose the older/newer folder above."
+
+### RFC 089 — Help overlay labels
+
+Four shortcut descriptions updated: Undo, Save report, Return to Needs review,
+Save reason and continue.
+
+### RFC 090 — Count summary
+
+"N of M unresolved" → "N of M need review" in EN; updated in JA too.
+
+**i18n: 238 → 244 (+6). Total: 244/244/244. RFCs done: 91.**
+
+---
+
 ## [0.32.1] — Codebase Audit (2026-06-14)
 
 Housekeeping pass across five audit dimensions.

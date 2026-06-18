@@ -40,7 +40,7 @@ filter:
   changed: Changed
   errors: Needs attention
   pending: Needs review
-  count_summary: '%{unresolved} of %{total} unresolved'
+  count_summary: '%{unresolved} of %{total} need review'
 footer:
   unsaved: ● Unsaved changes
 inspector:
@@ -114,6 +114,9 @@ opening:
   drop_here: Drop a folder anywhere on this screen
   recent_project_paths: '  before: %{before}  →  after: %{after}'
   definition_placeholder: Leave empty to be prompted on first Save
+  start_disabled_both: Choose both folders above to continue.
+  start_disabled_before: Choose the older folder above to continue.
+  start_disabled_after: Choose the newer folder above to continue.
 profile:
   deleted: Profile deleted
   saved: Profile saved
@@ -157,6 +160,9 @@ toolbar:
 bottombar:
   selected: 'Selected:'
   approve_and_save: Save and continue
+  disabled_no_file: Choose a file from the list first.
+  disabled_no_reason: Write why this change is OK first.
+  disabled_fix_hint: Then you can save.
 error:
   opening:
     before_not_found:
@@ -279,15 +285,15 @@ help:
   close: Close
   save: Save definition
   rerun: Re-run audit
-  undo: Undo last approval
-  export: Export report
+  undo: Undo last save
+  export: Save report
   navigate: Navigate file list
   cycle_pane: Cycle pane focus
   approve: Toggle approval
   search: Focus search
   show_help: Show / hide this help
-  revert: Revert selected entry to Pending
-  approve_and_save: Approve and save current entry
+  revert: Return selected item to "Needs review"
+  approve_and_save: Save reason and continue to next item
 nav_guard:
   title: Unsaved Changes
   message: You have unsaved changes. Save before leaving, or discard them?
