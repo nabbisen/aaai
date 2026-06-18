@@ -1,7 +1,10 @@
-//! Unsaved-changes navigation guard dialog (RFC 041).
+//! Unsaved-changes navigation guard dialog (RFC 041, RFC 086).
 //!
-//! A compact 3-choice modal:
-//!   [Cancel]  [Discard and Leave]  [Save and Leave]
+//! Default state shows only the two safe choices:
+//!   [Stay here]  [Save and leave]
+//!
+//! "Discard and leave" loses unsaved work, so it is hidden behind a
+//! "More choices" link (RFC 086) — the safest action stays the easiest.
 //!
 //! The modal overlay (backdrop + centering) is assembled in `App::view()`.
 
@@ -13,7 +16,7 @@ use rust_i18n::t;
 
 use crate::app::Message;
 
-pub fn view<'a>() -> Element<'a, Message> {
+pub fn view<'a>(show_discard: bool) -> Element<'a, Message> {
     let title = text(t!("nav_guard.title").to_string())
         .size(16)
         .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
@@ -30,25 +33,36 @@ pub fn view<'a>() -> Element<'a, Message> {
             ..Default::default()
         });
 
-    // Buttons — right-aligned: Cancel | Discard | Save
+    // RFC 086 — primary row shows only safe choices: Stay | Save and leave.
     let cancel_btn = button(text(t!("nav_guard.cancel").to_string()).size(13))
         .on_press(Message::NavGuardCancel)
         .padding(Padding::from([6.0, 14.0]))
         .style(iced::widget::button::secondary);
 
-    let discard_btn = button(text(t!("nav_guard.discard_and_leave").to_string()).size(13))
-        .on_press(Message::NavGuardDiscardAndLeave)
-        .padding(Padding::from([6.0, 14.0]))
-        .style(iced::widget::button::danger);
-
     let save_btn = button(text(t!("nav_guard.save_and_leave").to_string()).size(13))
         .on_press(Message::NavGuardSaveAndLeave)
         .padding(Padding::from([6.0, 14.0]));
 
+    // The data-losing action: either a quiet "More choices" link (hidden
+    // state) or the actual danger button once revealed.
+    let secondary: Element<'_, Message> = if show_discard {
+        button(text(t!("nav_guard.discard_and_leave").to_string()).size(13))
+            .on_press(Message::NavGuardDiscardAndLeave)
+            .padding(Padding::from([6.0, 14.0]))
+            .style(iced::widget::button::danger)
+            .into()
+    } else {
+        button(text(t!("nav_guard.more_choices").to_string()).size(12))
+            .on_press(Message::NavGuardRevealDiscard)
+            .padding(Padding::from([6.0, 10.0]))
+            .style(iced::widget::button::text)
+            .into()
+    };
+
     let actions = row![
+        secondary,
         space().width(Length::Fill),
         cancel_btn,
-        discard_btn,
         save_btn,
     ]
     .spacing(8)

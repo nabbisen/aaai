@@ -8,6 +8,61 @@ Format: `## [version] — description`
 
 ---
 
+## [0.32.0] — Phase 24: Plain-Language GUI (2026-06-13)
+
+Adopts the UI/UX architect review's plain-language recommendations so the
+GUI reads like a calm review assistant rather than an audit console. The
+internal `AuditStatus` enum, CLI output, reports, and developer docs keep
+their precise terms; only GUI display strings change. CLI and GUI continue
+to share identical judgment logic (design doc p.9) — the divergence is
+purely presentational, and is mapped in a table at the top of the GUI guide.
+
+### RFC 083 — Plain-language action labels
+
+| Was | Now |
+|---|---|
+| Start Audit | Check changes |
+| Run Audit | Check again |
+| Export Report | Save report |
+| Approve & Save | Save and continue |
+| Before (source) / After (target) | Older folder / Newer folder |
+
+### RFC 084 — Plain-language status labels and hints
+
+| Internal | GUI now shows |
+|---|---|
+| OK | All set |
+| Pending | Needs review |
+| Failed | Doesn't match |
+| Error | Couldn't check |
+| Ignored | Skipped |
+
+Overall verdict badge: Passed → "All set", Failed → "Needs attention".
+The status legend popover and filter chips were reworded to match.
+
+### RFC 085 — Plain-language strategy labels
+
+The strategy section header became a question ("How should aaai check
+this?") and the options are now task-oriented: File fingerprint (Checksum),
+Specific line changes (LineMatch), Text pattern (Regex), Exact text (Exact),
+and "Only that it changed" (None).
+
+### RFC 086 — Navigation guard: hide "Discard and leave"
+
+The data-losing action is now hidden behind a "More choices" link. The
+default dialog shows only the two safe choices — **Stay here** and
+**Save and leave** — so the safest action is the easiest. "Cancel" was
+renamed to "Stay here".
+
+### Documentation
+
+`docs/src/gui.md` and `docs/ja/src/gui.md` gained a GUI-label ⇆ internal-term
+mapping table; the guides continue to use the precise internal terms.
+
+**i18n: 237 → 238 (+1, `nav_guard.more_choices`). Total: 238/238/238.**
+
+---
+
 ## [0.31.1] — Phase 23: Pre-1.0 Housekeeping (2026-06-12)
 
 ### RFC 081 — GUI documentation update for Phase 20–22

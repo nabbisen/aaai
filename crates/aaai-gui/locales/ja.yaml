@@ -7,7 +7,7 @@ batch:
   reason_placeholder: これらの変更を許容する根拠
   selected: 件を選択中
   title: 一括承認
-  content_audit_strategy: 内容監査ストラテジー
+  content_audit_strategy: aaai はこれらをどうチェックしますか？
 diff:
   no_changes: 変更行がありません。
   no_text_content: テキストコンテンツがありません。
@@ -38,8 +38,8 @@ expiry:
 filter:
   all: すべて
   changed: 変更のみ
-  errors: エラー
-  pending: 未承認
+  errors: 要対応
+  pending: 要確認
   count_summary: '%{total}件中 %{unresolved}件が未解決'
 footer:
   unsaved: ● 未保存の変更があります
@@ -58,7 +58,7 @@ inspector:
   reason_label: 理由
   regex_pattern_label: 正規表現パターン
   regex_target_label: 適用対象
-  strategy_label: 内容監査方式
+  strategy_label: aaai はこれをどうチェックしますか？
   template_label: テンプレートを適用
   template_none: （なし）
   ticket_label: チケット / イシュー
@@ -72,11 +72,11 @@ inspector:
   target_added_lines: 追加された行
   target_removed_lines: 削除された行
   target_all_changed_lines: 変更されたすべての行
-  strategy_none: なし
-  strategy_checksum: チェックサム
-  strategy_linematch: 行マッチ
-  strategy_regex: 正規表現
-  strategy_exact: 完全一致
+  strategy_none: 変更されたことだけ
+  strategy_checksum: ファイルの指紋
+  strategy_linematch: 特定の行の変更
+  strategy_regex: テキストパターン
+  strategy_exact: テキスト完全一致
   revert_to_pending: Pending に戻す
   advanced_toggle_show: 詳細オプション
   advanced_toggle_hide: 詳細を隠す
@@ -102,11 +102,11 @@ opening:
   change_folder: フォルダを変更
   pick_folder: フォルダを選ぶ
   unselected: 未選択
-  after_card: 比較先 (After)
-  before_card: 比較元 (Before)
-  guide: 監査するための 2 つのフォルダを選んでください
+  after_card: 新しいフォルダ
+  before_card: 古いフォルダ
+  guide: チェックする 2 つのフォルダを選んでください。
   definition_label: 承認ファイル
-  start_button: 監査を開始
+  start_button: 変更をチェック
   subtitle: audit for asset integrity
   title: aaai
   drop_here: フォルダをこの画面のどこかにドロップしてください
@@ -116,12 +116,12 @@ profile:
   deleted: プロファイルを削除しました
   saved: プロファイルを保存しました
 status:
-  error: Error
-  failed: Failed
-  ignored: Ignored
-  ok: OK
+  error: チェックできません
+  failed: 一致しません
+  ignored: スキップ
+  ok: 完了
   passed: 合格
-  pending: Pending
+  pending: 要確認
   result_failed: 不合格
 toast:
   approved: 承認しました
@@ -144,17 +144,17 @@ toast:
   reverted_path: '取り消し: %{path}'
   no_audit_result: レポートを出力する前に監査を実行してください。
 toolbar:
-  report_output: レポート出力
-  run_audit: 監査実行
+  report_output: レポートを保存
+  run_audit: もう一度チェック
   open: 開く
   save: 保存
-  passed: 合格
-  failed: 不合格
+  passed: 完了
+  failed: 要対応
   undo: 元に戻す
   rerunning: 再実行中…
 bottombar:
   selected: '選択中:'
-  approve_and_save: 承認して保存
+  approve_and_save: 保存して次へ
 error:
   opening:
     before_not_found:
@@ -165,7 +165,7 @@ error:
       hint: 存在するフォルダを選び直すか、フォルダを作成してから監査を開始してください。
     definition_load_failed:
       message: '監査定義の読み込みに失敗しました: %{reason}'
-      hint: YAML 形式が正しいか確認するか、`aaai snap` で再生成してください。
+      hint: 保存された確認ファイルが壊れている可能性があります。新しくチェックを始めることもできます。
     drop_invalid_kind:
       message: 'ドロップされたのはフォルダではありません: %{path}'
       hint: ファイルではなくフォルダをカード上にドロップしてください。
@@ -216,7 +216,7 @@ empty_state:
   onboarding_step1: 「比較元 (Before)」を選ぶ — 監査の基準となるフォルダ
   onboarding_step2: 「比較先 (After)」を選ぶ — 監査対象のフォルダ
   onboarding_step3: 「監査を開始」をクリック
-  onboarding_note: audit.yaml は監査開始時に自動的に作成されます。
+  onboarding_note: 開始すると確認用ファイルが自動的に作成されます。
   file_tree_no_result_title: 監査結果がまだありません
   file_tree_no_result_hint: ツールバーの「▶ 監査実行」を押すと差分一覧がここに表示されます。
   diff_no_audit_title: 監査結果がまだありません
@@ -237,11 +237,11 @@ dashboard:
   new_audit: 新しい監査
 main:
   search_placeholder: パスを検索… (/ でフォーカス)
-  status_legend_title: ステータスの意味
-  status_legend_pending: Pending — まだ確認されていません。選択して理由を書き、承認してください。
-  status_legend_ok: OK — 承認済みでルールが一致しています。対応不要です。
-  status_legend_failed: Failed — 承認ルールは存在しますが、ファイルが一致しなくなっています。ルールを更新するか再承認してください。
-  status_legend_error: Error — ファイルの読み取りまたは比較ができませんでした。ファイルのアクセス権を確認してください。
+  status_legend_title: これらの意味は？
+  status_legend_pending: 要確認 — まだ見ていません。選んで理由を書き、保存してください。
+  status_legend_ok: 完了 — 保存された理由があり、今も一致しています。対応不要です。
+  status_legend_failed: 一致しません — 保存された理由がこのファイルと一致しなくなりました。更新して保存し直してください。
+  status_legend_error: チェックできません — aaai がこのファイルを読み取れませんでした。ファイルのアクセス権を確認してください。
   coach_line: 各項目は変更されたファイルです。選択して、なぜ許容されるかを説明し、承認してください。
   coach_dismiss: 了解
 dialog:
@@ -282,4 +282,5 @@ nav_guard:
   message: 未保存の変更があります。保存してから離れますか？
   save_and_leave: 保存して離れる
   discard_and_leave: 破棄して離れる
-  cancel: キャンセル
+  cancel: ここに留まる
+  more_choices: その他の選択肢

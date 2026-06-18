@@ -7,7 +7,7 @@ batch:
   reason_placeholder: Why are these changes allowed?
   selected: selected entries
   title: Batch Approve
-  content_audit_strategy: Content Audit Strategy
+  content_audit_strategy: How should aaai check these?
 diff:
   no_changes: No changed lines.
   no_text_content: No text content available.
@@ -38,8 +38,8 @@ expiry:
 filter:
   all: All
   changed: Changed
-  errors: Errors
-  pending: Pending
+  errors: Needs attention
+  pending: Needs review
   count_summary: '%{unresolved} of %{total} unresolved'
 footer:
   unsaved: ● Unsaved changes
@@ -58,7 +58,7 @@ inspector:
   reason_label: Reason
   regex_pattern_label: Pattern
   regex_target_label: Apply to
-  strategy_label: Content Audit Strategy
+  strategy_label: How should aaai check this?
   template_label: Apply template
   template_none: (none)
   ticket_label: Ticket / Issue
@@ -72,11 +72,11 @@ inspector:
   target_added_lines: Added lines
   target_removed_lines: Removed lines
   target_all_changed_lines: All changed lines
-  strategy_none: None
-  strategy_checksum: Checksum
-  strategy_linematch: LineMatch
-  strategy_regex: Regex
-  strategy_exact: Exact
+  strategy_none: Only that it changed
+  strategy_checksum: File fingerprint
+  strategy_linematch: Specific line changes
+  strategy_regex: Text pattern
+  strategy_exact: Exact text
   revert_to_pending: Revert to Pending
   advanced_toggle_show: More options
   advanced_toggle_hide: Fewer options
@@ -104,11 +104,11 @@ opening:
   change_folder: Change folder
   pick_folder: Pick folder
   unselected: Not selected
-  after_card: After (target)
-  before_card: Before (source)
-  guide: Pick two folders to audit.
+  after_card: Newer folder
+  before_card: Older folder
+  guide: Choose two folders to check.
   definition_label: Approvals file
-  start_button: Start Audit
+  start_button: Check changes
   subtitle: audit for asset integrity
   title: aaai
   drop_here: Drop a folder anywhere on this screen
@@ -118,12 +118,12 @@ profile:
   deleted: Profile deleted
   saved: Profile saved
 status:
-  error: Error
-  failed: Failed
-  ignored: Ignored
-  ok: OK
+  error: Couldn't check
+  failed: Doesn't match
+  ignored: Skipped
+  ok: All set
   passed: PASSED
-  pending: Pending
+  pending: Needs review
   result_failed: FAILED
 toast:
   approved: Approved
@@ -146,17 +146,17 @@ toast:
   reverted_path: 'Reverted: %{path}'
   no_audit_result: Run an audit first before exporting a report.
 toolbar:
-  report_output: Export Report
-  run_audit: Run Audit
+  report_output: Save report
+  run_audit: Check again
   open: Open
   save: Save
-  passed: Passed
-  failed: Failed
+  passed: All set
+  failed: Needs attention
   undo: Undo
   rerunning: Re-running…
 bottombar:
   selected: 'Selected:'
-  approve_and_save: Approve & Save
+  approve_and_save: Save and continue
 error:
   opening:
     before_not_found:
@@ -167,7 +167,7 @@ error:
       hint: Pick a folder that exists, or create the folder before starting the audit.
     definition_load_failed:
       message: 'Failed to load audit definition: %{reason}'
-      hint: Check the YAML is well-formed, or regenerate it with `aaai snap`.
+      hint: The saved review file may be damaged. You can start a fresh check instead.
     drop_invalid_kind:
       message: 'Dropped item is not a folder: %{path}'
       hint: Drop a folder (not a file) onto either card.
@@ -220,7 +220,7 @@ empty_state:
   onboarding_step1: Pick the 'Before' folder — the audit baseline
   onboarding_step2: Pick the 'After' folder — what you want to audit
   onboarding_step3: Click 'Start audit'
-  onboarding_note: An audit.yaml file is created automatically when you start.
+  onboarding_note: A review file is created automatically when you start.
   file_tree_no_result_title: No audit result yet
   file_tree_no_result_hint: Click '▶ Run audit' in the toolbar to see file differences
     here.
@@ -244,13 +244,14 @@ dashboard:
   new_audit: New Audit
 main:
   search_placeholder: Search paths… (/ to focus)
-  status_legend_title: What do these statuses mean?
-  status_legend_pending: Pending — not reviewed yet. Select it, write a reason, approve.
-  status_legend_ok: OK — approved and rule matches. Nothing to do.
-  status_legend_failed: Failed — an approval rule exists but the file no longer matches
-    it. Update the rule or re-approve.
-  status_legend_error: Error — the file could not be read or compared. Check file
-    permissions.
+  status_legend_title: What do these mean?
+  status_legend_pending: Needs review — not looked at yet. Select it, write a reason,
+    save.
+  status_legend_ok: All set — has a saved reason and still matches. Nothing to do.
+  status_legend_failed: Doesn't match — the saved reason no longer matches this file.
+    Update it and save again.
+  status_legend_error: Couldn't check — aaai could not read this file. Check file
+    access.
   coach_line: Each item is a file that changed. Select one, explain why it's OK, and
     approve.
   coach_dismiss: Got it
@@ -292,4 +293,5 @@ nav_guard:
   message: You have unsaved changes. Save before leaving, or discard them?
   save_and_leave: Save and Leave
   discard_and_leave: Discard and Leave
-  cancel: Cancel
+  cancel: Stay here
+  more_choices: More choices

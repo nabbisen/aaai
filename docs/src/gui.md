@@ -12,6 +12,31 @@ workspace. The window title shows the current definition filename,
 a `●` marker when there are unsaved changes, and `(N pending)` when
 there are entries still awaiting approval.
 
+> **A note on wording.** The GUI uses plain language for non-technical
+> reviewers, while this guide and the CLI use the precise internal terms.
+> The mapping:
+>
+> | GUI label | Internal / CLI term |
+> |---|---|
+> | Check changes / Check again | Audit / Run audit |
+> | Save report | Export report |
+> | Save and continue | Approve & Save |
+> | Needs review | Pending |
+> | All set | OK |
+> | Doesn't match | Failed |
+> | Couldn't check | Error |
+> | Skipped | Ignored |
+> | Older / Newer folder | Before / After |
+> | How should aaai check this? | Content audit strategy |
+> | File fingerprint | Checksum |
+> | Specific line changes | LineMatch |
+> | Text pattern | Regex |
+> | Exact text | Exact |
+>
+> The underlying `AuditStatus` enum and evaluation logic are identical
+> across CLI and GUI — only the GUI's display strings differ. This guide
+> uses the internal terms below for precision.
+
 ---
 
 ## 1. Opening screen

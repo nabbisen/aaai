@@ -548,3 +548,19 @@ Patch release addressing stale documentation and publish-chain readiness.
 | 081 | docs/src/gui.md + docs/ja/src/gui.md — update for Phase 20–22 changes |
 | 082 | Fix aaai-core README path warning + add RELEASING.md |
 
+## Phase 24 — Plain-Language GUI ✅ (v0.32.0)
+
+Theme: Adopt the UI/UX architect review's plain-language recommendations.
+The GUI should read like a calm review assistant, not an audit console.
+Internal vocabulary (the `AuditStatus` enum, CLI output, reports, docs)
+stays precise; only GUI display strings become friendlier. This keeps
+CLI and GUI judgment logic identical (design doc p.9) while making the
+GUI approachable to non-technical reviewers.
+
+| RFC | Scope |
+|---|---|
+| 083 | Plain-language action labels — toolbar, opening screen, bottom bar |
+| 084 | Plain-language status labels + hints — file tree, legend, filter bar, toolbar badge |
+| 085 | Plain-language strategy labels — picker options + section header + inspector title |
+| 086 | Navigation guard — hide "Discard and Leave" behind a secondary step |
+

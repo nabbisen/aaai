@@ -275,6 +275,10 @@ pub struct App {
 
     // RFC 041: navigation guard (unsaved-changes confirmation)
     pub nav_guard_open: bool,
+    /// RFC 086 — whether the secondary "Discard and leave" action is revealed.
+    /// Hidden by default so the safest choice (Stay / Save) is easiest; the
+    /// user must click "More choices" to expose the data-losing option.
+    pub nav_guard_show_discard: bool,
 
     /// RFC 046 — set when a save-as dialog is opened from NavGuardSaveAndLeave.
     /// Tells `DefinitionSavePathPicked` to call `do_leave_to_opening()` after saving.
@@ -359,6 +363,7 @@ impl Default for App {
             settings_draft: UserPrefs::default(),
             help_open: false,
             nav_guard_open: false,
+            nav_guard_show_discard: false,
             pending_leave_to_opening: false,
             advanced_inspector_expanded: false,
             diff_scroll_syncing: false,
@@ -461,6 +466,8 @@ pub enum Message {
     // RFC 041: navigation guard messages
     NavGuardSaveAndLeave,
     NavGuardDiscardAndLeave,
+    /// RFC 086 — reveal the hidden "Discard and leave" action.
+    NavGuardRevealDiscard,
     NavGuardCancel,
 
     // Actions
@@ -1439,6 +1446,7 @@ impl App {
                 if self.dirty {
                     // RFC 041 — open confirmation dialog instead of passive toast.
                     self.nav_guard_open = true;
+                    self.nav_guard_show_discard = false;  // RFC 086 — start hidden
                 } else {
                     self.do_leave_to_opening();
                 }
@@ -1584,7 +1592,12 @@ impl App {
             }
 
             // ── RFC 041: navigation guard ─────────────────────────────
-            Message::NavGuardCancel => { self.nav_guard_open = false; }
+            Message::NavGuardCancel => {
+                self.nav_guard_open = false;
+                self.nav_guard_show_discard = false;
+            }
+            // RFC 086 — second-step reveal of the data-losing action.
+            Message::NavGuardRevealDiscard => { self.nav_guard_show_discard = true; }
 
             Message::NavGuardDiscardAndLeave => {
                 self.nav_guard_open = false;
@@ -1953,7 +1966,7 @@ impl App {
             .on_press(Message::NavGuardCancel);
 
             let dialog = iced::widget::center(
-                crate::views::nav_guard::view()
+                crate::views::nav_guard::view(self.nav_guard_show_discard)
             );
 
             stack![base, backdrop, dialog].into()
