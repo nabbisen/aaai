@@ -8,6 +8,45 @@ Format: `## [version] — description`
 
 ---
 
+## [0.31.1] — Phase 23: Pre-1.0 Housekeeping (2026-06-12)
+
+### RFC 081 — GUI documentation update for Phase 20–22
+
+The GUI guide (`docs/src/gui.md` and `docs/ja/src/gui.md`) was last
+updated for Phase 19. Phases 20–22 made significant visual changes that
+left the docs stale. Updated sections:
+
+**Toolbar** — buttons now documented with correct icons: `← Open`,
+`↓ Save`, `▶ Run audit`, `↑ Export Report`, `↩ Undo`. Save/export
+time marks now described as stacking *below* the button rather than
+appearing beside it.
+
+**Filter bar** — the `?` legend button (RFC 076) is now documented.
+
+**Search bar** — moved description from a standalone subsection to
+inside the File Tree section, matching its actual position inside the
+file tree pane (RFC 071).
+
+**Status badge** — updated to reflect the compact `● Passed` /
+`● Failed` pill format (RFC 072).
+
+**Inspector** — added: reason placeholder and diff-type example
+(RFC 074); strategy pre-selection with `(recommended)` label (RFC 075);
+Checksum how-to hint (RFC 080); progressive disclosure structure
+(existing, but undocumented until now).
+
+### RFC 082 — aaai-core README path + RELEASING.md
+
+`crates/aaai-core/Cargo.toml` had `readme = "../../README.md"`, which
+pointed outside the package root and caused a `cargo package` warning.
+Changed to `readme = "README.md"` (the crate-local file).
+
+Added `RELEASING.md` documenting the correct three-step publish order
+(`aaai-core` → `aaai-cli` → `aaai-gui`), the `--no-verify` flag for
+local packaging, and the crates.io indexing wait between steps.
+
+---
+
 ## [0.31.0] — Phase 22: Newcomer UX Continuation (2026-06-12)
 
 Three targeted fixes uncovered by post-Phase-21 audit.

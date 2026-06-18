@@ -539,3 +539,12 @@ the post-21 audit.
 | 079 | Opening onboarding explains HOW but not WHY | Add a one-line context sentence before the numbered steps |
 | 080 | Checksum strategy: no hint on how to get the hash | Add a "how to get this" micro-hint below the SHA-256 field |
 
+## Phase 23 — Pre-1.0 Housekeeping ✅ (v0.31.1)
+
+Patch release addressing stale documentation and publish-chain readiness.
+
+| RFC | Work |
+|---|---|
+| 081 | docs/src/gui.md + docs/ja/src/gui.md — update for Phase 20–22 changes |
+| 082 | Fix aaai-core README path warning + add RELEASING.md |
+

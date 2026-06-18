@@ -94,27 +94,30 @@ After Start, the workspace transitions to a 3-pane layout: the file
 tree on the left, the diff view in the middle, and the inspector on
 the right. The dividers between panes are draggable.
 
-A toolbar runs across the top, a filter bar and a search bar sit
-below it, and an action bar runs across the bottom.
+A toolbar runs across the top, a filter bar sits below it, and an
+action bar runs across the bottom.
 
 ### Toolbar
 
-The toolbar contains four buttons and a status badge:
+The toolbar contains five buttons and a compact status badge:
 
 | Button | Action |
 |---|---|
-| `□ Open` | Returns to the Opening screen. If you have unsaved changes, a confirmation dialog appears — see [Navigation guard](#navigation-guard). |
-| `□ Save` | Saves the audit definition to disk. |
+| `← Open` | Returns to the Opening screen. If you have unsaved changes, a confirmation dialog appears — see [Navigation guard](#navigation-guard). |
+| `↓ Save` | Saves the audit definition to disk. |
 | `▶ Run audit` | Re-runs the folder comparison and audit on a background thread. |
 | `↑ Export Report` | Opens a native save-file dialog. Choose a filename ending in `.md` for Markdown or `.json` for JSON — the format is detected from the extension. |
+| `↩ Undo` | Undoes the last approval, reverting that entry to Pending. |
 
-After a successful save or export, a small `✓ Saved N min ago` mark
-appears next to that button. The label refreshes every 30 seconds.
+After a successful save or export, a small `✓ N min ago` mark appears
+**below** the relevant button. The label refreshes every 30 seconds
+and does not shift the button widths when it appears or disappears.
 
 On the right side of the toolbar:
 
-- While a rerun is in progress, the status badge shows **Re-running…** in amber.
-- Otherwise it shows **Passed** (green) or **Failed** (red). The verdict is always text, not colour-only.
+- While a rerun is in progress: **○ Re-running…** in amber.
+- Otherwise: **● Passed** (green) or **● Failed** (red). The verdict
+  is always text plus a coloured dot — never colour only.
 
 ### Filter bar
 
@@ -128,10 +131,15 @@ result is loaded, each button shows the live entry count in parentheses:
 
 The active filter has a subtle background tint.
 
+A **`?` button** at the right of the filter bar opens a plain-language
+legend explaining what each status means and what action is appropriate.
+
 ### Search bar
 
-Incremental case-insensitive substring match on entry paths. Empty
-search shows everything the current filter would show.
+A search input at the **top of the file tree pane** provides an
+incremental, case-insensitive substring match on entry paths. Empty
+search shows everything the current filter would show. Press `/` to
+focus it without reaching for the mouse.
 
 ### File tree (left pane)
 
@@ -189,8 +197,8 @@ toggle that stays expanded for the rest of the session once opened.
 
 | Field | Required | Notes |
 |---|---|---|
-| Reason | ✅ | Multi-line textarea. Empty = cannot approve. |
-| Strategy | — | None / Checksum / LineMatch / Regex / Exact. Fields adapt to the strategy. |
+| Reason | ✅ | Multi-line textarea. Empty = cannot approve. A diff-type-aware example appears below the field when it is empty — e.g. for a modified config file: *"e.g. 'Port changed 80 → 8080 per infra ticket INF-42.'"* The example disappears once you start typing. |
+| Strategy | — | None / Checksum / LineMatch / Regex / Exact. For newly-selected entries, **LineMatch** is pre-selected for Modified files and **None** for all others — the recommended choice for that diff type is labelled `(recommended)` in the dropdown. Each strategy shows a plain-language description of when to use it. |
 
 **Under ▸ More options:**
 
@@ -213,6 +221,11 @@ with the current file's path. Edit it to a glob (e.g.
 `node_modules/**`, `**/*.lock`). Three clickable suggestion chips
 appear automatically based on the path. Approving saves the glob
 entry; the background rerun marks every matching file OK.
+
+**Checksum** — when the Checksum strategy is selected, a greyed hint
+line below the SHA-256 field shows the shell command needed to obtain
+the hash: `sha256sum <file>` on Linux/macOS and
+`Get-FileHash <file> -Algorithm SHA256` on Windows PowerShell.
 
 ### Bottom action bar
 
