@@ -8,6 +8,45 @@ Format: `## [version] — description`
 
 ---
 
+## [0.34.0] — Dependency update: snora 0.18 → 0.25 (2026-06-20)
+
+### snora 0.25.0 (minor version bump)
+
+The toast-and-layout dependency is updated from 0.18.3 to 0.25.1.
+
+**Compatibility:** All nine snora symbols aaai uses (`AppLayout`, `Sheet`,
+`SheetEdge`, `SheetSize`, `Toast`, `ToastIntent`, `ToastPosition`, `render`,
+`toast::subscription`, `toast::sweep_expired`) are present and unchanged in
+the 0.25 facade. The one breaking change introduced between 0.18 and 0.25
+(`Palette::roles()` becoming test-only in v0.24) does not affect aaai, which
+has never used `Palette`.
+
+**What changed in snora between 0.18 and 0.25:**
+- v0.19 — Snora Design groundwork: `snora-design` token crate (iced-free),
+  high-contrast palette presets, iced style bridge, pilot button/card helpers,
+  accessibility checklist.
+- v0.20 — `snora-design` published to crates.io. `design` feature remains
+  opt-in (`default = ["widgets"]`), so aaai is unaffected.
+- v0.21–v0.23 — Notice, filter chip, and progress primitives added
+  under the `design` feature.
+- v0.24 — `Palette::roles()` made test-only (breaking; does not affect aaai).
+  Chip selected-state contrast fixed to ≥6.7:1 WCAG AA across all four
+  built-in presets.
+- v0.25.0 — Binary-size and build-cost measurement methodology corrected;
+  documentation and CHANGELOG reference-link fixes only.
+- v0.25.1 — `snora::design::contrast` re-export added to facade (additive;
+  no effect on aaai until the design feature is enabled).
+
+**Tests:** 104 (core) + 89 (CLI) + 20 (GUI) = 213, all passing.
+
+### Note: design system evaluation
+
+A spike to evaluate `snora-design` token adoption (replacing aaai's
+hand-rolled `theme.rs`/`style.rs` with design tokens and high-contrast
+presets) is in progress. Results will land in a subsequent release.
+
+---
+
 ## [0.33.1] — Dependency update + RFC 091 CI + ABDD audit fix (2026-06-18)
 
 ### Dependency update
