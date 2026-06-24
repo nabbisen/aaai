@@ -8,6 +8,56 @@ Format: `## [version] — description`
 
 ---
 
+## [0.35.0] — WCAG AA status-color fix (2026-06-20)
+
+### Accessibility fix (WCAG 2.1 AA contrast)
+
+Evaluating the snora-design system surfaced a real, pre-existing accessibility
+bug in aaai's hand-picked status colors: two of them failed WCAG AA contrast
+(4.5:1) both as white-text badges and as colored text on white.
+
+| Status | Old | Old contrast | New | New contrast |
+|---|---|---|---|---|
+| Pending | `#E0991F` | **2.40:1** ✗ | `#9A5B00` | 5.43:1 ✓ |
+| Ignored | `#8C8C8C` | **3.35:1** ✗ | `#6B6B6B` | 5.32:1 ✓ |
+| OK | `#2EA652` | 3.15:1 | `#15803D` | 5.02:1 ✓ |
+| Failed | `#D12E2E` | 5.07:1 | `#B3261E` | 6.54:1 ✓ |
+| Error | `#B22EB2` | 5.33:1 ✓ | `#B22EB2` | 5.33:1 ✓ (kept) |
+
+OK / Pending / Failed adopt the AA-tested values from snora-design's light
+preset (`success` / `warning` / `danger`). Error keeps its distinct purple
+(it already passed, and stays visually separate from Failed per the design-doc
+status-vocabulary distinction). Ignored is darkened to clear AA.
+
+The diff-view added/removed text colors (`ADDED_COLOR` / `REMOVED_COLOR`) adopt
+the same AA-tested green/red.
+
+A new unit test (`theme::tests::all_status_colors_meet_wcag_aa_on_white`)
+locks every status color at ≥4.5:1 and guards against regression.
+
+### snora dependency
+
+`snora` stays at 0.25.1 with **default features** (the `design` feature is not
+enabled; the fix uses constant values, not the runtime token system). Adopting
+the full design-token runtime is designed in RFC 092–094 (proposed) for a
+later pre-v1.0 release.
+
+### Design-system RFCs (proposed, not implemented)
+
+Three RFCs were written for the full design-system adoption, deliberately
+deferred from this release to keep it minimal:
+
+- **RFC 092** — Design System Adoption (snora-design tokens): container and
+  button styling migration.
+- **RFC 093** — Theme Picker UI: wires the dead `SetTheme` message to a picker
+  in the Settings dialog.
+- **RFC 094** — High-Contrast Themes: adds HC Light / HC Dark backed by
+  snora-design's ≥8:1 presets.
+
+Implementation order 092 → 093 → 094; each independently reviewable.
+
+---
+
 ## [0.34.0] — Dependency update: snora 0.18 → 0.25 (2026-06-20)
 
 ### snora 0.25.0 (minor version bump)

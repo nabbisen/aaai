@@ -8,9 +8,15 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-(現在 proposed は空。Phase 12 の RFC 017〜025 はすべて Done に移行済み。)
+design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装）:
 
-次の Phase（Phase 13）の新規 RFC はここに追加していく。
+| ID | タイトル | 依存 |
+|---|---|---|
+| [092](proposed/092-design-system-adoption.md) | Design System Adoption (snora-design tokens) | snora-design 0.25.1 |
+| [093](proposed/093-theme-picker-ui.md) | Theme Picker UI | RFC 092 |
+| [094](proposed/094-high-contrast-themes.md) | High-Contrast Themes | RFC 092, 093 |
+
+実装順序: 092 → 093 → 094。各 RFC は独立してレビュー・実装・リバート可能。
 
 ---
 
