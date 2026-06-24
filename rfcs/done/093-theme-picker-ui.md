@@ -1,6 +1,6 @@
 # RFC 093 — Theme Picker UI
 
-**Status:** Proposed
+**Status:** Implemented (v0.37.0)
 **Target release:** pre-v1.0.0 (after RFC 092)
 **Related area:** GUI settings, theming, preferences persistence
 **Depends on:** RFC 092 (design system adoption — provides the token pipeline)

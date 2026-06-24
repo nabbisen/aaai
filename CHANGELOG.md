@@ -8,6 +8,35 @@ Format: `## [version] — description`
 
 ---
 
+## [0.37.0] — RFC 093: Theme Picker UI (2026-06-20)
+
+Wires the previously-dead `SetTheme` message: a **Theme** pick-list now
+appears in the Settings dialog as the first setting, above Language.
+
+### Changes
+
+**New settings control:** Theme pick-list with two options — Light and Dark.
+(`System` is intentionally hidden until OS dark-mode detection is available
+per RFC 093 §5.1.)
+
+**Live preview:** Selecting a theme applies it immediately behind the dialog.
+Cancel reverts to the theme that was active when Settings was opened; Save
+persists the selection to `prefs.yaml`.
+
+**New i18n keys** (en + ja): `settings.theme`, `settings.theme_light`,
+`settings.theme_dark`, `settings.theme_system`.
+
+**New message** `SettingsThemeChanged(AppTheme)` — parallel to the existing
+`SettingsLanguageChanged`.
+
+**New method** `Theme::choices() -> &'static [Theme]` on `aaai-core`'s `Theme`
+enum — returns the ordered list of user-selectable variants. RFC 094 extends
+this slice with the two high-contrast entries.
+
+**i18n: 244 → 248 (+4). Total: 248/248/248.**
+
+---
+
 ## [0.36.0] — RFC 092: Design System Adoption (2026-06-20)
 
 Migrates aaai's GUI styling to snora-design tokens (the `design` feature,

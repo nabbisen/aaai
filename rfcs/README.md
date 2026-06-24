@@ -12,7 +12,6 @@ design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装
 
 | ID | タイトル | 依存 |
 |---|---|---|
-| [093](proposed/093-theme-picker-ui.md) | Theme Picker UI | RFC 092 |
 | [094](proposed/094-high-contrast-themes.md) | High-Contrast Themes | RFC 092, 093 |
 
 実装順序: 092 → 093 → 094。各 RFC は独立してレビュー・実装・リバート可能。
@@ -104,6 +103,7 @@ design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装
 | [088](done/088-disabled-check-hint.md) | Check changes disabled inline hint | v0.33.0 |
 | [089](done/089-help-overlay-labels.md) | Help overlay plain-language update | v0.33.0 |
 | [091](done/091-windows-store-packaging.md) | Windows Store packaging model | v0.33.0 |
+| [093](done/093-theme-picker-ui.md) | Theme Picker UI | v0.37.0 |
 | [092](done/092-design-system-adoption.md) | Design System Adoption | v0.36.0 |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |

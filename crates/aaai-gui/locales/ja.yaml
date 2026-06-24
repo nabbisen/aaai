@@ -267,6 +267,10 @@ settings:
   add_dir: + ディレクトリを追加
   save: 保存
   cancel: キャンセル
+  theme: テーマ
+  theme_light: ライト
+  theme_dark: ダーク
+  theme_system: システムに合わせる
 help:
   title: キーボードショートカット
   shortcut_label: ショートカット

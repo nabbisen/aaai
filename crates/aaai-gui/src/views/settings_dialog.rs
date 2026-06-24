@@ -135,8 +135,56 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
     .align_y(iced::Alignment::Center);
 
     // ── Dialog box ────────────────────────────────────────────────────
+    // ── Theme picker (RFC 093) ─────────────────────────────────────────────
+    let theme_label = text(t!("settings.theme").to_string())
+        .size(13)
+        .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
+
+    let theme_options: Vec<aaai_core::profile::prefs::Theme> =
+        aaai_core::profile::prefs::Theme::choices().to_owned();
+
+    let theme_labels: Vec<String> = theme_options.iter().map(|th| {
+        let key = match th {
+            aaai_core::profile::prefs::Theme::Light  => "settings.theme_light",
+            aaai_core::profile::prefs::Theme::Dark   => "settings.theme_dark",
+            aaai_core::profile::prefs::Theme::System => "settings.theme_system",
+            // RFC 094: HighContrastLight => "settings.theme_hc_light",
+            //          HighContrastDark  => "settings.theme_hc_dark",
+        };
+        t!(key).to_string()
+    }).collect();
+
+    let active_theme_label = {
+        let key = match draft.theme {
+            aaai_core::profile::prefs::Theme::Light  => "settings.theme_light",
+            aaai_core::profile::prefs::Theme::Dark   => "settings.theme_dark",
+            aaai_core::profile::prefs::Theme::System => "settings.theme_system",
+            // RFC 094: HighContrastLight => "settings.theme_hc_light",
+            //          HighContrastDark  => "settings.theme_hc_dark",
+        };
+        t!(key).to_string()
+    };
+
+    let theme_pick = iced::widget::pick_list(
+        theme_labels.clone(),
+        Some(active_theme_label),
+        move |selected: String| {
+            // Map selected label back to Theme variant
+            let matched = theme_options.iter().zip(theme_labels.iter())
+                .find(|(_, lbl)| **lbl == selected)
+                .map(|(th, _)| *th)
+                .unwrap_or(aaai_core::profile::prefs::Theme::Light);
+            Message::SettingsThemeChanged(matched)
+        },
+    )
+    .width(Length::Fill);
+
+    let theme_section = column![theme_label, theme_pick].spacing(6);
+
     let body = column![
         title,
+        separator(),
+        theme_section,
         separator(),
         language_section,
         separator(),

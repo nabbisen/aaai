@@ -30,6 +30,17 @@ impl std::fmt::Display for Theme {
     }
 }
 
+impl Theme {
+    /// All user-selectable themes, in display order (RFC 093).
+    ///
+    /// `System` is excluded until OS dark-mode detection is available
+    /// (RFC 093 §5.1 — hiding avoids a visibly broken picker option).
+    /// RFC 094 appends `HighContrastLight` and `HighContrastDark` here.
+    pub fn choices() -> &'static [Theme] {
+        &[Theme::Light, Theme::Dark]
+    }
+}
+
 /// Persisted user preferences.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UserPrefs {

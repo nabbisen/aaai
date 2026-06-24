@@ -424,6 +424,8 @@ pub enum Message {
     CloseSettings,
     SaveSettings,
     SettingsLanguageChanged(String),
+    /// RFC 093 — live-preview theme change from the settings picker.
+    SettingsThemeChanged(AppTheme),
     SettingsIgnoreDirAdd,
     SettingsIgnoreDirEdit(usize, String),
     SettingsIgnoreDirRemove(usize),
@@ -1747,6 +1749,10 @@ impl App {
                 self.settings_open = true;
             }
             Message::CloseSettings => {
+                // RFC 093 — revert live-preview theme change on cancel.
+                let original = self.prefs.theme;
+                self.theme = original;
+                self.design_tokens = crate::design_tokens::tokens_for(&original);
                 self.settings_open = false;
                 // draft is abandoned; prefs remain unchanged
             }
@@ -1759,11 +1765,20 @@ impl App {
                     rust_i18n::set_locale(&self.prefs.language);
                     self.locale = self.prefs.language.clone();
                 }
+                // RFC 093 — commit live-preview theme; tokens already applied.
+                self.theme = self.prefs.theme;
+                self.design_tokens = crate::design_tokens::tokens_for(&self.prefs.theme);
                 self.prefs.save();
                 self.settings_open = false;
             }
             Message::SettingsLanguageChanged(code) => {
                 self.settings_draft.language = code;
+            }
+            // RFC 093 — live preview: apply immediately; Cancel will revert.
+            Message::SettingsThemeChanged(theme) => {
+                self.settings_draft.theme = theme;
+                self.theme = theme;
+                self.design_tokens = crate::design_tokens::tokens_for(&theme);
             }
             Message::SettingsIgnoreDirAdd => {
                 self.settings_draft.global_ignored_dirs.push(String::new());
