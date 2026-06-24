@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// One entry in `~/.aaai/history.jsonl`.
+/// One entry in the OS config directory history file (`aaai/history.jsonl`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryRecord {
     /// ISO-8601 UTC timestamp.

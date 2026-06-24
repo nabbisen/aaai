@@ -21,6 +21,7 @@ use regex::Regex as RegexCheck;
 use aaai::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
     AuditStatus, DiffType, IgnoreRules,
+    history::{record::HistoryRecord, store as history_store},
     profile::store::{AuditProfile, ProfileStore},
     profile::prefs::{Theme as AppTheme, UserPrefs},
     config::{
@@ -1572,7 +1573,25 @@ impl App {
                     Ok(fresh_diffs) => {
                         self.diffs = fresh_diffs;
                         if let Some(def) = self.definition.clone() {
-                            self.audit_result = Some(AuditEngine::evaluate(&self.diffs, &def));
+                            let audit_result = AuditEngine::evaluate(&self.diffs, &def);
+                            // Record this run in history, matching CLI behaviour.
+                            let before = PathBuf::from(&self.before_path);
+                            let after  = PathBuf::from(&self.after_path);
+                            let defn   = if self.definition_path.is_empty() {
+                                None
+                            } else {
+                                Some(PathBuf::from(&self.definition_path))
+                            };
+                            let record = HistoryRecord::new(
+                                &before,
+                                &after,
+                                defn.as_deref(),
+                                &audit_result.summary,
+                            );
+                            if let Err(e) = history_store::append(&record) {
+                                log::warn!("Could not write history: {e}");
+                            }
+                            self.audit_result = Some(audit_result);
                         }
                         self.audit_dirty = false;
                         self.push_toast(

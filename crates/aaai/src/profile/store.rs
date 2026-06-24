@@ -1,5 +1,5 @@
 //! Audit profiles — named before/after/definition combos saved to
-//! `~/.aaai/profiles.yaml`.
+//! OS config directory — `aaai/profiles.yaml`.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -16,14 +16,14 @@ pub struct AuditProfile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ignore_file: Option<String>,
     /// RFC 023 §3.2: last-used timestamp for "Recent projects" ordering.
-    /// `#[serde(default)]` keeps legacy `~/.aaai/profiles.yaml` files
+    /// `#[serde(default)]` keeps legacy profile files
     /// (without this field) loading cleanly — they appear as `None`,
     /// which `sorted_by_recent` treats as the oldest entries.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_used_at: Option<DateTime<Utc>>,
 }
 
-/// Root document for `~/.aaai/profiles.yaml`.
+/// Root document for `aaai/profiles.yaml` in the OS config directory.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ProfileStore {
     #[serde(default)]
@@ -31,7 +31,7 @@ pub struct ProfileStore {
 }
 
 impl ProfileStore {
-    /// Load from `~/.aaai/profiles.yaml`, returning empty store if absent.
+    /// Load from the OS config directory, returning an empty store if absent.
     pub fn load() -> anyhow::Result<Self> {
         let path = profile_path()?;
         if !path.exists() {
@@ -41,7 +41,7 @@ impl ProfileStore {
         Ok(serde_yaml::from_str(&text)?)
     }
 
-    /// Save to `~/.aaai/profiles.yaml`.
+    /// Save to the OS config directory.
     pub fn save(&self) -> anyhow::Result<()> {
         let path = profile_path()?;
         let yaml = serde_yaml::to_string(self)?;
@@ -91,9 +91,9 @@ impl ProfileStore {
 }
 
 fn profile_path() -> anyhow::Result<PathBuf> {
-    let base = dirs::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?
-        .join(".aaai");
+    let base = dirs::config_dir()
+        .ok_or_else(|| anyhow::anyhow!("Cannot determine OS config directory"))?
+        .join("aaai");
     std::fs::create_dir_all(&base)?;
     Ok(base.join("profiles.yaml"))
 }

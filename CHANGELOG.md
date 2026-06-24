@@ -8,6 +8,32 @@ Format: `## [version] — description`
 
 ---
 
+## [0.40.0] — Config directory moved to OS standard location (2026-06-24)
+
+All persistent files now live in the OS-standard config directory instead of
+a dotfolder under the home directory.
+
+| Platform | Old | New |
+|---|---|---|
+| Linux   | `~/.aaai/` | `$XDG_CONFIG_HOME/aaai/` (default `~/.config/aaai/`) |
+| macOS   | `~/.aaai/` | `~/Library/Application Support/aaai/` |
+| Windows | `~/.aaai/` | `%APPDATA%\aaai\` |
+
+Affected files: `prefs.yaml`, `profiles.yaml`, `history.jsonl`.
+
+**Migration:** files under the old `~/.aaai/` location are not automatically
+moved. Copy them manually if you want to preserve existing profiles and
+preferences. This is a pre-v1.0 change; no migration tooling is provided.
+
+### Code change
+
+`dirs::home_dir()` + `.join(".aaai")` replaced with `dirs::config_dir()` +
+`.join("aaai")` in `profile/prefs.rs`, `profile/store.rs`, and
+`history/store.rs`. The `dirs` crate already resolves the platform-correct
+path; no additional dependency changes.
+
+---
+
 ## [0.39.0] — Rename core library crate: `aaai-core` → `aaai` (2026-06-24)
 
 The core engine library is renamed from `aaai-core` to `aaai` to match the

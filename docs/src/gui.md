@@ -274,7 +274,7 @@ When you click **Open** with unsaved changes, a modal dialog appears:
 ## 3. Settings
 
 The **⚙** button in the footer opens the Settings dialog. Settings
-are persisted across sessions in `~/.aaai/prefs.yaml`.
+are persisted across sessions in the OS config directory (`aaai/prefs.yaml`).
 
 | Setting | Description |
 |---|---|

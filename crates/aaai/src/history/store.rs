@@ -1,6 +1,6 @@
 //! Persistent audit history stored as newline-delimited JSON.
 //!
-//! File: `~/.aaai/history.jsonl`
+//! File: `aaai/history.jsonl` in the OS config directory.
 //! Each line is a serialised [`HistoryRecord`].
 
 use std::io::{BufRead, Write};
@@ -10,9 +10,9 @@ use super::record::HistoryRecord;
 
 /// Return the path to the history file, creating parent directories as needed.
 pub fn history_path() -> anyhow::Result<PathBuf> {
-    let base = dirs::home_dir()
-        .ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?
-        .join(".aaai");
+    let base = dirs::config_dir()
+        .ok_or_else(|| anyhow::anyhow!("Cannot determine OS config directory"))?
+        .join("aaai");
     std::fs::create_dir_all(&base)?;
     Ok(base.join("history.jsonl"))
 }

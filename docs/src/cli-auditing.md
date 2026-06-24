@@ -23,7 +23,7 @@ aaai audit --left <BEFORE> --right <AFTER> --config <FILE> [OPTIONS]
 | `--allow-pending` | Treat Pending entries as success (exit 0) |
 | `--mask-secrets` | Redact values that look like secrets in reasons and rule text |
 | `--progress` | Show a progress bar while comparing folders |
-| `--no-history` | Don't record this run in `~/.aaai/history.jsonl` |
+| `--no-history` | Don't record this run in the history file |
 
 **Exit codes:** see [`aaai exit-codes`](cli-setup.md#aaai-exit-codes)
 for the canonical table.

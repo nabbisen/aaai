@@ -83,7 +83,15 @@ v1.x で固定の終了コード:
 
 ## 設定ファイル
 
-### `~/.aaai/profiles.yaml`
+設定ファイルはすべて OS 標準の設定ディレクトリに格納されます。
+
+| プラットフォーム | 設定ディレクトリ |
+|---|---|
+| Linux | `$XDG_CONFIG_HOME/aaai/`（デフォルト: `~/.config/aaai/`） |
+| macOS | `~/Library/Application Support/aaai/` |
+| Windows | `%APPDATA%\aaai\` |
+
+### `aaai/profiles.yaml` (OS config directory)
 
 `(before, after, definition, ignore)` の命名済み組み合わせを保存する。
 
@@ -94,12 +102,12 @@ v1.x で固定の終了コード:
   古い v1.x で問題なく読める（未知フィールドは無視され、可能なら
   rewrite 時に保存される）。
 
-### `~/.aaai/prefs.yaml`
+### `aaai/prefs.yaml` (OS config directory)
 
 ユーザー設定（テーマ、ロケール等）。`profiles.yaml` と同じフィールド
 方針。
 
-### `~/.aaai/history.jsonl`
+### `aaai/history.jsonl` (OS config directory)
 
 監査実行 1 件につき 1 行の JSON オブジェクト。reader は未知フィー
 ルドを許容しなければならない。フィールド追加はマイナー扱い。

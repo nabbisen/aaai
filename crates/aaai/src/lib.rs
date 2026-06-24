@@ -15,7 +15,7 @@
 //!   ├── audit       — AuditEngine, AuditResult, AuditStatus, AuditWarning
 //!   ├── report      — Markdown / JSON / HTML / SARIF v2.1.0 output
 //!   ├── masking     — regex-based secret redaction (9 built-in patterns)
-//!   ├── history     — append-only audit run log (~/.aaai/history.jsonl)
+//!   ├── history     — append-only audit run log (OS config dir: aaai/history.jsonl)
 //!   ├── profile     — named before/after/definition combos + user prefs (theme)
 //!   ├── project     — .aaai.yaml auto-discovery and project-level defaults
 //!   └── templates   — 8 built-in rule templates (version_bump, port_change, …)

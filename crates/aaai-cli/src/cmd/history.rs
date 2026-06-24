@@ -8,7 +8,7 @@ use aaai::history::store as history_store;
 const HISTORY_AFTER_HELP: &str = "\
 Next steps:
   - Use --stats to see pass-rate and Pending counts over time.
-  - Use --max-entries N to prune old runs from ~/.aaai/history.jsonl.\
+  - Use --max-entries N to prune old runs from the OS config directory (e.g. ~/.config/aaai/history.jsonl on Linux).\
 ";
 
 #[derive(Args)]

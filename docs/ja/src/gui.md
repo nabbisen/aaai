@@ -263,7 +263,7 @@ Linux/macOS は `sha256sum <ファイル>`、Windows PowerShell は
 ## 3. 設定
 
 フッターの **⚙** ボタンで設定ダイアログを開く。設定は
-`~/.aaai/prefs.yaml` にセッションをまたいで永続化される。
+OS 設定ディレクトリ（`aaai/prefs.yaml`）にセッションをまたいで永続化される。
 
 | 設定 | 説明 |
 |---|---|

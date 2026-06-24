@@ -1,4 +1,10 @@
-//! User preferences — persisted to `~/.aaai/prefs.yaml`.
+//! User preferences — persisted in the OS config directory for aaai.
+//!
+//! | Platform | Path |
+//! |---|---|
+//! | Linux   | `$XDG_CONFIG_HOME/aaai/prefs.yaml` (default `~/.config/aaai/`) |
+//! | macOS   | `~/Library/Application Support/aaai/prefs.yaml` |
+//! | Windows | `%APPDATA%\\aaai\\prefs.yaml` |
 //!
 //! Currently stores the GUI theme selection.  Future preferences
 //! (font size, language override, etc.) can be added here without
@@ -85,14 +91,14 @@ fn default_ignored_dirs() -> Vec<String> {
 
 impl UserPrefs {
     fn path() -> anyhow::Result<PathBuf> {
-        let base = dirs::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?
-            .join(".aaai");
+        let base = dirs::config_dir()
+            .ok_or_else(|| anyhow::anyhow!("Cannot determine OS config directory"))?
+            .join("aaai");
         std::fs::create_dir_all(&base)?;
         Ok(base.join("prefs.yaml"))
     }
 
-    /// Load from `~/.aaai/prefs.yaml`.  Returns defaults if the file is absent.
+    /// Load from the OS config directory.  Returns defaults if the file is absent.
     pub fn load() -> Self {
         match Self::path().and_then(|p| {
             if !p.exists() { return Ok(Self::default()); }
@@ -107,7 +113,7 @@ impl UserPrefs {
         }
     }
 
-    /// Save to `~/.aaai/prefs.yaml`.
+    /// Save to the OS config directory.
     pub fn save(&self) {
         if let Err(e) = Self::path().and_then(|p| {
             let yaml = serde_yaml::to_string(self).map_err(|e| anyhow::anyhow!(e))?;

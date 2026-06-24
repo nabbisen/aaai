@@ -25,7 +25,7 @@ audit definition and you want to combine them before shipping.
 ## aaai history
 
 Show the recent audit-run history persisted in
-`~/.aaai/history.jsonl`.
+the OS config directory history file (`aaai/history.jsonl`).
 
 ```sh
 aaai history [-n <N>] [--stats] [--json-output]

@@ -125,9 +125,9 @@ aaai audit --suppress-warnings no-approver,no-strategy ...
 aaai は比較対象のファイルを変更しません。書き込みが発生するのは以下のみです。
 
 - `--config` で指定した監査定義ファイル（承認時）
-- `~/.aaai/history.jsonl`（`--no-history` で無効化可能）
-- `~/.aaai/profiles.yaml`（保存済み GUI プロジェクト — Recent 一覧）
-- `~/.aaai/prefs.yaml`（GUI テーマ・ロケール設定）
+- OS 設定ディレクトリ内 `aaai/history.jsonl`（`--no-history` で無効化可能）
+- OS 設定ディレクトリ内 `aaai/profiles.yaml`（保存済み GUI プロジェクト — Recent 一覧）
+- OS 設定ディレクトリ内 `aaai/prefs.yaml`（GUI テーマ・ロケール設定）
 
 ---
 

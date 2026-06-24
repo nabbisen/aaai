@@ -84,7 +84,15 @@ called out in the CHANGELOG.
 
 ## Configuration files
 
-### `~/.aaai/profiles.yaml`
+All configuration files live in the OS-standard config directory for aaai:
+
+| Platform | Config directory |
+|---|---|
+| Linux | `$XDG_CONFIG_HOME/aaai/` (default: `~/.config/aaai/`) |
+| macOS | `~/Library/Application Support/aaai/` |
+| Windows | `%APPDATA%\aaai\` |
+
+### `aaai/profiles.yaml` (OS config directory)
 
 Stored profiles persist named `(before, after, definition, ignore)`
 combinations.
@@ -96,12 +104,12 @@ combinations.
   remain readable by older v1.x versions: the unknown fields are
   silently ignored and preserved on rewrite when feasible.
 
-### `~/.aaai/prefs.yaml`
+### `aaai/prefs.yaml` (OS config directory)
 
 User preferences (theme, locale, etc.). Same field-policy as
 `profiles.yaml`.
 
-### `~/.aaai/history.jsonl`
+### `aaai/history.jsonl` (OS config directory)
 
 One JSON object per line per audit run. Readers must tolerate
 unknown fields. Adding new fields is a minor change. The line-oriented

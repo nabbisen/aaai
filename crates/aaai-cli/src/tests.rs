@@ -1620,10 +1620,13 @@ fn rfc061_check_invalid_yaml_exits_nonzero() {
 
 #[test]
 fn rfc062_history_empty_exits_zero() {
-    // Run with a clean HOME so ~/.aaai/history.jsonl doesn't exist.
+    // Set both HOME and XDG_CONFIG_HOME so dirs::config_dir() resolves to
+    // an isolated temp directory and never touches the real config dir.
     let tmp = tempfile::tempdir().unwrap();
+    let cfg = tmp.path().join("config");
     let out = aaai()
         .env("HOME", tmp.path())
+        .env("XDG_CONFIG_HOME", &cfg)
         .args(["history"]).output().unwrap();
     assert!(out.status.success(), "history on empty store should exit 0");
     let stdout = String::from_utf8(out.stdout).unwrap();
@@ -1634,8 +1637,10 @@ fn rfc062_history_empty_exits_zero() {
 #[test]
 fn rfc062_history_stats_empty() {
     let tmp = tempfile::tempdir().unwrap();
+    let cfg = tmp.path().join("config");
     let out = aaai()
         .env("HOME", tmp.path())
+        .env("XDG_CONFIG_HOME", &cfg)
         .args(["history", "--stats"]).output().unwrap();
     assert!(out.status.success());
 }
