@@ -2,6 +2,7 @@
 
 - [概要](overview.md)
 - [はじめに](getting-started.md)
+- [Windows — インストールと設定](windows-store.md)
 - [監査定義ファイル](audit-definition.md)
 - [内容監査戦略](strategies.md)
 - [CLI リファレンス](cli.md)

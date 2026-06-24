@@ -576,3 +576,18 @@ criteria. Every disabled primary action now explains what is missing.
 | 089 | Help overlay uses old pre-Phase-24 labels | Update to plain-language action names |
 | 090 | Bottom bar count says "N of M unresolved" | Reword to "N of M need review" / "All N reviewed" |
 
+## RFC 091 — Windows Store Packaging Model
+
+One Store product, two executables, one shared core.
+
+| Task | Status |
+|---|---|
+| CI: add aaai-gui to Build + MSRV + windows-gui-build job | ✅ Done |
+| Release: build both binaries; CLI/GUI/full Windows archives | ✅ Done |
+| packaging/windows/ — manifest template, scripts, placeholder assets | ✅ Done |
+| .github/workflows/windows-msix.yaml — MSIX candidate workflow | ✅ Done |
+| docs/src/windows-store.md | ✅ Done |
+| Store submission (manual, post-v1.0.0) | ⏳ Pending |
+| Replace placeholder assets with real artwork | ⏳ Pending |
+| Local install validation (Task E) | ⏳ Pending |
+

@@ -8,6 +8,38 @@ Format: `## [version] — description`
 
 ---
 
+## [0.33.1] — Dependency update + RFC 091 CI + ABDD audit fix (2026-06-18)
+
+### Dependency update
+
+`cargo update` applied: 17 transitive dependencies moved to latest compatible
+patch versions (chrono 0.4.44 → 0.4.45, bitflags 2.11 → 2.13, rfd 0.17.1 →
+0.17.2, and others). No API changes; all 213 tests still pass.
+
+### RFC 091 — Windows Store CI and packaging (additive, no prior version)
+
+Infrastructure added without a version bump in the previous session:
+
+- `ci.yaml` — `aaai-gui` added to Build and MSRV steps; new `windows-gui-build`
+  job verifies the GUI compiles on Windows.
+- `release.yaml` — builds both `aaai.exe` and `aaai-gui.exe` for every target;
+  Windows now produces three archives (CLI-only, GUI-only, full).
+- `packaging/windows/` — `Package.appxmanifest.template`, `make-msix.ps1`,
+  `validate-msix.ps1`, placeholder Store icon assets.
+- `.github/workflows/windows-msix.yaml` — separate MSIX candidate workflow,
+  triggered on tags and `workflow_dispatch`; produces unsigned candidate artifact.
+- `docs/src/windows-store.md` + `docs/ja/src/windows-store.md` — new Windows
+  installation guide (Store + direct download + terminal command).
+
+### ABDD audit sheet updated
+
+`docs/src/abdd-audit.md` and `docs/ja/src/abdd-audit.md` referenced pre-Phase-24
+GUI labels ("Approve & Save", "Run Audit", "Export Report"). Updated to current
+plain-language labels ("Save and continue", "Check again", "Save report").
+The nav guard row reflects RFC 086 (Discard now hidden behind "More choices").
+
+---
+
 ## [0.33.0] — Phase 25: Guided Interactions (2026-06-14)
 
 Closes the final gaps in the architect review's acceptance criteria.

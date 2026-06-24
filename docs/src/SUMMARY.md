@@ -2,6 +2,7 @@
 
 - [Overview](overview.md)
 - [Getting Started](getting-started.md)
+- [Windows — Installation and Setup](windows-store.md)
 - [Audit Definition File](audit-definition.md)
 - [Content Audit Strategies](strategies.md)
 - [CLI Reference](cli.md)

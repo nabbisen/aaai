@@ -40,8 +40,11 @@ aaai audit --left ./before --right ./after --config audit.yaml
 
 ## Installation
 
+**Windows** — install from the [Microsoft Store](https://apps.microsoft.com/) (search for *aaai*) or download a release archive from [GitHub Releases](https://github.com/nabbisen/aaai/releases). The Store package includes both the desktop app and the `aaai` terminal command.
+
+**Build from source** (requires Rust 1.91+):
+
 ```sh
-# Build from source (requires Rust 1.91+)
 cargo build --release -p aaai-cli -p aaai-gui
 ```
 

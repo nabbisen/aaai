@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.33.0"
+version = "0.33.1"
 edition = "2024"
 # MSRV — minimum supported Rust version, fixed at 1.91 per the
 # project's development-environment specification. This is the
@@ -22,7 +22,7 @@ repository = "https://github.com/nabbisen/aaai"
 homepage   = "https://nabbisen.github.io/aaai"
 
 [workspace.dependencies]
-aaai-core = { version = "0.33.0", path = "crates/aaai-core" }
+aaai-core = { version = "0.33.1", path = "crates/aaai-core" }
 
 # Serialization
 serde       = { version = "1",    features = ["derive"] }

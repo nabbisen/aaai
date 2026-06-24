@@ -37,14 +37,34 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets -- -D warnings
 
+      # RFC 091 §11.1 — GUI must compile on all CI platforms.
       - name: Build
-        run: cargo build -p aaai-cli -p aaai-core
+        run: cargo build -p aaai-core -p aaai-cli -p aaai-gui
 
       - name: Unit tests
         run: cargo test -p aaai-core --lib
 
       - name: Integration tests
         run: cargo test -p aaai-cli -- --test-threads=1
+
+  # RFC 091 §5.1 — dedicated Windows GUI build job guarantees the GUI binary
+  # compiles on the target Store platform even if the main matrix is ever
+  # narrowed to Linux-only.
+  windows-gui-build:
+    name: Windows GUI build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build GUI
+        run: cargo build -p aaai-gui
 
   check-msrv:
     name: MSRV (Rust 1.91)
@@ -53,7 +73,10 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.91
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check -p aaai-core -p aaai-cli
+      # RFC 091 §5.2 — include GUI in MSRV check.
+      # If GUI dependencies raise the MSRV above 1.91 in future, update the
+      # workspace rust-version field and document the reason.
+      - run: cargo check -p aaai-core -p aaai-cli -p aaai-gui
 
   audit-security:
     name: Security audit
@@ -85,8 +108,6 @@ jobs:
   # RFC 017 — Visual Verification Harness.
   # This step is informational only: it lists RFCs in rfcs/done/ that still
   # lack a `## Visual Verification` card. It MUST NOT fail the build.
-  # Run it on every push/PR so the count stays visible in CI logs and PR
-  # discussions can reference current state.
   visual-verification-status:
     name: Visual verification status (informational)
     runs-on: ubuntu-latest
@@ -100,10 +121,6 @@ jobs:
         # See RFC 017 §2.3.
 
   # RFC 027 — mdbook build smoke test.
-  # Catches the class of bugs that Phase 12 surfaced: orphan chapters
-  # (`abdd-audit.md` was missing from SUMMARY), broken cross-references,
-  # encoding issues, and malformed markdown. Runs on every push/PR.
-  # This step IS blocking — broken docs are not worth merging.
   docs-build:
     name: mdbook build (en + ja)
     runs-on: ubuntu-latest
@@ -112,10 +129,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Install mdbook
-        # --no-default-features drops the search-index generator, which is
-        # unused in CI and roughly halves the install time. Pin to ^0.4 so
-        # a future 0.5 release doesn't silently change rendering. See
-        # RFC 027 §3 for the trade-off rationale.
         run: cargo install mdbook --version "^0.4" --no-default-features
       - name: Build English book
         run: mdbook build docs/

@@ -1,5 +1,7 @@
 # aaai — Release workflow
 # Triggered by a version tag (v0.10.1, v1.0.0, etc.).
+# RFC 091 — builds both CLI and GUI binaries for every supported target;
+# produces per-component and combined archives for Windows.
 name: Release
 
 on:
@@ -20,12 +22,15 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             bin_suffix: ""
+            archive_ext: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
             bin_suffix: ""
+            archive_ext: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             bin_suffix: ".exe"
+            archive_ext: zip
 
     steps:
       - uses: actions/checkout@v6
@@ -40,32 +45,73 @@ jobs:
       - name: Build CLI release binary
         run: cargo build --release --target ${{ matrix.target }} -p aaai-cli
 
-      - name: Create archive (Linux/macOS)
+      # RFC 091 §6.1 — build GUI for every release target.
+      - name: Build GUI release binary
+        run: cargo build --release --target ${{ matrix.target }} -p aaai-gui
+
+      # ── Windows: three archives (CLI-only, GUI-only, full) ──────────────
+      - name: Create release archives (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $TAG    = $env:GITHUB_REF_NAME
+          $TARGET = "${{ matrix.target }}"
+          New-Item -ItemType Directory -Force -Path dist\cli, dist\gui, dist\full
+
+          Copy-Item "target\$TARGET\release\aaai.exe"     "dist\cli\"
+          Copy-Item "target\$TARGET\release\aaai-gui.exe" "dist\gui\"
+          Copy-Item "target\$TARGET\release\aaai.exe"     "dist\full\"
+          Copy-Item "target\$TARGET\release\aaai-gui.exe" "dist\full\"
+
+          Compress-Archive -Path "dist\cli\*"  -DestinationPath "dist\aaai-cli-$TAG-$TARGET.zip"
+          Compress-Archive -Path "dist\gui\*"  -DestinationPath "dist\aaai-gui-$TAG-$TARGET.zip"
+          Compress-Archive -Path "dist\full\*" -DestinationPath "dist\aaai-full-$TAG-$TARGET.zip"
+
+          # Export all three paths for the upload step
+          "ASSET_CLI=dist/aaai-cli-$TAG-$TARGET.zip"  | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ASSET_GUI=dist/aaai-gui-$TAG-$TARGET.zip"  | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ASSET_FULL=dist/aaai-full-$TAG-$TARGET.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # ── Linux / macOS: separate CLI and GUI archives ────────────────────
+      - name: Create release archives (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
           TAG=${GITHUB_REF_NAME}
           TARGET=${{ matrix.target }}
           mkdir -p dist
+
+          # CLI archive
           cp target/$TARGET/release/aaai dist/
-          tar czf dist/aaai-${TAG}-${TARGET}.tar.gz -C dist aaai
-          echo "ASSET=dist/aaai-${TAG}-${TARGET}.tar.gz" >> $GITHUB_ENV
+          tar czf dist/aaai-cli-${TAG}-${TARGET}.tar.gz -C dist aaai
+          rm dist/aaai
 
-      - name: Create archive (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $TAG = $env:GITHUB_REF_NAME
-          $TARGET = "${{ matrix.target }}"
-          New-Item -ItemType Directory -Force -Path dist
-          Copy-Item "target\$TARGET\release\aaai.exe" "dist\"
-          Compress-Archive -Path "dist\aaai.exe" -DestinationPath "dist\aaai-$TAG-$TARGET.zip"
-          echo "ASSET=dist/aaai-$TAG-$TARGET.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+          # GUI archive
+          cp target/$TARGET/release/aaai-gui dist/
+          tar czf dist/aaai-gui-${TAG}-${TARGET}.tar.gz -C dist aaai-gui
+          rm dist/aaai-gui
 
-      - name: Upload artifact
+          echo "ASSET_CLI=dist/aaai-cli-${TAG}-${TARGET}.tar.gz"  >> $GITHUB_ENV
+          echo "ASSET_GUI=dist/aaai-gui-${TAG}-${TARGET}.tar.gz"  >> $GITHUB_ENV
+
+      - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: aaai-${{ matrix.target }}
-          path: ${{ env.ASSET }}
+          name: aaai-cli-${{ matrix.target }}
+          path: ${{ env.ASSET_CLI }}
+
+      - name: Upload GUI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aaai-gui-${{ matrix.target }}
+          path: ${{ env.ASSET_GUI }}
+
+      # Windows-only: also upload the combined full archive
+      - name: Upload full artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aaai-full-${{ matrix.target }}
+          path: ${{ env.ASSET_FULL }}
 
   release:
     name: Create GitHub Release

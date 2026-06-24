@@ -98,6 +98,8 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [087](done/087-disabled-save-tooltip.md) | Save and continue disabled tooltip | v0.33.0 |
 | [088](done/088-disabled-check-hint.md) | Check changes disabled inline hint | v0.33.0 |
 | [089](done/089-help-overlay-labels.md) | Help overlay plain-language update | v0.33.0 |
+| [091](done/091-windows-store-packaging.md) | Windows Store packaging model | v0.33.0 |
+| [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |
 | [082](done/082-readme-path-releasing.md) | Fix aaai-core README path + RELEASING.md | v0.31.1 |

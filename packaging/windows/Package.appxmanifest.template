@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  aaai — Windows Store MSIX Manifest Template
+  RFC 091 — Windows Store Packaging Model
+
+  Before use:
+    1. Replace every {{PLACEHOLDER}} value.
+    2. Validate against the Windows SDK schema for your target OS version.
+    3. Confirm that AppExecutionAlias is supported by the target Windows version
+       (Windows 10 1803 / build 17134 and later).
+
+  Two application entries:
+    AaaiGui  — visible in Start menu, launches aaai-gui.exe
+    AaaiCli  — hidden from Start menu, exposed as terminal alias aaai.exe
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap5 rescap">
+
+  <Identity
+    Name="{{PUBLISHER_ID}}.aaai"
+    Publisher="CN={{PUBLISHER_CN}}"
+    Version="{{VERSION}}.0"
+    ProcessorArchitecture="x64" />
+
+  <!-- Store display information -->
+  <Properties>
+    <DisplayName>aaai</DisplayName>
+    <PublisherDisplayName>{{PUBLISHER_DISPLAY_NAME}}</PublisherDisplayName>
+    <Logo>assets\StoreLogo.png</Logo>
+    <Description>aaai helps you compare two folders and save a clear reason for every accepted change.</Description>
+  </Properties>
+
+  <!-- Minimum Windows 10 1803 for AppExecutionAlias support -->
+  <Dependencies>
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.17134.0"
+      MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+    <Resource Language="ja-jp" />
+  </Resources>
+
+  <Applications>
+
+    <!-- ── GUI application — visible in Start menu ─────────────────── -->
+    <Application
+        Id="AaaiGui"
+        Executable="aaai-gui.exe"
+        EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="aaai"
+          Description="Compare folders and document every accepted change."
+          BackgroundColor="transparent"
+          Square44x44Logo="assets\Square44x44Logo.png"
+          Square150x150Logo="assets\Square150x150Logo.png">
+        <uap:DefaultTile
+            Wide310x150Logo="assets\Wide310x150Logo.png"
+            ShortName="aaai" />
+        <uap:SplashScreen Image="assets\Square150x150Logo.png" />
+      </uap:VisualElements>
+    </Application>
+
+    <!-- ── CLI application — hidden from Start menu ────────────────── -->
+    <!--
+      AppListEntry="none" hides this entry from the Start menu.
+      The AppExecutionAlias extension makes `aaai.exe` available in Terminal
+      and PowerShell after package installation without requiring the user
+      to locate or modify PATH.
+    -->
+    <Application
+        Id="AaaiCli"
+        Executable="aaai.exe"
+        EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="aaai command"
+          Description="aaai command-line interface"
+          AppListEntry="none"
+          BackgroundColor="transparent"
+          Square44x44Logo="assets\Square44x44Logo.png"
+          Square150x150Logo="assets\Square150x150Logo.png" />
+      <Extensions>
+        <!-- App execution alias: `aaai.exe` in any terminal -->
+        <uap5:Extension Category="windows.appExecutionAlias"
+                         EntryPoint="Windows.FullTrustApplication">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="aaai.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+
+  </Applications>
+
+  <Capabilities>
+    <!-- runFullTrust is required for both desktop executables -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+
+</Package>

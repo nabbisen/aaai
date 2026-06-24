@@ -34,11 +34,11 @@
 
 | Screen | Expected order | Observed | Verdict | Notes |
 |---|---|---|---|---|
-| Opening | Before card → After card → optional toggle → optional 2 fields → Start | | | |
-| Main toolbar | Open → Save → Run → Report | | | |
+| Opening | Older folder card → Newer folder card → optional toggle → optional 2 fields → Check changes | | | |
+| Main toolbar | ← Open → ↓ Save → ▶ Check again → ↑ Save report → ↩ Undo | | | |
 | File tree | First entry → next entry … (j/k or arrow keys also work) | | | |
 | Inspector | reason → ticket → approved_by → expires → strategy fields … | | | |
-| Bottom bar | Approve & Save → (last) | | | |
+| Bottom bar | Save and continue → (last) | | | |
 
 ## 2. Status is distinguishable without colour (design doc p.8)
 
@@ -47,7 +47,7 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 | What | Expected | Observed | Verdict | Notes |
 |---|---|---|---|---|
 | File-tree status icons | `✓ ⚠ ✗ ! —` remain distinguishable from each other | | | |
-| Toolbar audit-status badge | "Passed" / "Failed" text remains the deciding signal, not its colour | | | |
+| Toolbar audit-status badge | "All set" / "Needs attention" text remains the deciding signal, not its colour | | | |
 | Diff-view added/removed lines | `+` / `−` line-start characters remain present and used by readers | | | |
 | Inspector LineMatch rule blocks | leading `+` / `−` and the `action:` label persist | | | |
 
@@ -55,8 +55,8 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 
 | Pair | Expected | Observed | Verdict | Notes |
 |---|---|---|---|---|
-| Approve & Save vs Discard | Separated; different visual weight; no mis-click cluster | | | |
-| Approve & Save vs delete-rule | Different ribbons / not adjacent | | | |
+| Save and continue vs navigation guard Discard | Separated (RFC 086: Discard hidden behind "More choices"); different visual weight | | | |
+| Save and continue vs delete-rule | Different ribbons / not adjacent | | | |
 | Save vs Re-run | Adjacent on toolbar but distinct labels and icons | | | |
 
 ## 4. Unsaved / failed / input-error state always visible (design doc p.8)
@@ -72,7 +72,7 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 
 | Place | Expected (lay-person reads it) | Observed | Verdict | Notes |
 |---|---|---|---|---|
-| Inspector reason placeholder | "Why is this change allowed? E.g. 'Bumped port to match new firewall rule.'" or equivalent plain wording | | | |
+| Inspector reason placeholder | "Why is this change allowed?" (placeholder) + diff-type-aware example line below field, e.g. "e.g. 'Port changed 80 → 8080 per infra ticket INF-42.'" — disappears once user types | | | |
 
 ## 6. Click targets are ≥ 44 px (design doc p.8 ABDD common rule)
 
@@ -80,9 +80,9 @@ Measure with the OS accessibility inspector or by hovering and noting feedback a
 
 | Element | Observed (px h × w) | Verdict | Notes |
 |---|---|---|---|
-| Toolbar buttons (Open / Save / Run / Report) | | | |
+| Toolbar buttons (← Open / ↓ Save / ▶ Check again / ↑ Save report / ↩ Undo) | | | |
 | Opening "Pick folder" buttons | | | |
-| Approve & Save (bottom bar) | | | |
+| Save and continue (bottom bar) | | | |
 | Diff-tab buttons (Side by side / Unified / Changes only) | | | |
 | File-tree entry rows | | | |
 

@@ -1,0 +1,73 @@
+# aaai — Windows MSIX Candidate
+# RFC 091 §16 — separate workflow keeps MSIX instability isolated from
+# normal releases during the initial rollout phase.
+#
+# Rollout stage 2: builds unsigned MSIX candidate as CI artifact.
+# Does NOT submit to the Microsoft Store automatically.
+# Manual Store submission follows successful local install validation.
+name: Windows MSIX Candidate
+
+on:
+  # Manual trigger for testing and validation
+  workflow_dispatch:
+  # Also triggered by version tags so a candidate is built on every release
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  msix:
+    name: Build MSIX candidate (x64)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build CLI
+        run: cargo build --release --target x86_64-pc-windows-msvc -p aaai-cli
+
+      - name: Build GUI
+        run: cargo build --release --target x86_64-pc-windows-msvc -p aaai-gui
+
+      - name: Stage package input
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path msix-input
+          Copy-Item target\x86_64-pc-windows-msvc\release\aaai.exe     msix-input\
+          Copy-Item target\x86_64-pc-windows-msvc\release\aaai-gui.exe msix-input\
+          Copy-Item packaging\windows\assets msix-input\assets -Recurse
+
+      - name: Build MSIX candidate
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          if (-not $version) { $version = "0.0.0-dev" }
+          packaging\windows\make-msix.ps1 `
+            -Version  $version `
+            -Target   "x86_64-pc-windows-msvc" `
+            -InputDir "msix-input" `
+            -OutDir   "dist-msix" `
+            -Unsigned
+
+      - name: Validate MSIX candidate
+        shell: pwsh
+        run: |
+          packaging\windows\validate-msix.ps1 -PackageDir "dist-msix"
+
+      - name: Upload MSIX candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: aaai-msix-candidate-x64
+          path: dist-msix/*.msix
+          # Retain for 30 days — enough time for manual validation
+          retention-days: 30
