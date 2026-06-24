@@ -15,7 +15,7 @@ not just to the person who approved it, but to future maintainers months later.
 
 | Component | Description |
 |---|---|
-| [`aaai-core`](https://crates.io/crates/aaai-core) | Core engine — diff, audit, report, masking |
+| [`aaai`](https://crates.io/crates/aaai) | Core engine — diff, audit, report, masking |
 | [`aaai-cli`](https://crates.io/crates/aaai-cli) | `aaai` command-line binary (16 commands) |
 | [`aaai-gui`](https://crates.io/crates/aaai-gui) | `aaai-gui` desktop application (iced) |
 

@@ -175,15 +175,15 @@ The Opening screen accepts folder drops in v1.x. Files (non-folders)
 display an inline error. Future enhancements may add per-card hit
 testing — that's an additive minor change.
 
-## Library API (`aaai-core`)
+## Library API (`aaai`)
 
-`aaai-core` is the core audit engine. It is
-[published on crates.io](https://crates.io/crates/aaai-core) and
+`aaai` is the core audit engine. It is
+[published on crates.io](https://crates.io/crates/aaai) and
 its API documentation lives at
-[docs.rs/aaai-core](https://docs.rs/aaai-core).
+[docs.rs/aaai](https://docs.rs/aaai).
 
 Inside the workspace, `aaai-cli` and `aaai-gui` are the canonical
-consumers. External consumers can depend on `aaai-core` directly
+consumers. External consumers can depend on `aaai` directly
 for embedding the audit engine into other tools.
 
 The public API is **best-effort stable** in v1.x — the same SemVer

@@ -3,7 +3,7 @@
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::history::store as history_store;
+use aaai::history::store as history_store;
 
 const HISTORY_AFTER_HELP: &str = "\
 Next steps:
@@ -37,7 +37,7 @@ pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
     }
 
     if let Some(max) = args.prune {
-        let removed = aaai_core::history::store::prune(max)?;
+        let removed = aaai::history::store::prune(max)?;
         println!("{} History pruned: kept up to {max} entries, removed {removed}.", "✓".green());
         return Ok(());
     }
@@ -77,7 +77,7 @@ pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
 
 fn show_stats() -> anyhow::Result<()> {
     use colored::Colorize;
-    let all = aaai_core::history::store::load_all()?;
+    let all = aaai::history::store::load_all()?;
     if all.is_empty() {
         println!("No history recorded yet.");
         return Ok(());

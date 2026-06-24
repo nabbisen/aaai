@@ -3,28 +3,8 @@
 version = 4
 
 [[package]]
-name = "aaai-cli"
-version = "0.38.0"
-dependencies = [
- "aaai-core",
- "anyhow",
- "chrono",
- "clap",
- "clap_complete",
- "colored",
- "env_logger",
- "indicatif",
- "log",
- "notify",
- "serde",
- "serde_json",
- "similar",
- "tempfile",
-]
-
-[[package]]
-name = "aaai-core"
-version = "0.38.0"
+name = "aaai"
+version = "0.39.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -47,10 +27,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "aaai-gui"
-version = "0.38.0"
+name = "aaai-cli"
+version = "0.39.0"
 dependencies = [
- "aaai-core",
+ "aaai",
+ "anyhow",
+ "chrono",
+ "clap",
+ "clap_complete",
+ "colored",
+ "env_logger",
+ "indicatif",
+ "log",
+ "notify",
+ "serde",
+ "serde_json",
+ "similar",
+ "tempfile",
+]
+
+[[package]]
+name = "aaai-gui"
+version = "0.39.0"
+dependencies = [
+ "aaai",
  "anyhow",
  "chrono",
  "env_logger",

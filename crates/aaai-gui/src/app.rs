@@ -18,7 +18,7 @@ use snora::{
 };
 
 use regex::Regex as RegexCheck;
-use aaai_core::{
+use aaai::{
     AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
     AuditStatus, DiffType, IgnoreRules,
     profile::store::{AuditProfile, ProfileStore},
@@ -213,7 +213,7 @@ pub struct App {
     pub opening_validation: OpeningValidation,
 
     // Main
-    pub diffs: Vec<aaai_core::DiffEntry>,
+    pub diffs: Vec<aaai::DiffEntry>,
     pub audit_result: Option<AuditResult>,
     pub definition: Option<AuditDefinition>,
     pub selected_index: Option<usize>,
@@ -432,7 +432,7 @@ pub enum Message {
 
     /// RFC 037 — carries the diff result from a background rerun started
     /// by `start_async_rerun()`. On Ok: re-evaluates audit + clears dirty.
-    RerunDiffReady(Result<Vec<aaai_core::DiffEntry>, String>),
+    RerunDiffReady(Result<Vec<aaai::DiffEntry>, String>),
 
     // RFC 038: keyboard help overlay
     ToggleHelp,
@@ -500,7 +500,7 @@ pub enum Message {
 
     // Phase 8: async diff loading
     DiffLoading(String),   // progress message (reserved for future channel-based progress)
-    DiffReady(Vec<aaai_core::DiffEntry>, aaai_core::AuditDefinition, IgnoreRules),
+    DiffReady(Vec<aaai::DiffEntry>, aaai::AuditDefinition, IgnoreRules),
     DiffFailed(String),
 
     // Phase 6: undo + keyboard navigation
@@ -1135,11 +1135,11 @@ impl App {
                         .unwrap_or(false);
 
                     let res = if use_json {
-                        aaai_core::report::generator::ReportGenerator::write_json(
+                        aaai::report::generator::ReportGenerator::write_json(
                             result, &before, &after, def_path.as_deref(), &out, None,
                         )
                     } else {
-                        aaai_core::report::generator::ReportGenerator::write_markdown(
+                        aaai::report::generator::ReportGenerator::write_markdown(
                             result, &before, &after, def_path.as_deref(), &out, None,
                         )
                     };
@@ -1193,7 +1193,7 @@ impl App {
                         pane_grid::Axis::Vertical, right_pane, PaneKind::Inspector
                     );
                 }
-                let result = aaai_core::AuditEngine::evaluate(&diffs, &definition);
+                let result = aaai::AuditEngine::evaluate(&diffs, &definition);
                 self.diffs = diffs;
                 self.audit_result = Some(result);
                 self.definition = Some(definition);
@@ -1252,7 +1252,7 @@ impl App {
                 if let Some(result) = &self.audit_result {
                     let visible: Vec<usize> = result.results.iter().enumerate()
                         .filter(|(_, r)| self.filter_mode.passes(r)
-                                      && r.diff.diff_type != aaai_core::DiffType::Unchanged
+                                      && r.diff.diff_type != aaai::DiffType::Unchanged
                                       && (self.search_query.is_empty()
                                           || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
                         .map(|(i, _)| i)
@@ -1273,7 +1273,7 @@ impl App {
                 if let Some(result) = &self.audit_result {
                     let visible: Vec<usize> = result.results.iter().enumerate()
                         .filter(|(_, r)| self.filter_mode.passes(r)
-                                      && r.diff.diff_type != aaai_core::DiffType::Unchanged
+                                      && r.diff.diff_type != aaai::DiffType::Unchanged
                                       && (self.search_query.is_empty()
                                           || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
                         .map(|(i, _)| i)
@@ -1479,7 +1479,7 @@ impl App {
             Message::ApprovedByChanged(s) => { self.inspector.approved_by = s; }
             Message::ExpiresAtChanged(s)  => { self.inspector.expires_at_str = s; }
             Message::ApplyTemplate(id)    => {
-                use aaai_core::templates::library as tmpl;
+                use aaai::templates::library as tmpl;
                 if let Some(t) = tmpl::find(&id) {
                     self.inspector.strategy = (t.strategy)();
                     self.inspector.strategy_kind = StrategyKind::from_strategy(&self.inspector.strategy);
@@ -2042,7 +2042,7 @@ impl App {
 
     /// RFC 002: per-field real-time validation for the inspector.
     fn validate_inspector(&mut self) {
-        use aaai_core::config::definition::AuditStrategy;
+        use aaai::config::definition::AuditStrategy;
         let ins = &self.inspector;
         let mut v = InspectorValidation::default();
 
@@ -2193,7 +2193,7 @@ impl App {
             from_def.or(from_before).unwrap_or_else(|| "untitled".to_string())
         };
 
-        let profile = aaai_core::profile::store::AuditProfile {
+        let profile = aaai::profile::store::AuditProfile {
             name,
             before:      self.before_path.clone(),
             after:       self.after_path.clone(),

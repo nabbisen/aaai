@@ -162,7 +162,7 @@ aaai history --stats
 - [ ] エクスポートケース（7-1 〜 7-4）全パス
 - [ ] CLI スモークテスト全コマンドが期待通りの終了コードで終了
 - [ ] `cargo check --all-targets` 警告ゼロ
-- [ ] `cargo test -p aaai-core --lib` — 104 件パス
+- [ ] `cargo test -p aaai --lib` — 104 件パス
 - [ ] `cargo test -p aaai-cli -- --test-threads=1` — 89 件パス
 - [ ] `cargo test -p aaai-gui` — 20 件パス
 

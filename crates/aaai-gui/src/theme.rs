@@ -31,7 +31,7 @@
 //! | Removed | token `danger`   | token `danger` HC   | snora-design |
 
 use iced::Color;
-use aaai_core::AuditStatus;
+use aaai::AuditStatus;
 use snora::design::Tokens;
 
 // ── Hand-picked constants for roles not covered by snora-design ───────────

@@ -8,6 +8,45 @@ Format: `## [version] — description`
 
 ---
 
+## [0.39.0] — Rename core library crate: `aaai-core` → `aaai` (2026-06-24)
+
+The core engine library is renamed from `aaai-core` to `aaai` to match the
+project name and follow the standard Rust convention of the primary library
+crate sharing the project's name.
+
+### What changed
+
+- **Crate name:** `aaai-core` → `aaai` (directory: `crates/aaai-core/` → `crates/aaai/`)
+- **Rust identifier:** `aaai_core::` → `aaai::` throughout `aaai-cli` and `aaai-gui` source
+- **Workspace dep key:** `aaai-core = { ... }` → `aaai = { ... }` in root `Cargo.toml`
+- **Consumer deps:** `aaai-cli` and `aaai-gui` now reference `aaai.workspace = true`
+- **docs.rs URL:** `https://docs.rs/aaai-core` → `https://docs.rs/aaai`
+- **crates.io URL:** `https://crates.io/crates/aaai-core` → `https://crates.io/crates/aaai`
+- **`bump-version.sh`** updated to match new workspace dep key
+- **Documentation** (`docs/src/`, `docs/ja/src/`) updated throughout
+
+### What did NOT change
+
+- Binary names: `aaai` (CLI) and `aaai-gui` (GUI) are unchanged
+- Public API: zero changes to any public types, functions, or modules
+- All 104 library tests pass under `-p aaai` (same tests, new `-p` flag value)
+- All 89 CLI integration tests pass unchanged
+- i18n: 250 keys × 2 locales, unchanged
+
+### For external consumers
+
+If you depend on `aaai-core` directly, update your `Cargo.toml`:
+
+```toml
+# Before
+aaai-core = "0.38"
+
+# After
+aaai = "0.39"
+```
+
+---
+
 ## [0.38.0] — RFC 094: High-Contrast Themes (2026-06-20)
 
 Adds two high-contrast theme presets — High Contrast Light and High Contrast

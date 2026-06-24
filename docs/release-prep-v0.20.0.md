@@ -35,11 +35,11 @@ Should report `0 missing, 0 divergent, 0 unused`.
 ```sh
 # All three crates green
 cargo check --workspace --all-targets
-cargo test -p aaai-core --lib
+cargo test -p aaai --lib
 cargo test -p aaai-cli --bin aaai -- --test-threads=1
 ```
 
-aaai-core should report 97/97, aaai-cli 70/70.
+aaai should report 97/97, aaai-cli 70/70.
 
 ```sh
 # mdbook smoke test
@@ -189,7 +189,7 @@ grep -c '\./proposed/' rfcs/README.md
 
 ```sh
 # Dry-run publish each crate in dependency order
-cargo publish --dry-run -p aaai-core
+cargo publish --dry-run -p aaai
 cargo publish --dry-run -p aaai-cli
 cargo publish --dry-run -p aaai-gui
 ```
@@ -240,7 +240,7 @@ tar -xzf /path/to/aaai-v0.20.0.tar.gz
 cd aaai
 
 cargo check --workspace --all-targets
-cargo test -p aaai-core --lib
+cargo test -p aaai --lib
 cargo test -p aaai-cli --bin aaai -- --test-threads=1
 ./scripts/check-i18n-keys.py --quiet
 mdbook build docs/

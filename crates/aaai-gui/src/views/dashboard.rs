@@ -6,7 +6,7 @@ use iced::{
 };
 use rust_i18n::t;
 
-use aaai_core::{AuditResult, AuditStatus};
+use aaai::{AuditResult, AuditStatus};
 use crate::app::Message;
 
 pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens, is_hc: bool) -> Element<'a, Message> {
@@ -14,19 +14,19 @@ pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens, is_h
 
     // ── Stat cards ────────────────────────────────────────────────────
     let cards = row![
-        stat_card(t!("status.ok").to_string(),      s.ok,      crate::theme::status_color(aaai_core::AuditStatus::Ok, tokens, is_hc)),
-        stat_card(t!("status.pending").to_string(),  s.pending, crate::theme::status_color(aaai_core::AuditStatus::Pending, tokens, is_hc)),
-        stat_card(t!("status.failed").to_string(),   s.failed,  crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc)),
-        stat_card(t!("status.error").to_string(),    s.error,   crate::theme::status_color(aaai_core::AuditStatus::Error, tokens, is_hc)),
-        stat_card(t!("status.ignored").to_string(),  s.ignored, crate::theme::status_color(aaai_core::AuditStatus::Ignored, tokens, is_hc)),
+        stat_card(t!("status.ok").to_string(),      s.ok,      crate::theme::status_color(aaai::AuditStatus::Ok, tokens, is_hc)),
+        stat_card(t!("status.pending").to_string(),  s.pending, crate::theme::status_color(aaai::AuditStatus::Pending, tokens, is_hc)),
+        stat_card(t!("status.failed").to_string(),   s.failed,  crate::theme::status_color(aaai::AuditStatus::Failed, tokens, is_hc)),
+        stat_card(t!("status.error").to_string(),    s.error,   crate::theme::status_color(aaai::AuditStatus::Error, tokens, is_hc)),
+        stat_card(t!("status.ignored").to_string(),  s.ignored, crate::theme::status_color(aaai::AuditStatus::Ignored, tokens, is_hc)),
     ]
     .spacing(12);
 
     // ── Verdict banner ────────────────────────────────────────────────
     let (verdict_text, verdict_color) = if s.is_passing() {
-        (t!("status.passed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Ok, tokens, is_hc))
+        (t!("status.passed").to_string(), crate::theme::status_color(aaai::AuditStatus::Ok, tokens, is_hc))
     } else {
-        (t!("status.result_failed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc))
+        (t!("status.result_failed").to_string(), crate::theme::status_color(aaai::AuditStatus::Failed, tokens, is_hc))
     };
 
     let verdict_banner = container(
@@ -44,7 +44,7 @@ pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens, is_h
     // ── Attention list ────────────────────────────────────────────────
     let attention: Vec<_> = result.results.iter()
         .filter(|r| matches!(r.status, AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error)
-                 && r.diff.diff_type != aaai_core::DiffType::Unchanged)
+                 && r.diff.diff_type != aaai::DiffType::Unchanged)
         .take(8)
         .collect();
 
@@ -57,10 +57,10 @@ pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens, is_h
 
         for r in &attention {
             let badge_color = match r.status {
-                AuditStatus::Failed  => crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc),
-                AuditStatus::Pending => crate::theme::status_color(aaai_core::AuditStatus::Pending, tokens, is_hc),
-                AuditStatus::Error   => crate::theme::status_color(aaai_core::AuditStatus::Error, tokens, is_hc),
-                _                    => crate::theme::status_color(aaai_core::AuditStatus::Ignored, tokens, is_hc),
+                AuditStatus::Failed  => crate::theme::status_color(aaai::AuditStatus::Failed, tokens, is_hc),
+                AuditStatus::Pending => crate::theme::status_color(aaai::AuditStatus::Pending, tokens, is_hc),
+                AuditStatus::Error   => crate::theme::status_color(aaai::AuditStatus::Error, tokens, is_hc),
+                _                    => crate::theme::status_color(aaai::AuditStatus::Ignored, tokens, is_hc),
             };
             let badge = container(
                 text(r.status.to_string()).size(10).color(Color::WHITE)

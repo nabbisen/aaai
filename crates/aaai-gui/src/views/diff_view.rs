@@ -7,7 +7,7 @@ use iced::{
 use rust_i18n::t;
 use similar::{ChangeTag, TextDiff};
 
-use aaai_core::{DiffType, diff::entry::DiffEntry};
+use aaai::{DiffType, diff::entry::DiffEntry};
 use crate::app::Message;
 
 /// RFC 069 — stable IDs for the side-by-side diff panes, used for scroll sync.

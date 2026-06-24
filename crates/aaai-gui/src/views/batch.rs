@@ -10,7 +10,7 @@ use iced::{
              scrollable, space, text, text_input},
 };
 
-use aaai_core::AuditStatus;
+use aaai::AuditStatus;
 use crate::app::{App, Message};
 use crate::util::{LocalizedOption, StrategyKind};
 use rust_i18n::t;

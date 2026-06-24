@@ -12,7 +12,7 @@ mod theme;
 mod util;
 mod views;
 use rust_i18n::t;
-use aaai_core::profile::prefs::Theme as AppTheme;
+use aaai::profile::prefs::Theme as AppTheme;
 
 // Initialise rust-i18n. Locale files live in `locales/`.
 rust_i18n::i18n!("locales", fallback = "en");

@@ -6,7 +6,7 @@ use iced::{
 };
 use rust_i18n::t;
 
-use aaai_core::{
+use aaai::{
     AuditStatus, FileAuditResult, DiffType,
     config::definition::{AuditStrategy, LineAction, RegexTarget},
     templates::library as tmpl,

@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::{
+use aaai::{
     AuditEngine, DiffEngine,
     config::io as config_io,
 };
@@ -60,7 +60,7 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
 
     // Rows
     for r in &result.results {
-        use aaai_core::DiffType;
+        use aaai::DiffType;
         if !args.all && r.diff.diff_type == DiffType::Unchanged { continue; }
 
         let entry = r.entry.as_ref();

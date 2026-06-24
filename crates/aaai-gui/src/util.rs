@@ -84,7 +84,7 @@ impl<T: Clone + PartialEq> Eq for LocalizedOption<T> {}
 
 // ── StrategyKind (RFC 035) ────────────────────────────────────────────────
 
-use aaai_core::config::definition::{AuditStrategy, RegexTarget};
+use aaai::config::definition::{AuditStrategy, RegexTarget};
 
 /// Discriminator for `AuditStrategy` variants without their associated data.
 /// Used as the value type for the strategy picker via

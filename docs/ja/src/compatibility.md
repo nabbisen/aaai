@@ -171,15 +171,15 @@ Opening 画面は v1.x でフォルダのドロップを受け付ける。フォ
 カード単位の hit-testing 等が追加される可能性はあるが、それは
 追加機能なのでマイナー扱い。
 
-## ライブラリ API (`aaai-core`)
+## ライブラリ API (`aaai`)
 
-`aaai-core` はコア監査エンジン。
-[crates.io](https://crates.io/crates/aaai-core) に公開されており、
-API ドキュメントは [docs.rs/aaai-core](https://docs.rs/aaai-core)
+`aaai` はコア監査エンジン。
+[crates.io](https://crates.io/crates/aaai) に公開されており、
+API ドキュメントは [docs.rs/aaai](https://docs.rs/aaai)
 にある。
 
 workspace 内では `aaai-cli` と `aaai-gui` が標準的な利用者だが、
-外部から監査エンジンを組み込みたい場合は `aaai-core` を直接依存
+外部から監査エンジンを組み込みたい場合は `aaai` を直接依存
 できる。
 
 public API は v1.x で **ベストエフォート安定** — CLI や設定

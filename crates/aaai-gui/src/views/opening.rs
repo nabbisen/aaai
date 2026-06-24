@@ -351,7 +351,7 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
     // original index lets us keep the existing `LoadProfile(usize)`
     // message wiring (idx still refers to the canonical position in
     // `app.profiles.profiles`).
-    let mut indexed: Vec<(usize, &aaai_core::profile::store::AuditProfile)> =
+    let mut indexed: Vec<(usize, &aaai::profile::store::AuditProfile)> =
         profiles.iter().enumerate().collect();
     indexed.sort_by(|(_, a), (_, b)| b.last_used_at.cmp(&a.last_used_at));
 

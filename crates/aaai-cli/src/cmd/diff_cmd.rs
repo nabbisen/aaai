@@ -7,7 +7,7 @@ use clap::Args;
 use colored::Colorize;
 use similar::{ChangeTag, TextDiff};
 
-use aaai_core::{DiffEngine, DiffType, IgnoreRules};
+use aaai::{DiffEngine, DiffType, IgnoreRules};
 
 const DIFF_AFTER_HELP: &str = "\
 Next steps:

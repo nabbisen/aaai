@@ -9,7 +9,7 @@ use iced::{
 };
 use rust_i18n::t;
 
-use aaai_core::profile::prefs::UserPrefs;
+use aaai::profile::prefs::UserPrefs;
 use crate::app::Message;
 
 /// Build the settings dialog box (without the backdrop overlay).
@@ -140,27 +140,27 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
         .size(13)
         .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
 
-    let theme_options: Vec<aaai_core::profile::prefs::Theme> =
-        aaai_core::profile::prefs::Theme::choices().to_owned();
+    let theme_options: Vec<aaai::profile::prefs::Theme> =
+        aaai::profile::prefs::Theme::choices().to_owned();
 
     let theme_labels: Vec<String> = theme_options.iter().map(|th| {
         let key = match th {
-            aaai_core::profile::prefs::Theme::Light             => "settings.theme_light",
-            aaai_core::profile::prefs::Theme::Dark              => "settings.theme_dark",
-            aaai_core::profile::prefs::Theme::System            => "settings.theme_system",
-            aaai_core::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
-            aaai_core::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
+            aaai::profile::prefs::Theme::Light             => "settings.theme_light",
+            aaai::profile::prefs::Theme::Dark              => "settings.theme_dark",
+            aaai::profile::prefs::Theme::System            => "settings.theme_system",
+            aaai::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
+            aaai::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
         };
         t!(key).to_string()
     }).collect();
 
     let active_theme_label = {
         let key = match draft.theme {
-            aaai_core::profile::prefs::Theme::Light             => "settings.theme_light",
-            aaai_core::profile::prefs::Theme::Dark              => "settings.theme_dark",
-            aaai_core::profile::prefs::Theme::System            => "settings.theme_system",
-            aaai_core::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
-            aaai_core::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
+            aaai::profile::prefs::Theme::Light             => "settings.theme_light",
+            aaai::profile::prefs::Theme::Dark              => "settings.theme_dark",
+            aaai::profile::prefs::Theme::System            => "settings.theme_system",
+            aaai::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
+            aaai::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
         };
         t!(key).to_string()
     };
@@ -173,7 +173,7 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
             let matched = theme_options.iter().zip(theme_labels.iter())
                 .find(|(_, lbl)| **lbl == selected)
                 .map(|(th, _)| *th)
-                .unwrap_or(aaai_core::profile::prefs::Theme::Light);
+                .unwrap_or(aaai::profile::prefs::Theme::Light);
             Message::SettingsThemeChanged(matched)
         },
     )

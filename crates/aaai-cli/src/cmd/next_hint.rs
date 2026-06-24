@@ -13,7 +13,7 @@
 //! The hint is intentionally English-only for v1.0; CLI i18n is out of scope
 //! per RFC 024 NFR-3.
 
-use aaai_core::AuditSummary;
+use aaai::AuditSummary;
 
 /// Suggested next user action given an audit summary.
 ///

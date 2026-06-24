@@ -32,7 +32,7 @@ aaai config [--init] [--dir <DIR>] [--show]
 
 ## aaai version
 
-`aaai` と `aaai-core` のバージョンを表示。
+`aaai` のバージョンを表示。
 
 ```sh
 aaai version [--json-output]

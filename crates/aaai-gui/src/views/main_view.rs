@@ -9,7 +9,7 @@ use iced::{
 };
 use rust_i18n::t;
 
-use aaai_core::{AuditStatus, DiffType, FileAuditResult};
+use aaai::{AuditStatus, DiffType, FileAuditResult};
 use crate::style::panel_style;
 use crate::app::{App, FilterMode, Message, PaneKind};
 use crate::views::{dashboard, diff_view, inspector};
@@ -104,13 +104,13 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     // Audit status — compact colored pill: "● PASSED" / "● FAILED"
     let status_element: Element<'_, Message> = if app.audit_dirty && app.is_loading {
         text(format!("○ {}", t!("toolbar.rerunning")))
-            .size(12).color(crate::theme::status_color(aaai_core::AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast())).into()
+            .size(12).color(crate::theme::status_color(aaai::AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast())).into()
     } else if let Some(result) = &app.audit_result {
         let s = &result.summary;
         let (label, color) = if s.is_passing() {
-            (t!("toolbar.passed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Ok, &app.design_tokens, app.theme.is_high_contrast()))
+            (t!("toolbar.passed").to_string(), crate::theme::status_color(aaai::AuditStatus::Ok, &app.design_tokens, app.theme.is_high_contrast()))
         } else {
-            (t!("toolbar.failed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Failed, &app.design_tokens, app.theme.is_high_contrast()))
+            (t!("toolbar.failed").to_string(), crate::theme::status_color(aaai::AuditStatus::Failed, &app.design_tokens, app.theme.is_high_contrast()))
         };
         text(format!("● {}", label))
             .size(12).color(color).into()

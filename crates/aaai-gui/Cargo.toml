@@ -17,7 +17,7 @@ name = "aaai-gui"
 path = "src/main.rs"
 
 [dependencies]
-aaai-core  = { workspace = true }
+aaai       = { workspace = true }
 iced       = { workspace = true }
 glob       = { workspace = true }
 rfd        = { workspace = true }

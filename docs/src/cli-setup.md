@@ -32,7 +32,7 @@ aaai config [--init] [--dir <DIR>] [--show]
 
 ## aaai version
 
-Print the version of `aaai` and `aaai-core`.
+Print the version of `aaai`.
 
 ```sh
 aaai version [--json-output]

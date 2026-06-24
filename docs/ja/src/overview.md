@@ -9,7 +9,7 @@
 
 | コンポーネント | 説明 |
 |---|---|
-| [`aaai-core`](https://crates.io/crates/aaai-core) | コアエンジン — diff・audit・report・masking |
+| [`aaai`](https://crates.io/crates/aaai) | コアエンジン — diff・audit・report・masking |
 | [`aaai-cli`](https://crates.io/crates/aaai-cli) | `aaai` コマンドラインバイナリ |
 | [`aaai-gui`](https://crates.io/crates/aaai-gui) | `aaai-gui` デスクトップアプリ（iced） |
 

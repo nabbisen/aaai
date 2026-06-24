@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::config::io as config_io;
+use aaai::config::io as config_io;
 
 const LINT_AFTER_HELP: &str = "\
 Next steps:
@@ -121,7 +121,7 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
         }
 
         // LineMatch with empty line rules
-        if let aaai_core::config::definition::AuditStrategy::LineMatch { rules } = &entry.strategy {
+        if let aaai::config::definition::AuditStrategy::LineMatch { rules } = &entry.strategy {
             for (i, rule) in rules.iter().enumerate() {
                 if rule.line.trim().is_empty() {
                     issues.push(LintIssue {
@@ -143,8 +143,8 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
         }
 
         // Strategy / diff_type mismatch suggestions
-        use aaai_core::DiffType;
-        use aaai_core::config::definition::AuditStrategy;
+        use aaai::DiffType;
+        use aaai::config::definition::AuditStrategy;
         match (&entry.diff_type, &entry.strategy) {
             (DiffType::Added | DiffType::Removed, AuditStrategy::LineMatch { .. }) => {
                 issues.push(LintIssue {

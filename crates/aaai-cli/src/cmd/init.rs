@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::{
+use aaai::{
     AuditDefinition, DiffEngine, DiffType,
     config::{definition::{AuditEntry, AuditStrategy}, io as config_io},
     project::config::ProjectConfig,

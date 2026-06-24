@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::config::{definition::AuditEntry, io as config_io};
+use aaai::config::{definition::AuditEntry, io as config_io};
 
 const MERGE_AFTER_HELP: &str = "\
 Next steps:

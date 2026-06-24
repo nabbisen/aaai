@@ -13,7 +13,7 @@ use colored::Colorize;
 
 use clap::Args;
 
-use aaai_core::{
+use aaai::{
     AuditEngine, AuditStatus, DiffEngine, IgnoreRules, MaskingEngine,
     config::io as config_io,
     history::{record::HistoryRecord, store as history_store},
@@ -108,7 +108,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
 
     // Diff + audit
     let diffs = if args.progress {
-        use aaai_core::{ChannelProgress, DiffProgress};
+        use aaai::{ChannelProgress, DiffProgress};
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel::<DiffProgress>();
         let sink = ChannelProgress::new(tx);
@@ -202,7 +202,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     process::exit(exit_code(s, args.allow_pending));
 }
 
-fn exit_code(s: &aaai_core::AuditSummary, allow_pending: bool) -> i32 {
+fn exit_code(s: &aaai::AuditSummary, allow_pending: bool) -> i32 {
     if s.error > 0   { return 3; }
     if s.failed > 0  { return 1; }
     if !allow_pending && s.pending > 0 { return 2; }
@@ -234,12 +234,12 @@ fn status_label(status: AuditStatus) -> &'static str {
 }
 
 fn print_human_audit(
-    result: &aaai_core::AuditResult,
+    result: &aaai::AuditResult,
     args:   &AuditArgs,
-    masker: &Option<aaai_core::MaskingEngine>,
-    expired:       &[&aaai_core::config::definition::AuditEntry],
-    expiring_soon: &[&aaai_core::config::definition::AuditEntry],
-    s: &aaai_core::AuditSummary,
+    masker: &Option<aaai::MaskingEngine>,
+    expired:       &[&aaai::config::definition::AuditEntry],
+    expiring_soon: &[&aaai::config::definition::AuditEntry],
+    s: &aaai::AuditSummary,
     left_path:   &std::path::Path,
     right_path:  &std::path::Path,
     config_path: &std::path::Path,
@@ -292,7 +292,7 @@ fn print_human_audit(
     // Default: Failed + Pending only (max 20). --verbose: all non-Unchanged.
     let visible: Vec<_> = result.results.iter().filter(|r| {
         match r.status {
-            AuditStatus::Ok      => args.verbose && r.diff.diff_type != aaai_core::DiffType::Unchanged,
+            AuditStatus::Ok      => args.verbose && r.diff.diff_type != aaai::DiffType::Unchanged,
             AuditStatus::Ignored => args.verbose,
             _                    => true,
         }

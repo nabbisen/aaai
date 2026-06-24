@@ -170,7 +170,7 @@ The release is ready when:
 - [ ] All Export cases (7-1 to 7-4) pass
 - [ ] All CLI smoke tests exit with expected codes
 - [ ] No `cargo check --all-targets` warnings
-- [ ] `cargo test -p aaai-core --lib` — 104 passing
+- [ ] `cargo test -p aaai --lib` — 104 passing
 - [ ] `cargo test -p aaai-cli -- --test-threads=1` — 89 passing
 - [ ] `cargo test -p aaai-gui` — 24 passing
 

@@ -1,106 +1,106 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
-    "crates/aaai-core",
+    "crates/aaai",
     "crates/aaai-cli",
     "crates/aaai-gui",
 ]
 
 [workspace.package]
-version = "0.38.0"
-edition = "2024"
+version = "0.39.0"
+edition         = "2024"
 # MSRV — minimum supported Rust version, fixed at 1.91 per the
 # project's development-environment specification. This is the
 # version the workspace is built and tested against; the explicit
 # `rust-version` makes cargo refuse to build on older toolchains.
-rust-version = "1.91"
-authors    = ["nabbisen"]
-license    = "Apache-2.0"
-categories = ["development-tools", "visualization"]
-keywords   = ["audit", "file-integrity", "diff-algorithm", "desktop-app"]
-repository = "https://github.com/nabbisen/aaai"
-homepage   = "https://nabbisen.github.io/aaai"
+rust-version    = "1.91"
+authors         = ["nabbisen"]
+license         = "Apache-2.0"
+categories      = ["development-tools", "visualization"]
+keywords        = ["audit", "file-integrity", "diff-algorithm", "desktop-app"]
+repository      = "https://github.com/nabbisen/aaai"
+homepage        = "https://nabbisen.github.io/aaai"
 
 [workspace.dependencies]
-aaai-core = { version = "0.38.0", path = "crates/aaai-core" }
-
-# Serialization
-serde       = { version = "1",    features = ["derive"] }
-serde_yaml  = "0.9"
-serde_json  = "1"
-
-# Error handling
-thiserror = "2"
-anyhow    = "1"
-
-# Filesystem / traversal
-walkdir = "2"
-
-# Path pattern matching (Phase 2)
-glob = "0.3"
-
-# Hashing
-sha2 = "0.11"
-hex  = "0.4"
-
-# Diff algorithm
-similar = { version = "3" }
-
-# Regex
-regex = "1"
-
-# CLI
-clap    = { version = "4", features = ["derive", "color"] }
-colored = "3"
-
-# Time
-chrono = { version = "0.4", features = ["serde"] }
+aaai                = { version = "0.39.0", path = "crates/aaai" }
 
 # GUI
-iced  = { version = "0.14", features = ["tokio"] }
-snora = { version = "0.25.1", features = ["design"] }
-rfd   = { version = "0.17" }
+iced                = { version = "0.14", features = ["tokio"] }
+snora               = { version = "0.25.1", features = ["design"] }
+rfd                 = { version = "0.17" }
 
-# i18n (Phase 2)
-rust-i18n = "4"
+# Diff algorithm
+similar             = "3"
 
-# Parallel processing
-rayon = "1"
-
-# File watching (watch mode)
-notify = { version = "8", features = ["macos_fsevent"] }
-
-# Progress bars (CLI)
-indicatif = "0.18"
-
-# Shell completion
-clap_complete = "4"
-
-# Testing
-tempfile = "3"
-
-# Property-based testing
-proptest = "1"
-
-# Benchmarking
-criterion = { version = "0.8", features = ["html_reports"] }
+# Filesystem / traversal
+walkdir             = "2"
 
 # Home directory (for history / profiles)
-dirs = "6"
+dirs                = "6"
+
+# CLI
+clap                = { version = "4", features = ["derive", "color"] }
+colored             = "3"
+
+# Progress bars (CLI)
+indicatif           = "0.18"
+
+# Shell completion
+clap_complete       = "4"
+
+# i18n (Phase 2)
+rust-i18n           = "4"
+
+# File watching (watch mode)
+notify              = { version = "8", features = ["macos_fsevent"] }
+
+# Time
+chrono              = { version = "0.4", features = ["serde"] }
+
+# Path pattern matching (Phase 2)
+glob                = "0.3"
+
+# Hashing
+sha2                = "0.11"
+hex                 = "0.4"
+
+# Parallel processing
+rayon               = "1"
+
+# Regex
+regex               = "1"
+
+# Serialization
+serde               = { version = "1",    features = ["derive"] }
+serde_json          = "1"
+serde_yaml          = "0.9"
+
+# Error handling
+thiserror           = "2"
+anyhow              = "1"
+
+# Testing
+tempfile            = "3"
+
+# Property-based testing
+proptest            = "1"
+
+# Benchmarking
+criterion           = { version = "0.8", features = ["html_reports"] }
 
 # Logging
-log        = "0.4"
-env_logger = "0.11"
+log                 = "0.4"
+env_logger          = "0.11"
 
 # Async
-tokio = { version = "1", features = ["full"] }
+tokio               = { version = "1", features = ["full"] }
 
 [profile.release]
-opt-level   = "z"
-lto         = true
-strip       = true
-codegen-units = 1
+opt-level       = "z"
+lto             = true
+strip           = true
+codegen-units   = 1
 
 [profile.dev]
-opt-level   = 1
-incremental = false
+opt-level       = 1
+incremental     = false

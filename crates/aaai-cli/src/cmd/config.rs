@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::project::config::{ProjectConfig, CONFIG_FILENAME};
+use aaai::project::config::{ProjectConfig, CONFIG_FILENAME};
 
 const CONFIG_AFTER_HELP: &str = "\
 Next steps:

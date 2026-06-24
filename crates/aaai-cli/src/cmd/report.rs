@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use colored::Colorize;
 
-use aaai_core::{
+use aaai::{
     AuditEngine, DiffEngine,
     config::io as config_io,
     report::generator::ReportGenerator,
@@ -52,13 +52,13 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
 
     match args.format {
         ReportFormat::Sarif => {
-            aaai_core::report::generator::ReportGenerator::write_sarif(
+            aaai::report::generator::ReportGenerator::write_sarif(
                 &result, &args.left, &args.right, &args.out,
             )?;
         }
         ReportFormat::Markdown => {
             if args.include_diff {
-                let md = aaai_core::report::generator::ReportGenerator::build_markdown_string(
+                let md = aaai::report::generator::ReportGenerator::build_markdown_string(
                     &result, &args.left, &args.right, Some(&args.config), None, true,
                 );
                 std::fs::write(&args.out, md.as_bytes())?;
@@ -69,7 +69,7 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
             }
         }
         ReportFormat::Html => {
-            aaai_core::report::generator::ReportGenerator::write_html(
+            aaai::report::generator::ReportGenerator::write_html(
                 &result, &args.left, &args.right, Some(&args.config), &args.out, None,
             )?;
         }

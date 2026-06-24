@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
 
-use aaai_core::{
+use aaai::{
     AuditDefinition, DiffEngine, DiffType, IgnoreRules,
     config::{definition::{AuditEntry, AuditStrategy}, io as config_io},
     templates::library as tmpl,
@@ -90,7 +90,7 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
     };
 
     // Resolve approver from flag → project config → None
-    let proj_cfg = aaai_core::project::config::ProjectConfig::discover(&args.left)
+    let proj_cfg = aaai::project::config::ProjectConfig::discover(&args.left)
         .ok()
         .flatten()
         .map(|(c, _)| c);
@@ -166,7 +166,7 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn suggest_globs(def: &aaai_core::AuditDefinition) {
+fn suggest_globs(def: &aaai::AuditDefinition) {
     use std::collections::HashMap;
     // Group paths by directory and extension
     let mut dir_counts: HashMap<String, Vec<String>> = HashMap::new();
