@@ -1,4 +1,4 @@
-# ABDD Audit Sheet — vX.Y.Z
+# ABDD Audit Sheet — v1.0.0
 
 > **Purpose.** This file is the per-release record of how the GUI meets the
 > Accessible by Default Design (ABDD) check points from the design document
@@ -115,3 +115,20 @@ or open a follow-up RFC that drives the migration.
 | 7. Screen reader | n/a (declared limitation) |
 
 **Overall verdict for this release.** `<pass / pass with exceptions / fail>`
+
+## RFC 094: High-contrast themes
+
+These rows must be checked with the Settings dialog open and each HC theme
+selected in the theme picker.
+
+| # | Check | HC Light observed | HC Dark observed | Verdict |
+|---|---|---|---|---|
+| HC-1 | Status badges (OK/Pending/Failed/Error/Ignored) reach ≥ 7:1 contrast | | | |
+| HC-2 | Card surface and border colours are visually distinct from the background | | | |
+| HC-3 | Button primary/secondary/danger variants are visually distinct from each other | | | |
+| HC-4 | Toolbar and bottom-bar text is readable against the panel background | | | |
+| HC-5 | File-tree status icons remain distinguishable without colour (greyscale check) | | | |
+| HC-6 | Diff-view added/removed line colours are distinguishable without colour | | | |
+| HC-7 | Settings dialog theme picker is navigable by keyboard (Tab, arrow keys, Enter) | | | |
+| HC-8 | Selecting HC Dark and cancelling reverts to the previous theme (live preview) | | | |
+

@@ -172,7 +172,7 @@ The release is ready when:
 - [ ] No `cargo check --all-targets` warnings
 - [ ] `cargo test -p aaai-core --lib` — 104 passing
 - [ ] `cargo test -p aaai-cli -- --test-threads=1` — 89 passing
-- [ ] `cargo test -p aaai-gui` — 20 passing
+- [ ] `cargo test -p aaai-gui` — 24 passing
 
 ---
 

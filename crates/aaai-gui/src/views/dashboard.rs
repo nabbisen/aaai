@@ -8,26 +8,25 @@ use rust_i18n::t;
 
 use aaai_core::{AuditResult, AuditStatus};
 use crate::app::Message;
-use crate::theme;
 
-pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens, is_hc: bool) -> Element<'a, Message> {
     let s = &result.summary;
 
     // ── Stat cards ────────────────────────────────────────────────────
     let cards = row![
-        stat_card(t!("status.ok").to_string(),      s.ok,      theme::OK_COLOR),
-        stat_card(t!("status.pending").to_string(),  s.pending, theme::PENDING_COLOR),
-        stat_card(t!("status.failed").to_string(),   s.failed,  theme::FAILED_COLOR),
-        stat_card(t!("status.error").to_string(),    s.error,   theme::ERROR_COLOR),
-        stat_card(t!("status.ignored").to_string(),  s.ignored, theme::IGNORED_COLOR),
+        stat_card(t!("status.ok").to_string(),      s.ok,      crate::theme::status_color(aaai_core::AuditStatus::Ok, tokens, is_hc)),
+        stat_card(t!("status.pending").to_string(),  s.pending, crate::theme::status_color(aaai_core::AuditStatus::Pending, tokens, is_hc)),
+        stat_card(t!("status.failed").to_string(),   s.failed,  crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc)),
+        stat_card(t!("status.error").to_string(),    s.error,   crate::theme::status_color(aaai_core::AuditStatus::Error, tokens, is_hc)),
+        stat_card(t!("status.ignored").to_string(),  s.ignored, crate::theme::status_color(aaai_core::AuditStatus::Ignored, tokens, is_hc)),
     ]
     .spacing(12);
 
     // ── Verdict banner ────────────────────────────────────────────────
     let (verdict_text, verdict_color) = if s.is_passing() {
-        (t!("status.passed").to_string(), theme::OK_COLOR)
+        (t!("status.passed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Ok, tokens, is_hc))
     } else {
-        (t!("status.result_failed").to_string(), theme::FAILED_COLOR)
+        (t!("status.result_failed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc))
     };
 
     let verdict_banner = container(
@@ -58,10 +57,10 @@ pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens) -> E
 
         for r in &attention {
             let badge_color = match r.status {
-                AuditStatus::Failed  => theme::FAILED_COLOR,
-                AuditStatus::Pending => theme::PENDING_COLOR,
-                AuditStatus::Error   => theme::ERROR_COLOR,
-                _                    => theme::IGNORED_COLOR,
+                AuditStatus::Failed  => crate::theme::status_color(aaai_core::AuditStatus::Failed, tokens, is_hc),
+                AuditStatus::Pending => crate::theme::status_color(aaai_core::AuditStatus::Pending, tokens, is_hc),
+                AuditStatus::Error   => crate::theme::status_color(aaai_core::AuditStatus::Error, tokens, is_hc),
+                _                    => crate::theme::status_color(aaai_core::AuditStatus::Ignored, tokens, is_hc),
             };
             let badge = container(
                 text(r.status.to_string()).size(10).color(Color::WHITE)

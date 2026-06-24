@@ -1,6 +1,6 @@
 # RFC 094 — High-Contrast Themes
 
-**Status:** Proposed
+**Status:** Implemented (v0.38.0)
 **Target release:** pre-v1.0.0 (after RFC 092 and RFC 093)
 **Related area:** Accessibility (ABDD), theming, snora-design presets
 **Depends on:** RFC 092 (token pipeline), RFC 093 (theme picker to select them)

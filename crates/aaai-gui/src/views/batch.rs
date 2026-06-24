@@ -12,7 +12,6 @@ use iced::{
 
 use aaai_core::AuditStatus;
 use crate::app::{App, Message};
-use crate::theme;
 use crate::util::{LocalizedOption, StrategyKind};
 use rust_i18n::t;
 
@@ -32,9 +31,9 @@ pub fn view<'a>(app: &'a App) -> Element<'a, Message> {
             .filter_map(|i| result.results.get(i))
             .map(|far| {
                 let status_color = match far.status {
-                    AuditStatus::Pending => theme::PENDING_COLOR,
-                    AuditStatus::Failed  => theme::FAILED_COLOR,
-                    _                    => theme::IGNORED_COLOR,
+                    AuditStatus::Pending => crate::theme::status_color(AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast()),
+                    AuditStatus::Failed  => crate::theme::status_color(AuditStatus::Failed, &app.design_tokens, app.theme.is_high_contrast()),
+                    _                    => crate::theme::status_color(AuditStatus::Ignored, &app.design_tokens, app.theme.is_high_contrast()),
                 };
                 let dot = container(text("●").size(10).color(status_color))
                     .padding(Padding::from([0.0, 4.0]));

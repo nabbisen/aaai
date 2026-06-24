@@ -278,6 +278,7 @@ are persisted across sessions in `~/.aaai/prefs.yaml`.
 
 | Setting | Description |
 |---|---|
+| **Theme** | Choose the UI colour theme: Light, Dark, High Contrast Light, or High Contrast Dark. The preview applies immediately; Cancel reverts. |
 | **Language** | Switch the UI between English and Japanese. Takes effect immediately on Save. |
 | **Ignored Directories** | Directory names excluded from every audit before any per-project `.aaaiignore` rules. Defaults: `.git`, `target`, `node_modules`, `.DS_Store`. |
 

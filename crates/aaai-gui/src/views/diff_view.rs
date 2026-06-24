@@ -16,7 +16,7 @@ pub static DIFF_BEFORE_ID: std::sync::LazyLock<iced::widget::Id> =
 pub static DIFF_AFTER_ID: std::sync::LazyLock<iced::widget::Id> =
     std::sync::LazyLock::new(|| iced::widget::Id::new("diff_after"));
 
-pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a snora::design::Tokens, _is_hc: bool) -> Element<'a, Message> {
     use crate::app::DiffViewMode;
 
     if diff.is_dir {
@@ -29,15 +29,15 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a
                 .unwrap_or_else(|| t!("diff.unreadable").to_string());
             placeholder(msg)
         }
-        _ if diff.is_binary => binary_panel(diff),
+        _ if diff.is_binary => binary_panel(diff, tokens),
         _ => {
             // RFC 011: tab bar + selected view
             let has_text = diff.has_text_diff();
             let tab_bar = build_tab_bar(mode, has_text, tokens);
             let content = match mode {
-                DiffViewMode::SideBySide  => side_by_side(diff),
-                DiffViewMode::Unified     => unified_view(diff),
-                DiffViewMode::ChangedOnly => changed_only_view(diff),
+                DiffViewMode::SideBySide  => side_by_side(diff, tokens),
+                DiffViewMode::Unified     => unified_view(diff, tokens),
+                DiffViewMode::ChangedOnly => changed_only_view(diff, tokens),
             };
             column![tab_bar, content]
                 .spacing(0)
@@ -122,7 +122,7 @@ fn placeholder(msg: String) -> Element<'static, Message> {
 }
 
 /// Panel shown for binary files.
-fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     let kind_label = match diff.diff_type {
         DiffType::Added    => t!("diff.binary_file_added").to_string(),
         DiffType::Removed  => t!("diff.binary_file_removed").to_string(),
@@ -167,9 +167,9 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if diff.before_sha256.as_ref() == diff.after_sha256.as_ref()
         && diff.before_sha256.is_some()
     {
-        rows.push(text(t!("diff.hashes_match").to_string()).size(12).color(crate::theme::ADDED_COLOR).into());
+        rows.push(text(t!("diff.hashes_match").to_string()).size(12).color(crate::theme::added_color(tokens)).into());
     } else if diff.before_sha256.is_some() && diff.after_sha256.is_some() {
-        rows.push(text(t!("diff.hashes_differ").to_string()).size(12).color(crate::theme::REMOVED_COLOR).into());
+        rows.push(text(t!("diff.hashes_differ").to_string()).size(12).color(crate::theme::removed_color(tokens)).into());
     }
 
     container(
@@ -181,7 +181,7 @@ fn binary_panel<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 }
 
 /// Stats bar shown above the side-by-side diff.
-fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+fn stats_bar<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     
 
     let mut parts: Vec<Element<'_, Message>> = Vec::new();
@@ -189,12 +189,12 @@ fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     if let Some(stats) = &diff.stats {
         parts.push(
             text(format!("+{} lines", stats.lines_added)).size(11)
-                .color(crate::theme::ADDED_COLOR)
+                .color(crate::theme::added_color(tokens))
                 .into()
         );
         parts.push(
             text(format!("  −{} lines", stats.lines_removed)).size(11)
-                .color(crate::theme::REMOVED_COLOR)
+                .color(crate::theme::removed_color(tokens))
                 .into()
         );
     }
@@ -223,7 +223,7 @@ fn stats_bar<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
         .into()
 }
 
-fn side_by_side<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     let before_str = diff.before_text.as_deref().unwrap_or("");
     let after_str  = diff.after_text.as_deref().unwrap_or("");
     let text_diff  = TextDiff::from_lines(before_str, after_str);
@@ -285,7 +285,7 @@ fn side_by_side<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 
     column![
         header,
-        stats_bar(diff),
+        stats_bar(diff, tokens),
         body,
         diff_legend(),   // RFC 010: colour legend
     ]
@@ -378,7 +378,7 @@ fn diff_line(num: usize, content: String, kind: LineKind) -> Element<'static, Me
 
 // ── RFC 011: Unified view ──────────────────────────────────────────────────────
 
-fn unified_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     let before = diff.before_text.as_deref().unwrap_or("");
     let after  = diff.after_text.as_deref().unwrap_or("");
 
@@ -433,7 +433,7 @@ fn unified_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     }
 
     column![
-        stats_bar(diff),
+        stats_bar(diff, tokens),
         scrollable(column(rows).width(Length::Fill)).height(Length::Fill),
         diff_legend(),
     ]
@@ -445,7 +445,7 @@ fn unified_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
 
 // ── RFC 011: Changed-only view ────────────────────────────────────────────────
 
-fn changed_only_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
+fn changed_only_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     let before = diff.before_text.as_deref().unwrap_or("");
     let after  = diff.after_text.as_deref().unwrap_or("");
 
@@ -515,7 +515,7 @@ fn changed_only_view<'a>(diff: &'a DiffEntry) -> Element<'a, Message> {
     }
 
     column![
-        stats_bar(diff),
+        stats_bar(diff, tokens),
         scrollable(column(rows).width(Length::Fill)).height(Length::Fill),
         diff_legend(),
     ]

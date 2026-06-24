@@ -12,7 +12,6 @@ use aaai_core::{
     templates::library as tmpl,
 };
 use crate::app::{App, InspectorState, Message};
-use crate::theme;
 use crate::util::{LocalizedOption, StrategyKind};
 
 pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> {
@@ -20,11 +19,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
 
     // ── Header ────────────────────────────────────────────────────────
     let status_color = match far.status {
-        AuditStatus::Ok      => theme::OK_COLOR,
-        AuditStatus::Pending => theme::PENDING_COLOR,
-        AuditStatus::Failed  => theme::FAILED_COLOR,
-        AuditStatus::Ignored => theme::IGNORED_COLOR,
-        AuditStatus::Error   => theme::ERROR_COLOR,
+        s => crate::theme::status_color(s, &app.design_tokens, app.theme.is_high_contrast()),
     };
     let status_label = t!(match far.status {
         AuditStatus::Ok      => "status.ok",

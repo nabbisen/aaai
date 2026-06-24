@@ -18,6 +18,12 @@ pub enum Theme {
     Dark,
     /// System preference (not yet implemented — falls back to Light).
     System,
+    /// High-contrast light theme (snora-design preset, ≥8:1 status contrast).
+    #[serde(rename = "high_contrast_light")]
+    HighContrastLight,
+    /// High-contrast dark theme (snora-design preset, ≥8:1 status contrast).
+    #[serde(rename = "high_contrast_dark")]
+    HighContrastDark,
 }
 
 impl std::fmt::Display for Theme {
@@ -25,7 +31,9 @@ impl std::fmt::Display for Theme {
         match self {
             Theme::Light  => write!(f, "Light"),
             Theme::Dark   => write!(f, "Dark"),
-            Theme::System => write!(f, "System"),
+            Theme::System            => write!(f, "System"),
+            Theme::HighContrastLight => write!(f, "High Contrast Light"),
+            Theme::HighContrastDark  => write!(f, "High Contrast Dark"),
         }
     }
 }
@@ -36,8 +44,13 @@ impl Theme {
     /// `System` is excluded until OS dark-mode detection is available
     /// (RFC 093 §5.1 — hiding avoids a visibly broken picker option).
     /// RFC 094 appends `HighContrastLight` and `HighContrastDark` here.
+    /// Returns true for the two high-contrast variants.
+    pub fn is_high_contrast(self) -> bool {
+        matches!(self, Theme::HighContrastLight | Theme::HighContrastDark)
+    }
+
     pub fn choices() -> &'static [Theme] {
-        &[Theme::Light, Theme::Dark]
+        &[Theme::Light, Theme::Dark, Theme::HighContrastLight, Theme::HighContrastDark]
     }
 }
 

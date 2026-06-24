@@ -282,6 +282,8 @@ settings:
   theme_light: Light
   theme_dark: Dark
   theme_system: Match system
+  theme_high_contrast_light: High Contrast Light
+  theme_high_contrast_dark: High Contrast Dark
 help:
   title: Keyboard Shortcuts
   shortcut_label: Shortcut

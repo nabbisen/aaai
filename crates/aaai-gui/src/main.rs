@@ -66,6 +66,10 @@ fn main() -> iced::Result {
         AppTheme::Dark   => iced::Theme::Dark,
         AppTheme::Light  => iced::Theme::Light,
         AppTheme::System => iced::Theme::Light, // fallback
+        // HC themes use the matching iced base for built-in widget chrome;
+        // aaai's own widgets get the high-contrast snora tokens (RFC 092).
+        AppTheme::HighContrastLight => iced::Theme::Light,
+        AppTheme::HighContrastDark  => iced::Theme::Dark,
     })
     .run()
 }

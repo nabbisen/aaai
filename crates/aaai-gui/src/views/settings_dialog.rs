@@ -145,22 +145,22 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
 
     let theme_labels: Vec<String> = theme_options.iter().map(|th| {
         let key = match th {
-            aaai_core::profile::prefs::Theme::Light  => "settings.theme_light",
-            aaai_core::profile::prefs::Theme::Dark   => "settings.theme_dark",
-            aaai_core::profile::prefs::Theme::System => "settings.theme_system",
-            // RFC 094: HighContrastLight => "settings.theme_hc_light",
-            //          HighContrastDark  => "settings.theme_hc_dark",
+            aaai_core::profile::prefs::Theme::Light             => "settings.theme_light",
+            aaai_core::profile::prefs::Theme::Dark              => "settings.theme_dark",
+            aaai_core::profile::prefs::Theme::System            => "settings.theme_system",
+            aaai_core::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
+            aaai_core::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
         };
         t!(key).to_string()
     }).collect();
 
     let active_theme_label = {
         let key = match draft.theme {
-            aaai_core::profile::prefs::Theme::Light  => "settings.theme_light",
-            aaai_core::profile::prefs::Theme::Dark   => "settings.theme_dark",
-            aaai_core::profile::prefs::Theme::System => "settings.theme_system",
-            // RFC 094: HighContrastLight => "settings.theme_hc_light",
-            //          HighContrastDark  => "settings.theme_hc_dark",
+            aaai_core::profile::prefs::Theme::Light             => "settings.theme_light",
+            aaai_core::profile::prefs::Theme::Dark              => "settings.theme_dark",
+            aaai_core::profile::prefs::Theme::System            => "settings.theme_system",
+            aaai_core::profile::prefs::Theme::HighContrastLight => "settings.theme_high_contrast_light",
+            aaai_core::profile::prefs::Theme::HighContrastDark  => "settings.theme_high_contrast_dark",
         };
         t!(key).to_string()
     };

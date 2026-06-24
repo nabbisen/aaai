@@ -8,6 +8,65 @@ Format: `## [version] — description`
 
 ---
 
+## [0.38.0] — RFC 094: High-Contrast Themes (2026-06-20)
+
+Adds two high-contrast theme presets — High Contrast Light and High Contrast
+Dark — backed by `snora::design::Tokens::high_contrast_light()` and
+`high_contrast_dark()`. These presets reach ≥ 8:1 contrast on status surfaces
+(versus ~5:1 for the standard presets), serving users who need elevated
+contrast for legibility.
+
+### Theme enum extension
+
+Two new variants added to `aaai_core::profile::prefs::Theme`:
+
+- `HighContrastLight` — serialised as `high_contrast_light` in `prefs.yaml`
+- `HighContrastDark`  — serialised as `high_contrast_dark` in `prefs.yaml`
+
+Existing `prefs.yaml` files containing `light`, `dark`, or `system` load
+unchanged. A file written by v0.38+ that contains an HC value, when opened by
+an older version, falls back gracefully to the default (Light).
+
+### Settings picker
+
+The Settings dialog theme picker now lists four choices:
+Light / Dark / High Contrast Light / High Contrast Dark.
+(`System` remains hidden until OS dark-mode detection is implemented.)
+
+### Status colors follow the active preset (Approach 1, RFC 094 §3.7)
+
+Status badge and text colors now read live from the active token preset so
+they escalate automatically when an HC theme is selected:
+
+| Status  | Standard (≥5:1) | HC preset (≥8:1) |
+|---------|-----------------|------------------|
+| OK      | `#15803D` 5.02:1 | snora HC success ≥8:1 |
+| Pending | `#9A5B00` 5.43:1 | snora HC warning ≥8:1 |
+| Failed  | `#B3261E` 6.54:1 | snora HC danger  ≥8:1 |
+| Error   | `#B22EB2` 5.33:1 | `#7B1F7B`        9.04:1 |
+| Ignored | `#6B6B6B` 5.32:1 | `#525252`        7.81:1 |
+
+Light/Dark standard-theme colors are **pixel-identical** to the v0.35.0
+constants (verified in `theme::tests::light_theme_pixels_identical_to_v035_constants`).
+
+### New i18n keys
+
+`settings.theme_high_contrast_light` / `settings.theme_high_contrast_dark`
+(EN + JA). Total: 250 keys × 2 locales.
+
+### New unit tests in `theme.rs`
+
+- `standard_status_colors_meet_aa` — all statuses ≥ 4.5:1 under Light
+- `hc_status_colors_meet_enhanced_contrast` — all statuses ≥ 7:1 under HC Light
+- `light_theme_pixels_identical_to_v035_constants` — pixel-identity check
+- `contrast_helper_black_on_white_is_21` — helper sanity check
+
+### RFC lifecycle
+
+RFC 094 moved from `rfcs/proposed/` to `rfcs/done/`.
+
+---
+
 ## [0.37.0] — RFC 093: Theme Picker UI (2026-06-20)
 
 Wires the previously-dead `SetTheme` message: a **Theme** pick-list now

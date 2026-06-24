@@ -12,7 +12,7 @@ design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装
 
 | ID | タイトル | 依存 |
 |---|---|---|
-| [094](proposed/094-high-contrast-themes.md) | High-Contrast Themes | RFC 092, 093 |
+
 
 実装順序: 092 → 093 → 094。各 RFC は独立してレビュー・実装・リバート可能。
 
@@ -105,6 +105,7 @@ design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装
 | [091](done/091-windows-store-packaging.md) | Windows Store packaging model | v0.33.0 |
 | [093](done/093-theme-picker-ui.md) | Theme Picker UI | v0.37.0 |
 | [092](done/092-design-system-adoption.md) | Design System Adoption | v0.36.0 |
+| [094](done/094-high-contrast-themes.md) | High-Contrast Themes | v0.38.0 |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |

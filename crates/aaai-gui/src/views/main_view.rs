@@ -12,7 +12,6 @@ use rust_i18n::t;
 use aaai_core::{AuditStatus, DiffType, FileAuditResult};
 use crate::style::panel_style;
 use crate::app::{App, FilterMode, Message, PaneKind};
-use crate::theme;
 use crate::views::{dashboard, diff_view, inspector};
 
 // ── Top-level view ───────────────────────────────────────────────────────────
@@ -105,13 +104,13 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     // Audit status — compact colored pill: "● PASSED" / "● FAILED"
     let status_element: Element<'_, Message> = if app.audit_dirty && app.is_loading {
         text(format!("○ {}", t!("toolbar.rerunning")))
-            .size(12).color(theme::PENDING_COLOR).into()
+            .size(12).color(crate::theme::status_color(aaai_core::AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast())).into()
     } else if let Some(result) = &app.audit_result {
         let s = &result.summary;
         let (label, color) = if s.is_passing() {
-            (t!("toolbar.passed").to_string(), theme::OK_COLOR)
+            (t!("toolbar.passed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Ok, &app.design_tokens, app.theme.is_high_contrast()))
         } else {
-            (t!("toolbar.failed").to_string(), theme::FAILED_COLOR)
+            (t!("toolbar.failed").to_string(), crate::theme::status_color(aaai_core::AuditStatus::Failed, &app.design_tokens, app.theme.is_high_contrast()))
         };
         text(format!("● {}", label))
             .size(12).color(color).into()
@@ -435,7 +434,7 @@ fn build_file_row<'a>(
         )
     } else { None };
 
-    let sicon = status_icon(far.status);
+    let sicon = status_icon(far.status, &app.design_tokens, app.theme.is_high_contrast());
     let dtype_tag = diff_type_tag(far.diff.diff_type);
     let mut name_row = row![
         space().width(Length::Fixed(indent)),
@@ -483,14 +482,14 @@ fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
         Some(idx) => {
             if let Some(result) = &app.audit_result {
                 if let Some(far) = result.results.get(idx) {
-                    return diff_view::view(&far.diff, app.diff_view_mode, &app.design_tokens);
+                    return diff_view::view(&far.diff, app.diff_view_mode, &app.design_tokens, app.theme.is_high_contrast());
                 }
             }
         }
         None => {}
     }
     match &app.audit_result {
-        Some(r) => dashboard::view(r, &app.design_tokens),
+        Some(r) => dashboard::view(r, &app.design_tokens, app.theme.is_high_contrast()),
         None    => empty_state_diff_panel(app.design_tokens.clone()),
     }
 }
@@ -515,13 +514,13 @@ fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
 
 
 // RFC 013: single status icon — symbol + colour only, no text label.
-fn status_icon(status: AuditStatus) -> Element<'static, Message> {
+fn status_icon(status: AuditStatus, tokens: &snora::design::Tokens, is_hc: bool) -> Element<'_, Message> {
     let (sym, color) = match status {
-        AuditStatus::Ok      => ("✓", theme::OK_COLOR),
-        AuditStatus::Pending => ("⚠", theme::PENDING_COLOR),
-        AuditStatus::Failed  => ("✗", theme::FAILED_COLOR),
-        AuditStatus::Error   => ("!", theme::ERROR_COLOR),
-        AuditStatus::Ignored => ("—", iced::Color::from_rgb(0.65, 0.65, 0.68)),
+        AuditStatus::Ok      => ("✓", crate::theme::status_color(AuditStatus::Ok,      tokens, is_hc)),
+        AuditStatus::Pending => ("⚠", crate::theme::status_color(AuditStatus::Pending, tokens, is_hc)),
+        AuditStatus::Failed  => ("✗", crate::theme::status_color(AuditStatus::Failed,  tokens, is_hc)),
+        AuditStatus::Error   => ("!", crate::theme::status_color(AuditStatus::Error,   tokens, is_hc)),
+        AuditStatus::Ignored => ("—", crate::theme::status_color(AuditStatus::Ignored, tokens, is_hc)),
     };
     text(sym).size(13).color(color).into()
 }
