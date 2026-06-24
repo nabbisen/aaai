@@ -112,7 +112,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
             .color(Color::from_rgb(0.40, 0.44, 0.55))
     )
     .on_press(Message::ToggleUsePattern)
-    .style(iced::widget::button::text)
+    .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
     .padding(iced::Padding::from([3.0, 0.0]));
 
     let pattern_section: Option<iced::Element<'_, Message>> = if ins.use_pattern {
@@ -150,7 +150,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
                         button(text(s).size(10).font(iced::Font::MONOSPACE))
                             .on_press(Message::ApplyPatternSuggestion(s2))
                             .padding(iced::Padding::from([3.0, 7.0]))
-                            .style(iced::widget::button::secondary)
+                            .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_secondary(&t, s) })
                             .into()
                     })
                     .collect();
@@ -242,7 +242,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         },
     ).padding(4).text_size(11);
 
-    let strategy_form = build_strategy_form(ins);
+    let strategy_form = build_strategy_form(ins, &app.design_tokens);
 
     // ── Section: note ─────────────────────────────────────────────────
     let note_label = text(t!("inspector.note_label").to_string()).size(12);
@@ -381,7 +381,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
             .color(Color::from_rgb(0.40, 0.44, 0.55))
     )
     .on_press(Message::ToggleAdvancedInspector)
-    .style(iced::widget::button::text)
+    .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
     .padding(iced::Padding::from([4.0, 0.0]));
 
     children.push(toggle_btn.into());
@@ -412,7 +412,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         )
         .on_press(Message::RevertSelectedEntry)
         .padding(iced::Padding::from([5.0, 12.0]))
-        .style(iced::widget::button::secondary);
+        .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_secondary(&t, s) });
 
         children.push(
             container(revert_btn)
@@ -446,7 +446,7 @@ fn colored_badge(label: String, color: Color) -> Element<'static, Message> {
         .into()
 }
 
-fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
+fn build_strategy_form<'a>(ins: &'a InspectorState, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     match &ins.strategy {
         AuditStrategy::None => {
             text(t!("inspector.no_content_inspection").to_string()).size(12).color(Color::from_rgb(0.5,0.5,0.5)).into()
@@ -553,7 +553,7 @@ fn build_strategy_form<'a>(ins: &'a InspectorState) -> Element<'a, Message> {
                         })
                     )
                     .on_press(Message::EditRule(i))
-                    .style(iced::widget::button::text)
+                    .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
                     .width(Length::Fill);
                     col = col.push(block);
                 }

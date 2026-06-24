@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aaai-cli"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "aaai-core",
  "anyhow",
@@ -24,7 +24,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-core"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -48,7 +48,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-gui"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "aaai-core",
  "anyhow",
@@ -3980,6 +3980,7 @@ checksum = "ce4f3482d328cf6fd784d15cc74f1a511fec219dd01e9f8800bd1a865637b862"
 dependencies = [
  "iced",
  "snora-core",
+ "snora-design",
  "snora-widgets",
 ]
 
@@ -3990,6 +3991,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b814c3b433fb45f9803ab83ee0baebfaa7813fcf0aca54a5e1251289ea565bee"
 
 [[package]]
+name = "snora-design"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e0b777bca6033eab199c755b3a76140dde85bda41babe2558b8e750bc08516e"
+
+[[package]]
 name = "snora-widgets"
 version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3997,6 +4004,7 @@ checksum = "80d5a64cc6c03a010954efc9df0f99faf30a68aefc57731a48a5a0527d5c52c8"
 dependencies = [
  "iced",
  "snora-core",
+ "snora-design",
 ]
 
 [[package]]

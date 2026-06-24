@@ -10,6 +10,7 @@ use iced::{
 use rust_i18n::t;
 
 use aaai_core::{AuditStatus, DiffType, FileAuditResult};
+use crate::style::panel_style;
 use crate::app::{App, FilterMode, Message, PaneKind};
 use crate::theme;
 use crate::views::{dashboard, diff_view, inspector};
@@ -57,8 +58,7 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     //    button row never shifts width when the marks appear/disappear.
     //  • Undo moved here from the filter bar (where it was semantically wrong).
     //  • Icon glyphs clarified: Save = ↓, Open = ←, Export = ↑, Undo = ↩
-    use crate::style::panel_style;
-
+    
     let toolbar_btn = |icon: &'a str, label: String, msg: Message| -> Element<'a, Message> {
         button(
             row![
@@ -130,15 +130,14 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
         .padding(Padding::from([3.0, 10.0])),
     )
     .width(Length::Fill)
-    .style(panel_style)
+    .style(panel_style(app.design_tokens.clone()))
     .into()
 }
 
 // ── Filter bar ───────────────────────────────────────────────────────────────
 
 fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
-    use crate::style::panel_style;
-
+    
     // RFC 043 — pre-compute per-filter counts when audit is available.
     let counts = app.audit_result.as_ref().map(|r| {
         let s = &r.summary;
@@ -186,7 +185,7 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
     let legend_btn = button(text("?").size(11))
         .on_press(Message::ToggleStatusLegend)
         .padding(Padding::from([8.0, 12.0]))
-        .style(iced::widget::button::text);
+        .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
     let filter_row = row![
         make_btn("filter.all",     FilterMode::All,           all_n),
@@ -243,7 +242,7 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         column![filter_row, legend_popup].spacing(0)
     )
     .width(Length::Fill)
-    .style(panel_style)
+    .style(panel_style(app.design_tokens.clone()))
     .into()
 }
 
@@ -283,7 +282,7 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
 fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     let result = match &app.audit_result {
         Some(r) => r,
-        None    => return empty_state_file_tree(),
+        None    => return empty_state_file_tree(app.design_tokens.clone()),
     };
 
     // RFC 071 — search bar lives at the top of this pane, not above the grid.
@@ -298,7 +297,7 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
             let dismiss_btn = button(text(t!("main.coach_dismiss").to_string()).size(10))
                 .on_press(Message::DismissCoach)
                 .padding(Padding::from([3.0, 8.0]))
-                .style(iced::widget::button::text);
+                .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
             Some(
                 container(
                     row![
@@ -365,7 +364,7 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
             .on_press(Message::ToggleDir(dir_clone))
             .width(Length::Fill)
             .padding(Padding::from([4.0, 6.0]))  // ABDD minimum
-            .style(iced::widget::button::text);
+            .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
             items.push(dir_btn.into());
             prev_dir = dir.clone();
         }
@@ -473,7 +472,7 @@ fn build_file_row<'a>(
     .on_press(Message::SelectEntry(idx))
     .width(Length::Fill)
     .padding(0)
-    .style(iced::widget::button::text)
+    .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
     .into()
 }
 
@@ -484,15 +483,15 @@ fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
         Some(idx) => {
             if let Some(result) = &app.audit_result {
                 if let Some(far) = result.results.get(idx) {
-                    return diff_view::view(&far.diff, app.diff_view_mode);
+                    return diff_view::view(&far.diff, app.diff_view_mode, &app.design_tokens);
                 }
             }
         }
         None => {}
     }
     match &app.audit_result {
-        Some(r) => dashboard::view(r),
-        None    => empty_state_diff_panel(),
+        Some(r) => dashboard::view(r, &app.design_tokens),
+        None    => empty_state_diff_panel(app.design_tokens.clone()),
     }
 }
 
@@ -509,7 +508,7 @@ fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
         }
         None => {}
     }
-    empty_state_inspector()
+    empty_state_inspector(app.design_tokens.clone())
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -548,8 +547,7 @@ fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
 // ── Bottom action bar (RFC 008) ───────────────────────────────────────────────
 
 fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
-    use crate::style::panel_style;
-
+    
     // RFC 073 — hide entirely when no file is selected: the bar implies
     // there is something actionable, which is misleading when the user is
     // looking at the dashboard or has just opened the screen.
@@ -574,6 +572,7 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
         None
     };
 
+    let t_approve = app.design_tokens.clone();
     let approve_btn_inner = button(
         text(t!("bottombar.approve_and_save").to_string())
             .size(13)
@@ -583,7 +582,8 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
             }),
     )
     .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
-    .padding(Padding::from([10.0, 20.0]));  // ABDD ≥44px
+    .padding(Padding::from([10.0, 20.0]))  // ABDD ≥44px
+    .style(move |_theme, s| crate::style::btn_primary(&t_approve, s));
 
     let approve_btn: Element<'_, Message> = match disabled_reason {
         Some(reason) => {
@@ -654,7 +654,7 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
         .padding(Padding::from([5.0, 12.0])),
     )
     .width(Length::Fill)
-    .style(panel_style)
+    .style(panel_style(app.design_tokens.clone()))
     .into()
 }
 
@@ -666,7 +666,7 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
 // text is i18n-driven via the `empty_state.*` namespace so en/ja produce
 // equivalent prose.
 
-fn empty_state_file_tree<'a>() -> Element<'a, Message> {
+fn empty_state_file_tree<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.file_tree_no_result_title").to_string())
@@ -684,11 +684,11 @@ fn empty_state_file_tree<'a>() -> Element<'a, Message> {
         .padding(Padding::from([24.0, 16.0]))
         .width(Length::Fill)
         .center_x(Length::Fill)
-        .style(empty_state_panel_style)
+        .style(empty_state_panel_style(tokens))
         .into()
 }
 
-fn empty_state_diff_panel<'a>() -> Element<'a, Message> {
+fn empty_state_diff_panel<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.diff_no_audit_title").to_string())
@@ -716,11 +716,11 @@ fn empty_state_diff_panel<'a>() -> Element<'a, Message> {
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill)
-        .style(empty_state_panel_style)
+        .style(empty_state_panel_style(tokens))
         .into()
 }
 
-fn empty_state_inspector<'a>() -> Element<'a, Message> {
+fn empty_state_inspector<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.inspector_no_selection").to_string())
@@ -740,6 +740,6 @@ fn empty_state_inspector<'a>() -> Element<'a, Message> {
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill)
-        .style(empty_state_panel_style)
+        .style(empty_state_panel_style(tokens))
         .into()
 }

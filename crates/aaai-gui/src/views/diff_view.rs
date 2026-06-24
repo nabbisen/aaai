@@ -16,7 +16,7 @@ pub static DIFF_BEFORE_ID: std::sync::LazyLock<iced::widget::Id> =
 pub static DIFF_AFTER_ID: std::sync::LazyLock<iced::widget::Id> =
     std::sync::LazyLock::new(|| iced::widget::Id::new("diff_after"));
 
-pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode) -> Element<'a, Message> {
+pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     use crate::app::DiffViewMode;
 
     if diff.is_dir {
@@ -33,7 +33,7 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode) -> Element<
         _ => {
             // RFC 011: tab bar + selected view
             let has_text = diff.has_text_diff();
-            let tab_bar = build_tab_bar(mode, has_text);
+            let tab_bar = build_tab_bar(mode, has_text, tokens);
             let content = match mode {
                 DiffViewMode::SideBySide  => side_by_side(diff),
                 DiffViewMode::Unified     => unified_view(diff),
@@ -49,7 +49,7 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode) -> Element<
 }
 
 /// RFC 011: Tab selector for diff view modes.
-fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool) -> Element<'static, Message> {
+fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora::design::Tokens) -> Element<'static, Message> {
     use crate::app::DiffViewMode;
 
     let tab = |label: String, target: DiffViewMode, active: bool| -> Element<'static, Message> {
@@ -83,7 +83,7 @@ fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool) -> Element<'st
             })
         )
         .on_press_maybe(if active { None } else { Some(Message::SetDiffViewMode(target)) })
-        .style(iced::widget::button::text)
+        .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
         .into()
     };
 

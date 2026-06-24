@@ -8,6 +8,51 @@ Format: `## [version] — description`
 
 ---
 
+## [0.36.0] — RFC 092: Design System Adoption (2026-06-20)
+
+Migrates aaai's GUI styling to snora-design tokens (the `design` feature,
+snora 0.25.1). The change is structural — no new visual behaviour for users
+with the default Light theme — but it is the foundation for RFC 093 (theme
+picker) and RFC 094 (high-contrast themes).
+
+### What changed
+
+**Container styles** (`style.rs` rewritten):
+- `card_style` now delegates to `snora::design::style::container::card_surface`
+  so card background, border colour, and corner radius track the active token
+  preset.
+- `panel_style` and `empty_state_panel_style` remain hand-rolled but use a
+  token-derived border colour.
+
+**Button styles** (all views):
+All 15 semantic buttons now use snora-design style functions
+(`btn_primary`, `btn_secondary`, `btn_ghost`, `btn_danger` in `style.rs`).
+Callers keep full control over padding so ABDD ≥ 44 px tap targets are
+preserved. Coverage per the RFC 092 inventory:
+
+| View | Buttons migrated |
+|---|---|
+| `nav_guard.rs` | Stay here (secondary), Save and leave (primary), Discard (danger), More choices (ghost) |
+| `opening.rs` | Check changes (primary), Pick folder ×2 (secondary), Recent rows (ghost), Delete profile (ghost) |
+| `main_view.rs` | Save and continue (primary), toolbar buttons (ghost) ×4 |
+| `inspector.rs` | Add rule / toggle buttons (ghost/secondary) ×5 |
+| `settings_dialog.rs` | Save (primary via secondary), Cancel (secondary), dir buttons (ghost) |
+| `dashboard.rs` | New audit (secondary) |
+| `diff_view.rs` | Tab bar buttons (ghost) |
+| `batch.rs` | Close (ghost) |
+
+**New module** `crates/aaai-gui/src/design_tokens.rs` bridges `AppTheme` →
+`snora::design::Tokens`. Stored in `App.design_tokens`, updated on
+`SetTheme`, read by every `view()` call.
+
+**No new user-visible features.** `SetTheme` still has no sender (RFC 093
+adds the picker). `App.design_tokens` resolves to the persisted theme, which
+for all current users is the default Light preset.
+
+**No i18n changes. No schema changes. No CLI changes.**
+
+---
+
 ## [0.35.0] — WCAG AA status-color fix (2026-06-20)
 
 ### Accessibility fix (WCAG 2.1 AA contrast)

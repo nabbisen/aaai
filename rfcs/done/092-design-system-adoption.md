@@ -1,6 +1,6 @@
 # RFC 092 — Design System Adoption (snora-design tokens)
 
-**Status:** Proposed
+**Status:** Implemented (v0.36.0)
 **Target release:** pre-v1.0.0 (after the contrast fix in v0.35.0)
 **Related area:** GUI styling, accessibility, theming, snora-design integration
 **Depends on:** snora-design 0.25.1 (`design` feature)

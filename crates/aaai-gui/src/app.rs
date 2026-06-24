@@ -29,6 +29,7 @@ use aaai_core::{
     },
 };
 
+use crate::style::panel_style;
 use crate::views::{opening, main_view};
 use crate::util::StrategyKind;
 use rust_i18n::t;
@@ -250,6 +251,9 @@ pub struct App {
 
     // Phase 10: theme
     pub theme: AppTheme,
+    /// RFC 092 — resolved design tokens for the active theme.
+    /// Updated on SetTheme; read by every view for token-driven styling.
+    pub design_tokens: snora::design::Tokens,
 
     // RFC 011: diff view tab selection
     pub diff_view_mode: DiffViewMode,
@@ -351,6 +355,7 @@ impl Default for App {
             },
             locale: rust_i18n::locale().to_string(),
             theme: UserPrefs::load().theme,
+            design_tokens: crate::design_tokens::tokens_for(&UserPrefs::load().theme),
             settings_open: false,
             settings_draft: UserPrefs::default(),
             help_open: false,
@@ -1287,6 +1292,7 @@ impl App {
             // ── Phase 10: theme ───────────────────────────────────────
             Message::SetTheme(t) => {
                 self.theme = t;
+                self.design_tokens = crate::design_tokens::tokens_for(&t);
                 self.prefs.theme = t;
                 self.prefs.save();
             }
@@ -1910,7 +1916,7 @@ impl App {
             .on_press(Message::CloseSettings);
 
             let dialog = iced::widget::center(
-                crate::views::settings_dialog::view(&self.settings_draft, &self.locale)
+                crate::views::settings_dialog::view(&self.settings_draft, &self.locale, &self.design_tokens)
             );
 
             stack![base, backdrop, dialog].into()
@@ -1958,7 +1964,7 @@ impl App {
             .on_press(Message::NavGuardCancel);
 
             let dialog = iced::widget::center(
-                crate::views::nav_guard::view(self.nav_guard_show_discard)
+                crate::views::nav_guard::view(self.nav_guard_show_discard, &self.design_tokens)
             );
 
             stack![base, backdrop, dialog].into()
@@ -1971,15 +1977,14 @@ impl App {
     fn view_footer(&self) -> Element<'_, Message> {
         use iced::{Alignment::Center, Length, widget::{button, container, row, space, text, tooltip}};
         use iced::widget::tooltip::Position;
-        use crate::style::panel_style;
-
+        
         // RFC 036 — language picker moved to Settings dialog.
         // RFC 038 — ? button (help overlay) + ⚙ settings button.
         let help_btn = tooltip(
             button(text("?").size(13))
                 .on_press(Message::ToggleHelp)
                 .padding(iced::Padding::from([2.0, 6.0]))
-                .style(iced::widget::button::text),
+                .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
             text(t!("help.title").to_string()).size(11),
             Position::Top,
         );
@@ -1988,7 +1993,7 @@ impl App {
             button(text("⚙").size(13))
                 .on_press(Message::OpenSettings)
                 .padding(iced::Padding::from([2.0, 6.0]))
-                .style(iced::widget::button::text),
+                .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
             text(t!("settings.button_tooltip").to_string()).size(11),
             Position::Top,
         );
@@ -2014,7 +2019,7 @@ impl App {
         )
         .width(Length::Fill)
         .padding(iced::Padding::from([4.0, 16.0]))
-        .style(panel_style)
+        .style(panel_style(self.design_tokens.clone()))
         .into()
     }
 

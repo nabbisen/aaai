@@ -4,6 +4,7 @@
 //! locale and falls back to English.
 
 mod app;
+mod design_tokens;
 mod error;
 mod i18n;
 mod style;

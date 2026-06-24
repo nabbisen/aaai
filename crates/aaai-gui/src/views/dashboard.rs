@@ -10,7 +10,7 @@ use aaai_core::{AuditResult, AuditStatus};
 use crate::app::Message;
 use crate::theme;
 
-pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
+pub fn view<'a>(result: &'a AuditResult, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     let s = &result.summary;
 
     // ── Stat cards ────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ pub fn view<'a>(result: &'a AuditResult) -> Element<'a, Message> {
         )
         .on_press(crate::app::Message::BackToOpening)
         .padding(Padding::from([8.0, 20.0]))
-        .style(iced::widget::button::secondary);
+        .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_secondary(&t, s) });
 
         column![
             all_clear_label,

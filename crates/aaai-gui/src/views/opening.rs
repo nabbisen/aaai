@@ -12,8 +12,8 @@ use iced::{
 };
 use rust_i18n::t;
 
+use crate::style::{card_style, empty_state_panel_style};
 use crate::app::{App, Message};
-use crate::style::card_style;
 
 pub fn view(app: &App) -> Element<'_, Message> {
     // ── Welcome section ─────────────────────────────────────────────
@@ -32,12 +32,14 @@ pub fn view(app: &App) -> Element<'_, Message> {
         &app.before_path,
         app.opening_validation.before_error.as_deref(),
         Message::PickBeforeFolder,
+        app.design_tokens.clone(),
     );
     let after_card = folder_picker_card(
         t!("opening.after_card").to_string(),
         &app.after_path,
         app.opening_validation.after_error.as_deref(),
         Message::PickAfterFolder,
+        app.design_tokens.clone(),
     );
 
     // ── Optional settings (collapsible) ─────────────────────────────
@@ -52,7 +54,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
                 .color(Color::from_rgb(0.18, 0.45, 0.85)),
         )
         .padding(Padding::from([10.0, 14.0]))
-        .style(card_style)
+        .style(card_style(app.design_tokens.clone()))
         .width(Length::Fill)
         .into()
     } else {
@@ -74,7 +76,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
                 .spacing(4),
         )
         .padding(Padding::from([10.0, 14.0]))
-        .style(card_style)
+        .style(card_style(app.design_tokens.clone()))
         .width(Length::Fill)
         .into()
     } else {
@@ -92,7 +94,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
     )
     .on_press_maybe(if can_start { Some(Message::StartAudit) } else { None })
-    .padding(Padding::from([12.0, 32.0]));
+    .padding(Padding::from([12.0, 32.0]))
+    .style({
+        let t = app.design_tokens.clone();
+        move |_theme, s| crate::style::btn_primary(&t, s)
+    });
 
     // RFC 088 — explain why the button is disabled so the user knows
     // exactly what is still needed. Shown only when neither folder is
@@ -174,6 +180,7 @@ fn folder_picker_card<'a>(
     current_path: &'a str,
     error: Option<&'a str>,
     pick_msg: Message,
+    tokens: snora::design::Tokens,
 ) -> Element<'a, Message> {
     let is_selected = !current_path.trim().is_empty();
 
@@ -248,7 +255,7 @@ fn folder_picker_card<'a>(
     container(body_with_error)
         .padding(Padding::from([14.0, 16.0]))
         .width(Length::Fill)
-        .style(card_style)
+        .style(card_style(tokens))
         .into()
 }
 
@@ -268,7 +275,10 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
         .align_y(Center)
     )
     .on_press(Message::ToggleOptionalSettings)
-    .style(iced::widget::button::text)
+    .style({
+            let t = app.design_tokens.clone();
+            move |_theme, s| crate::style::btn_ghost(&t, s)
+        })
     .padding(Padding::from([6.0, 4.0]));
 
     // RFC 045 — hint text removed; .aaaiignore row removed
@@ -328,7 +338,7 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
     let profiles = &app.profiles.profiles;
     if profiles.is_empty() {
         // RFC 022 FR-2: empty Recent → first-run onboarding panel.
-        return onboarding_section();
+        return onboarding_section(app.design_tokens.clone());
     }
 
     let header = text(format!("─── {} ───", t!("opening.recent_section")))
@@ -365,13 +375,13 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
             .on_press(Message::LoadProfile(*orig_idx))
             .padding(Padding::from([8.0, 14.0]));
 
-        // RFC 039 — delete button at right edge of each profile row.
+        let t_del = app.design_tokens.clone();
         let delete_btn = button(
             text("×").size(12).color(Color::from_rgb(0.55, 0.55, 0.55))
         )
         .on_press(Message::DeleteProfile(*orig_idx))
         .padding(Padding::from([8.0, 10.0]))
-        .style(iced::widget::button::text);
+        .style(move |_theme, s| crate::style::btn_ghost(&t_del, s));
 
         let header_row: Element<'_, Message> = if let Some(when) = when_text {
             row![
@@ -401,7 +411,7 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
         )
         .padding(Padding::from([8.0, 12.0]))
         .width(Length::Fill)
-        .style(card_style);
+        .style(card_style(app.design_tokens.clone()));
 
         col = col.push(row_el);
     }
@@ -417,9 +427,8 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
 // the user that audit.yaml is auto-created — a common first-time
 // stumbling point.
 
-fn onboarding_section<'a>() -> Element<'a, Message> {
-    use crate::style::empty_state_panel_style;
-
+fn onboarding_section<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
+    
     let title = text(t!("empty_state.onboarding_title").to_string())
         .size(14)
         .color(Color::from_rgb(0.40, 0.42, 0.48))
@@ -471,6 +480,6 @@ fn onboarding_section<'a>() -> Element<'a, Message> {
     container(body)
         .padding(Padding::from([20.0, 24.0]))
         .width(Length::Fill)
-        .style(empty_state_panel_style)
+        .style(empty_state_panel_style(tokens))
         .into()
 }

@@ -16,7 +16,7 @@ use crate::app::Message;
 ///
 /// `draft` is the mutable copy being edited; `locale` is the *currently active*
 /// locale code so the language picker can show the right selection.
-pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str) -> Element<'a, Message> {
+pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     // ── Title ─────────────────────────────────────────────────────────
     let title = text(t!("settings.title").to_string())
         .size(16)
@@ -86,7 +86,7 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str) -> Element<'a, Message> {
             )
             .on_press(Message::SettingsIgnoreDirRemove(i))
             .padding(Padding::from([3.0, 6.0]))
-            .style(iced::widget::button::text);
+            .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
             row![input, remove_btn]
                 .spacing(4)
@@ -98,7 +98,7 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str) -> Element<'a, Message> {
     let add_btn = button(text(t!("settings.add_dir").to_string()).size(12))
         .on_press(Message::SettingsIgnoreDirAdd)
         .padding(Padding::from([4.0, 8.0]))
-        .style(iced::widget::button::text);
+        .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
     let dir_list = scrollable(
         column(dir_rows).spacing(4),
@@ -118,7 +118,7 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str) -> Element<'a, Message> {
     )
     .on_press(Message::CloseSettings)
     .padding(Padding::from([6.0, 14.0]))
-    .style(iced::widget::button::secondary);
+    .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_secondary(&t, s) });
 
     let save_btn = button(
         text(t!("settings.save").to_string()).size(13)

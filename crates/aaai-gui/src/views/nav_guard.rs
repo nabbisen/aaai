@@ -15,8 +15,10 @@ use iced::{
 use rust_i18n::t;
 
 use crate::app::Message;
+use crate::style::{btn_primary, btn_secondary, btn_ghost, btn_danger};
+use snora::design::Tokens;
 
-pub fn view<'a>(show_discard: bool) -> Element<'a, Message> {
+pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> {
     let title = text(t!("nav_guard.title").to_string())
         .size(16)
         .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
@@ -34,28 +36,33 @@ pub fn view<'a>(show_discard: bool) -> Element<'a, Message> {
         });
 
     // RFC 086 — primary row shows only safe choices: Stay | Save and leave.
+    let t1 = tokens.clone();
     let cancel_btn = button(text(t!("nav_guard.cancel").to_string()).size(13))
         .on_press(Message::NavGuardCancel)
         .padding(Padding::from([6.0, 14.0]))
-        .style(iced::widget::button::secondary);
+        .style(move |_theme, s| btn_secondary(&t1, s));
 
+    let t2 = tokens.clone();
     let save_btn = button(text(t!("nav_guard.save_and_leave").to_string()).size(13))
         .on_press(Message::NavGuardSaveAndLeave)
-        .padding(Padding::from([6.0, 14.0]));
+        .padding(Padding::from([6.0, 14.0]))
+        .style(move |_theme, s| btn_primary(&t2, s));
 
     // The data-losing action: either a quiet "More choices" link (hidden
     // state) or the actual danger button once revealed.
     let secondary: Element<'_, Message> = if show_discard {
+        let t3 = tokens.clone();
         button(text(t!("nav_guard.discard_and_leave").to_string()).size(13))
             .on_press(Message::NavGuardDiscardAndLeave)
             .padding(Padding::from([6.0, 14.0]))
-            .style(iced::widget::button::danger)
+            .style(move |_theme, s| btn_danger(&t3, s))
             .into()
     } else {
+        let t4 = tokens.clone();
         button(text(t!("nav_guard.more_choices").to_string()).size(12))
             .on_press(Message::NavGuardRevealDiscard)
             .padding(Padding::from([6.0, 10.0]))
-            .style(iced::widget::button::text)
+            .style(move |_theme, s| btn_ghost(&t4, s))
             .into()
     };
 
