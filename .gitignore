@@ -36,3 +36,6 @@ dist/
 # machine; the verification card (## Visual Verification section) is what
 # gets committed inside the RFC file itself.
 /rfcs/verification/
+
+# Custom
+/.git-exclude/

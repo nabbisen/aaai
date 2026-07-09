@@ -14,8 +14,8 @@ edition         = "2024"
 # version the workspace is built and tested against; the explicit
 # `rust-version` makes cargo refuse to build on older toolchains.
 rust-version    = "1.91"
-authors         = ["nabbisen"]
 license         = "Apache-2.0"
+authors         = ["nabbisen"]
 categories      = ["development-tools", "visualization"]
 keywords        = ["audit", "file-integrity", "diff-algorithm", "desktop-app"]
 repository      = "https://github.com/nabbisen/aaai"
