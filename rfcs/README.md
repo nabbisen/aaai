@@ -8,13 +8,9 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装）:
+Current remediation design awaiting review and owner decision:
 
-| ID | タイトル | 依存 |
-|---|---|---|
-
-
-実装順序: 092 → 093 → 094。各 RFC は独立してレビュー・実装・リバート可能。
+_None._
 
 ---
 
@@ -106,6 +102,7 @@ design-system 採用に向けた pre-v1.0 の RFC 群（設計のみ、未実装
 | [093](done/093-theme-picker-ui.md) | Theme Picker UI | v0.37.0 |
 | [092](done/092-design-system-adoption.md) | Design System Adoption | v0.36.0 |
 | [094](done/094-high-contrast-themes.md) | High-Contrast Themes | v0.38.0 |
+| [095](done/095-v1-authority-scope-and-distribution.md) | v1 Authority, Scope, GUI, Compatibility, and Distribution | D0 decision (2026-07-17) |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |

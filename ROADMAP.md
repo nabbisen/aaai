@@ -6,13 +6,14 @@
 revised in response to the roadmap architecture review at
 `.git-exclude/reviewed/002-v1-remediation-roadmap-architecture-review-2026-07-17.md`
 
-**Planning status:** Accepted with non-blocking notes by independent
-architecture re-review on 2026-07-17. This acceptance authorizes detailed
-WS-01 and WS-02 design only after their ownership and capacity entry checks;
-it does not authorize implementation or release activity.
+**Planning status:** Roadmap accepted with non-blocking notes. M0/D0 completed
+on 2026-07-17 by owner approval of
+`rfcs/done/095-v1-authority-scope-and-distribution.md`. The selected baseline is
+guided-by-default with the three-pane expert workspace retained; Store/MSIX is
+deferred from v1. This authorizes RFC 096 design under the WS-02 entry record,
+not product implementation or release activity.
 
-**Serial base program window:** 2026-07-20 through 2027-03-19 if the current
-GUI baseline is retained; through 2027-04-23 if D0 selects the guided redesign
+**Selected serial program window:** 2026-07-17 through 2027-04-23
 
 **Release posture:** feature freeze; no v1.0 readiness, Store-submission, or
 release-candidate claim until Milestone 7 passes.
@@ -57,27 +58,27 @@ The program is complete only when all of the following are true:
    acceptance budgets, or is explicitly narrowed before v1.
 7. Public documentation matches executable behavior and actual distribution
    availability.
-8. Cross-platform, performance, GUI, accessibility, visual, and
-   D0-conditional packaging/distribution evidence is complete enough for a
-   separate release review.
+8. Cross-platform, performance, GUI, accessibility, visual, and approved direct
+   packaging/distribution evidence is complete enough for a separate release
+   review.
 
 ### Serial milestone schedule
 
 | Milestone | Target window | Outcome | Implementation entry dependency | Exit gate |
 |---|---|---|---|---|
-| **M0 — Program charter and v1 authority** | Jul 20–24: decision design and owner review | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0:** one normative baseline, frozen feature scope, and explicit v1 distribution set |
+| **M0 — Program charter and v1 authority** | **Completed Jul 17:** decision design, independent review, and owner approval | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
 | **M1 — Safe tests and local-state boundary** | Jul 27–31: RFC design/review; Aug 3–14: implementation/evidence | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved M1 RFC | **S1:** isolated full-suite pass plus real-state non-access evidence |
 | **M1C — Safe hosted-CI bootstrap** | Aug 17–21: RFC design/review; Aug 24–28: implementation/evidence | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; approved CI-bootstrap RFC | **B0:** safe hosted platform matrix is green |
 | **M2 — Untrusted input/output boundary** | Aug 31–Sep 4: symlink-contract design/review; Sep 7–11: implementation/evidence; Sep 14–18: output-contract design/review; Sep 21–Oct 2: implementation/evidence | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
 | **M3 — Cross-platform persistence** | Oct 5–9: RFC design/review; Oct 12–23: implementation/evidence | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
 | **M4A — Supply-chain disposition** | Oct 26–30: RFC design/review; Nov 2–13: implementation/evidence | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
 | **M4B — Format, lint, and maintainability policy** | Nov 16–20: RFC design/review; Nov 23–Dec 4: implementation/evidence | One formatting policy, clean Clippy, module/file-boundary rules for touched oversized files | C0 complete | **C2:** format and lint gates pass under the approved policy |
-| **M4C — Release automation and operations** | Dec 7–11: RFC design/review; Dec 14–18: implementation/evidence | Version tooling, crate identity, package/publish workflow, release documentation, and conditional distribution automation repaired | C0 and C2 complete | **C1:** complete hosted CI, security, package, and release workflow is green |
+| **M4C — Release automation and operations** | Dec 7–11: RFC design/review; Dec 14–18: implementation/evidence | Version tooling, crate identity, package/publish workflow, release documentation, and approved direct-distribution automation repaired | C0 and C2 complete | **C1:** complete hosted CI, security, package, and release workflow is green |
 | **Year-end capacity buffer** | Dec 21–Jan 1 | No milestone implementation is scheduled | M4C complete | Work resumes Jan 4 without waiving a gate |
 | **M5 — Scalable diff architecture** | Jan 4–15: fixtures, budgets, RFC design/review; Jan 18–Feb 12: implementation/evidence | Staged bounded scan and lazy retention, or an owner-approved narrowed normative scale requirement with replacement budgets | D0, S2, P1, and C1 complete | **E1:** approved full-scale or replacement-scale budgets pass |
-| **M5G — Guided GUI convergence (conditional)** | Feb 15–19: re-estimation and RFC review; Feb 22–Mar 19: implementation/evidence | Implement and test the simplified beginner path while preserving any D0-approved expert surface | D0 selects guided redesign; M5 complete | **U1:** approved GUI, keyboard, and visual acceptance passes |
-| **M6 — Product and documentation convergence** | If GUI retained: Feb 15–19 design/review, Feb 22–26 implementation; if guided: Mar 22–26 design/review, Mar 29–Apr 2 implementation | Compatibility, README, mdBook, RFC lifecycle, roadmap history, and public distribution claims reconciled to D0 and E1 | M1–M5 and conditional M5G complete | **D1:** supported docs toolchain builds and docs match executable behavior and normative scope |
-| **M7 — Release-candidate evidence** | If GUI retained: Mar 1–5 plan review, Mar 8–19 evidence; if guided: Apr 5–9 plan review, Apr 12–23 evidence | Assemble—not redefine—cross-platform, package/publish, conditional distribution, performance, real-display GUI/ABDD, and visual evidence | M1–M6 complete | **R1:** independent review has zero blocking findings |
+| **M5G — Guided GUI convergence** | Feb 15–19: re-estimation and RFC review; Feb 22–Mar 19: implementation/evidence | Implement and test the simplified beginner path while preserving the approved three-pane expert surface | D0 guided baseline selected; M5 complete | **U1:** approved GUI, keyboard, and visual acceptance passes |
+| **M6 — Product and documentation convergence** | Mar 22–26: design/review; Mar 29–Apr 2: implementation/evidence | Test-backed compatibility acceptance plus README, mdBook, RFC lifecycle, roadmap history, and public distribution claims reconciled to D0 and E1 | M1–M5G complete | **D1:** supported docs toolchain builds and docs match executable behavior and normative scope |
+| **M7 — Release-candidate evidence** | Apr 5–9: plan review; Apr 12–23: evidence | Assemble—not redefine—cross-platform, package/publish, direct distribution, performance, real-display GUI/ABDD, and visual evidence | M1–M6 complete | **R1:** independent review has zero blocking findings |
 
 No release is scheduled by this table. Passing M7 creates a review point at
 which the maintainer may authorize a release candidate; it does not authorize a
@@ -96,14 +97,14 @@ Architecture review
   --> M4B/C2
   --> M4C/C1
   --> M5/E1
-  --> [M5G/U1 only when D0 selects guided GUI]
+  --> M5G/U1
   --> M6/D1
   --> M7/R1
 ```
 
 This is the one-primary-implementer critical path and contains no implementation
-overlap. If D0 selects the guided redesign, M5G is inserted between M5 and M6
-and the serial program window moves to April 23, 2027.
+overlap. D0 selected the guided redesign, so M5G is part of the required path
+and the serial program window ends on April 23, 2027.
 
 ### Accelerated schedule policy
 
@@ -117,7 +118,7 @@ schedule used for commitments or risk reporting.
 
 | Gate | Minimum auditable evidence |
 |---|---|
-| **D0** | Owner-approved normative-source precedence, supported feature inventory, GUI baseline, compatibility boundary, and v1 distribution set |
+| **D0 — passed 2026-07-17** | RFC 095 records owner-approved normative-source precedence, supported feature inventory and release disposition, guided/expert GUI baseline, compatibility ownership, direct v1 distribution set, Store/MSIX deferral, and feature freeze |
 | **S1** | All subprocess helpers inject isolated platform home/config variables; deny/canary roots cover fallback lookups; destructive history fixtures exceed the prune threshold; pre/post fingerprints and captured output prove canaries remain unread and unchanged |
 | **B0** | Hosted Linux/macOS/Windows jobs use current crate names, the isolated test harness, and the declared MSRV; failures are blocking |
 | **S2** | Approved threat model; symlink/path/error reporting contract; adversarial encoding, formula, masking, cross-root-link, and platform tests run through B0 |
@@ -130,21 +131,22 @@ schedule used for commitments or risk reporting.
 | **D1** | Supported mdBook/toolchain range is declared and green; public docs, executable help, GUI, RFC index, compatibility text, E1 scale branch, and D0 distribution claims agree |
 | **R1** | Independent architecture/release review reports zero blocking findings; `Accept with notes` is permitted only when every note is explicitly non-blocking for the later release decision |
 
-Store artwork, MSIX installation, terminal-alias validation, signing, and Store
-submission evidence are required by M7 only when D0 includes the corresponding
-distribution channel in the v1 set. Otherwise those items remain explicitly
-deferred and public documentation must not claim availability.
+D0 excludes Store/MSIX from the v1 distribution set. Store artwork, MSIX
+installation, terminal-alias validation, signing, certification, and submission
+evidence are therefore deferred and public documentation must not claim
+availability. Adding that channel requires an owner-approved RFC 095/D0
+amendment and new ownership/evidence assignments.
 
 ### Planned workstream and RFC sequence
 
 Workstream IDs are stable planning labels. RFC numbers are assigned
-sequentially only when proposal files are created, so a conditional workstream
-does not reserve or leave an unexplained RFC-number gap. Detailed design and
-approval begin only after this roadmap revision is accepted.
+sequentially only when proposal files are created, so optional or later-revised
+work does not reserve or leave an unexplained RFC-number gap. Detailed design
+and approval begin only after this roadmap revision is accepted.
 
 | Order | Workstream | Design responsibility | Contract dependency | Handoff requirement |
 |---:|---|---|---|---|
-| 1 | **WS-01 — v1 authority, scope, GUI, and distribution baseline** | Normative source precedence; supported feature inventory; GUI choice; compatibility and distribution boundary | None | Decision and acceptance matrix may live in the RFC; no separate developer handoff |
+| 1 | **WS-01 — v1 authority, scope, GUI, and distribution baseline** | **Completed by RFC 095/D0.** Normative source precedence; supported feature inventory and evidence ownership; guided/expert GUI; compatibility and direct distribution boundary | None | No developer handoff; owner decision is the implemented artifact |
 | 2 | **WS-02 — test environment and user-state isolation** | Per-test environment sandbox; subprocess-helper migration table; deny/canary contract; regression checklist | WS-01 gate only for program sequencing, not technical design | No separate handoff if the RFC contains the complete migration table and checklist |
 | 3 | **WS-03 — safe hosted-CI bootstrap** | Current crate names; isolated tests; MSRV; blocking Linux/macOS/Windows bootstrap matrix | WS-02 | **Required** CI developer/operations handoff |
 | 4 | **WS-04 — selected-folder and symlink policy** | Link classification, containment, platform behavior, and shared path/error/reporting semantics | WS-01, WS-03 | **Required** platform developer/QA handoff |
@@ -152,14 +154,14 @@ approval begin only after this roadmap revision is accepted.
 | 6 | **WS-06 — atomic definition persistence** | Atomic replace, lock ownership, stale recovery, temp naming, crash and concurrent-writer behavior | WS-03, WS-05 gate for serial sequencing | **Required** cross-platform developer/QA handoff |
 | 7 | **WS-07 — dependency and supply-chain disposition** | Advisory upgrade, reachability, mitigation, exception, expiry, and removal policy | WS-03 | **Required** security/release handoff |
 | 8 | **WS-08 — formatting, lint, and touched-file maintainability** | Formatting decision; Clippy cleanup; module/file splitting criteria where remediation touches oversized files | WS-07 for serial sequencing | RFC-contained migration and verification checklist |
-| 9 | **WS-09 — release automation and operational repair** | Crate identity; version self-test; hosted workflow completion; package/publish dry runs; D0-conditional distribution automation and release docs | WS-07, WS-08 | **Required** CI/release developer/operator handoff |
+| 9 | **WS-09 — release automation and operational repair** | Crate identity; version self-test; hosted workflow completion; package/publish dry runs; D0-approved direct-distribution automation and release docs | WS-07, WS-08 | **Required** CI/release developer/operator handoff |
 | 10 | **WS-10 — staged and bounded diff engine** | Metadata/content phases, lazy data, memory bounds, cancellation, progress, fixtures, benchmark budgets or normative narrowing | WS-01, WS-04, WS-09 | **Required** multi-step implementation/performance handoff |
-| 11 | **WS-11 — guided v1 GUI convergence, conditional** | Implement the D0-selected guided path while preserving any approved expert surface | Created only if WS-01 selects guided redesign; WS-05 and WS-10 | **Required** UI/UX developer and visual-QA handoff |
-| 12 | **WS-12 — product and documentation convergence** | Compatibility, public truth, mdBook range, RFC lifecycle/index repair, E1 branch, and D0 distribution claims | WS-01–WS-10 and conditional WS-11 | Documentation acceptance matrix may live in the RFC |
-| 13 | **WS-13 — release-candidate evidence plan** | Assemble prior gates; define operators, environments, evidence locations, rerun/rollback commands, and independent review input without redefining acceptance | WS-01–WS-12 as applicable | **Required** release/QA operator handoff |
+| 11 | **WS-11 — guided v1 GUI convergence** | Implement the D0-selected guided path while preserving the approved three-pane expert surface | WS-05 and WS-10 | **Required** UI/UX developer and visual-QA handoff |
+| 12 | **WS-12 — product and documentation convergence** | Produce and pass the RFC 095 compatibility acceptance matrix; reconcile public truth, mdBook range, RFC lifecycle/index, E1 branch, and D0 distribution claims | WS-01–WS-11 | Documentation and compatibility acceptance matrix may live in the RFC |
+| 13 | **WS-13 — release-candidate evidence plan** | Assemble prior gates; define operators, environments, evidence locations, rerun/rollback commands, and independent review input without redefining acceptance | WS-01–WS-12 | **Required** release/QA operator handoff |
 
-WS-01 and WS-02 are expected to receive the next available RFC numbers after
-roadmap approval. Later numbers follow actual creation order.
+WS-01 is complete as RFC 095. WS-02 receives RFC 096 when its proposal is
+created. Later numbers follow actual creation order.
 
 WS-04 defines the shared external path/error/reporting contract before WS-05
 is designed. Implementation may remain independently reviewable, but the two
@@ -181,8 +183,8 @@ dependent dates.
 | Windows overwrite, locking, collision, crash, and recovery | Cross-platform persistence QA owner | WS-06 review |
 | 10k/large-file fixtures, benchmark hardware, variance and replacement-budget policy | Performance owner and QA reviewer | WS-10 review |
 | Supported mdBook/toolchain range and public-doc reconciliation | Documentation owner | WS-12 review |
-| Real-display keyboard, ABDD, visual, and conditional guided-flow evidence | GUI/UX verification operator | WS-11 when created, otherwise WS-13 review |
-| Package/publish dry runs and D0-approved MSIX/Store environments, artwork, alias checks | Release operator; artwork owner when Store is in D0 scope | WS-09 and WS-13 reviews |
+| Real-display keyboard, ABDD, visual, and guided/expert-flow evidence | GUI/UX verification operator | WS-11 review |
+| Package/publish dry runs and D0-approved direct distribution artifacts | Release operator | WS-09 and WS-13 reviews |
 
 Required handoffs must be approved before implementation or operator evidence
 begins. Each handoff contains the platform/fixture matrix, abuse or failure
