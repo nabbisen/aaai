@@ -53,6 +53,7 @@ pub mod profile;
 pub mod project;
 pub mod report;
 pub mod templates;
+mod user_state;
 
 pub use audit::engine::{AuditEngine, AuditOptions};
 pub use audit::result::{AuditResult, AuditStatus, AuditSummary, FileAuditResult};

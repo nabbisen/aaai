@@ -96,6 +96,3 @@ fn main() -> anyhow::Result<()> {
         Commands::ExitCodes(args)   => cmd::exit_codes::run(args),
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -5,20 +5,13 @@
 
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
-// ── helpers ──────────────────────────────────────────────────────────────
+#[path = "cli/state_isolation.rs"]
+mod state_isolation;
+#[path = "cli/support.rs"]
+mod support;
 
-fn aaai() -> Command {
-    // Find the binary relative to the workspace target directory.
-    let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.pop(); // crates/aaai-cli -> crates
-    path.pop(); // crates -> workspace root
-    path.push("target");
-    path.push("debug");
-    path.push("aaai");
-    Command::new(path)
-}
+use support::aaai;
 
 fn setup_dirs(before: &Path, after: &Path) {
     fs::create_dir_all(before).unwrap();
@@ -45,7 +38,9 @@ fn audit_exits_0_when_all_ok() {
     write(&a, "f.txt", "hello world\n");
 
     let audit_yaml = tmp.path().join("audit.yaml");
-    write_audit(&audit_yaml, r#"version: "1"
+    write_audit(
+        &audit_yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -53,14 +48,22 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
 
     let status = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", audit_yaml.to_str().unwrap(),
-               "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -74,7 +77,9 @@ fn audit_exits_1_on_failed_entry() {
     write(&a, "cfg.toml", "port = 9999\n");
 
     let audit_yaml = tmp.path().join("audit.yaml");
-    write_audit(&audit_yaml, r#"version: "1"
+    write_audit(
+        &audit_yaml,
+        r#"version: "1"
 entries:
   - path: cfg.toml
     diff_type: Modified
@@ -87,14 +92,22 @@ entries:
         - action: Added
           line: "port = 8080"
     enabled: true
-"#);
+"#,
+    );
 
     let status = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", audit_yaml.to_str().unwrap(),
-               "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(1), "Failed audit should exit 1");
 }
 
@@ -111,11 +124,18 @@ fn audit_exits_2_on_pending_entry() {
     write_audit(&audit_yaml, "version: \"1\"\n");
 
     let status = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", audit_yaml.to_str().unwrap(),
-               "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(2), "Pending should exit 2");
 }
 
@@ -130,11 +150,19 @@ fn audit_exit_0_with_allow_pending() {
     write_audit(&audit_yaml, "version: \"1\"\n");
 
     let status = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", audit_yaml.to_str().unwrap(),
-               "--allow-pending", "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--allow-pending",
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -148,7 +176,9 @@ fn audit_json_output_is_valid_json() {
     write(&a, "f.txt", "b\n");
 
     let audit_yaml = tmp.path().join("audit.yaml");
-    write_audit(&audit_yaml, r#"version: "1"
+    write_audit(
+        &audit_yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -156,17 +186,28 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
 
     let out = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", audit_yaml.to_str().unwrap(),
-               "--json-output", "--no-history"])
-        .output().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--json-output",
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(serde_json::from_str::<serde_json::Value>(&stdout).is_ok(),
-        "JSON output must be valid JSON; got: {stdout}");
+    assert!(
+        serde_json::from_str::<serde_json::Value>(&stdout).is_ok(),
+        "JSON output must be valid JSON; got: {stdout}"
+    );
 }
 
 // ── snap subcommand ───────────────────────────────────────────────────────
@@ -182,15 +223,24 @@ fn snap_generates_definition_file() {
 
     let out_path = tmp.path().join("audit.yaml");
     let status = aaai()
-        .args(["snap", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--out", out_path.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(out_path.exists(), "snap should create the output file");
     let content = fs::read_to_string(&out_path).unwrap();
-    assert!(content.contains("added.txt") || content.contains("removed.txt"),
-        "snap output should list diffed files");
+    assert!(
+        content.contains("added.txt") || content.contains("removed.txt"),
+        "snap output should list diffed files"
+    );
 }
 
 #[test]
@@ -203,11 +253,18 @@ fn snap_dry_run_does_not_write_file() {
 
     let out_path = tmp.path().join("audit.yaml");
     let status = aaai()
-        .args(["snap", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--out", out_path.to_str().unwrap(),
-               "--dry-run"])
-        .status().unwrap();
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(!out_path.exists(), "--dry-run must NOT write the file");
 }
@@ -218,7 +275,9 @@ fn snap_dry_run_does_not_write_file() {
 fn check_exits_0_for_valid_definition() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -226,10 +285,12 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let status = aaai()
         .args(["check", yaml.to_str().unwrap()])
-        .status().unwrap();
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -240,7 +301,8 @@ fn check_exits_nonzero_for_invalid_yaml() {
     write_audit(&yaml, "not: valid: yaml: [[[");
     let status = aaai()
         .args(["check", yaml.to_str().unwrap()])
-        .status().unwrap();
+        .run_status()
+        .unwrap();
     assert_ne!(status.code(), Some(0), "invalid YAML must fail check");
 }
 
@@ -257,11 +319,19 @@ fn report_markdown_creates_file() {
     let out = tmp.path().join("report.md");
 
     let status = aaai()
-        .args(["report", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--out", out.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(out.exists());
     let content = fs::read_to_string(&out).unwrap();
@@ -277,7 +347,9 @@ fn report_html_creates_valid_file() {
     write(&b, "f.txt", "old\n");
     write(&a, "f.txt", "new\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -285,20 +357,33 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = tmp.path().join("report.html");
 
     let status = aaai()
-        .args(["report", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--format", "html",
-               "--out", out.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--format",
+            "html",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(out.exists());
     let content = fs::read_to_string(&out).unwrap();
-    assert!(content.contains("<!DOCTYPE html>"), "HTML report should start with DOCTYPE");
+    assert!(
+        content.contains("<!DOCTYPE html>"),
+        "HTML report should start with DOCTYPE"
+    );
     assert!(content.contains("aaai Audit Report"));
 }
 
@@ -318,7 +403,9 @@ fn glob_rule_matches_multiple_files() {
     write(&a.join("logs"), "db.log", "new\n");
 
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: "logs/*.log"
     diff_type: Modified
@@ -326,15 +413,27 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
 
     let status = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--no-history"])
-        .status().unwrap();
-    assert_eq!(status.code(), Some(0), "glob rule should match both log files");
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
+    assert_eq!(
+        status.code(),
+        Some(0),
+        "glob rule should match both log files"
+    );
 }
 
 // ── Phase 7: new commands ────────────────────────────────────────────────
@@ -351,13 +450,21 @@ fn diff_exits_0_and_shows_changes() {
     write(&a, "same.txt", "same\n");
 
     let out = aaai()
-        .args(["diff", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap()])
-        .output().unwrap();
+        .args([
+            "diff",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("old.txt") || stdout.contains("new.txt"),
-        "diff should mention changed files");
+    assert!(
+        stdout.contains("old.txt") || stdout.contains("new.txt"),
+        "diff should mention changed files"
+    );
 }
 
 #[test]
@@ -369,14 +476,20 @@ fn diff_json_output_is_valid() {
     write(&a, "added.txt", "content\n");
 
     let out = aaai()
-        .args(["diff", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--json-output"])
-        .output().unwrap();
+        .args([
+            "diff",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--json-output",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("diff --json-output must produce valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("diff --json-output must produce valid JSON");
     assert!(parsed.is_array(), "diff JSON output should be an array");
 }
 
@@ -389,7 +502,9 @@ fn export_csv_produces_header_row() {
     write(&b, "f.txt", "old\n");
     write(&a, "f.txt", "new\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -397,22 +512,40 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out_csv = tmp.path().join("out.csv");
 
     let status = aaai()
-        .args(["export", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--out", out_csv.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "export",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--out",
+            out_csv.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(out_csv.exists());
     let content = fs::read_to_string(&out_csv).unwrap();
     let first_line = content.lines().next().unwrap_or("");
-    assert!(first_line.contains("path"), "CSV header should contain 'path'");
-    assert!(first_line.contains("reason"), "CSV header should contain 'reason'");
-    assert!(first_line.contains("status"), "CSV header should contain 'status'");
+    assert!(
+        first_line.contains("path"),
+        "CSV header should contain 'path'"
+    );
+    assert!(
+        first_line.contains("reason"),
+        "CSV header should contain 'reason'"
+    );
+    assert!(
+        first_line.contains("status"),
+        "CSV header should contain 'status'"
+    );
 }
 
 #[test]
@@ -426,16 +559,28 @@ fn export_tsv_uses_tab_separator() {
     let out_tsv = tmp.path().join("out.tsv");
 
     let status = aaai()
-        .args(["export", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--format", "tsv",
-               "--out", out_tsv.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "export",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--format",
+            "tsv",
+            "--out",
+            out_tsv.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out_tsv).unwrap();
     let first_line = content.lines().next().unwrap_or("");
-    assert!(first_line.contains('\t'), "TSV header should use tab separator");
+    assert!(
+        first_line.contains('\t'),
+        "TSV header should use tab separator"
+    );
 }
 
 #[test]
@@ -443,7 +588,9 @@ fn merge_detect_conflicts() {
     let tmp = tempfile::tempdir().unwrap();
     let base = tmp.path().join("base.yaml");
     let overlay = tmp.path().join("overlay.yaml");
-    write_audit(&base, r#"version: "1"
+    write_audit(
+        &base,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -451,8 +598,11 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
-    write_audit(&overlay, r#"version: "1"
+"#,
+    );
+    write_audit(
+        &overlay,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Added
@@ -460,16 +610,24 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
 
     let out = aaai()
-        .args(["merge", base.to_str().unwrap(), overlay.to_str().unwrap(),
-               "--detect-conflicts"])
-        .output().unwrap();
+        .args([
+            "merge",
+            base.to_str().unwrap(),
+            overlay.to_str().unwrap(),
+            "--detect-conflicts",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("conflict") || stdout.contains("Conflict"),
-        "conflict detection should mention conflicts");
+    assert!(
+        stdout.contains("conflict") || stdout.contains("Conflict"),
+        "conflict detection should mention conflicts"
+    );
 }
 
 #[test]
@@ -483,25 +641,26 @@ fn report_sarif_format_valid() {
     let out = tmp.path().join("result.sarif");
 
     let status = aaai()
-        .args(["report", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--format", "sarif",
-               "--out", out.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--format",
+            "sarif",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out).unwrap();
-    let v: serde_json::Value = serde_json::from_str(&content)
-        .expect("SARIF output must be valid JSON");
+    let v: serde_json::Value =
+        serde_json::from_str(&content).expect("SARIF output must be valid JSON");
     assert_eq!(v["version"], "2.1.0", "SARIF version must be 2.1.0");
-}
-
-#[test]
-fn history_stats_exits_0() {
-    let status = aaai()
-        .args(["history", "--stats"])
-        .status().unwrap();
-    assert_eq!(status.code(), Some(0));
 }
 
 #[test]
@@ -515,7 +674,9 @@ fn audit_warns_on_large_file_with_linematch() {
     write(&b, "cfg.toml", "x = 1\n");
     write(&a, "cfg.toml", "x = 2\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: cfg.toml
     diff_type: Modified
@@ -528,13 +689,22 @@ entries:
         - action: Added
           line: "x = 2"
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
-        .args(["audit", "--left", b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--json-output", "--no-history"])
-        .output().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--json-output",
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
     let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
@@ -545,18 +715,24 @@ entries:
 
 #[test]
 fn completions_bash_exits_0() {
-    let out = aaai().args(["completions", "bash"]).output().unwrap();
+    let out = aaai().args(["completions", "bash"]).run_output().unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("aaai"), "bash completion should mention 'aaai'");
+    assert!(
+        stdout.contains("aaai"),
+        "bash completion should mention 'aaai'"
+    );
 }
 
 #[test]
 fn completions_zsh_exits_0() {
-    let out = aaai().args(["completions", "zsh"]).output().unwrap();
+    let out = aaai().args(["completions", "zsh"]).run_output().unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!stdout.is_empty(), "zsh completion output should not be empty");
+    assert!(
+        !stdout.is_empty(),
+        "zsh completion output should not be empty"
+    );
 }
 
 #[test]
@@ -564,28 +740,37 @@ fn config_init_creates_aaai_yaml() {
     let tmp = tempfile::tempdir().unwrap();
     let status = aaai()
         .args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
-        .status().unwrap();
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let config_path = tmp.path().join(".aaai.yaml");
     assert!(config_path.exists(), ".aaai.yaml should be created");
     let content = fs::read_to_string(&config_path).unwrap();
-    assert!(content.contains("version"), ".aaai.yaml should contain 'version'");
+    assert!(
+        content.contains("version"),
+        ".aaai.yaml should contain 'version'"
+    );
 }
 
 #[test]
 fn config_init_skips_existing() {
     let tmp = tempfile::tempdir().unwrap();
     // Create first
-    aaai().args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
-        .status().unwrap();
+    aaai()
+        .args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
+        .run_status()
+        .unwrap();
     // Try again — should report already exists, not overwrite
     let out = aaai()
         .args(["config", "--init", "--dir", tmp.path().to_str().unwrap()])
-        .output().unwrap();
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("already exists") || stdout.contains("既に"),
-        "should report existing config");
+    assert!(
+        stdout.contains("already exists") || stdout.contains("既に"),
+        "should report existing config"
+    );
 }
 
 #[test]
@@ -598,11 +783,17 @@ fn dashboard_exits_0() {
     write_audit(&yaml, "version: \"1\"\n");
 
     let status = aaai()
-        .args(["dashboard",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "dashboard",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -610,18 +801,29 @@ fn dashboard_exits_0() {
 fn init_non_interactive_creates_config() {
     let tmp = tempfile::tempdir().unwrap();
     let status = aaai()
-        .args(["init", "--dir", tmp.path().to_str().unwrap(), "--non-interactive"])
-        .status().unwrap();
+        .args([
+            "init",
+            "--dir",
+            tmp.path().to_str().unwrap(),
+            "--non-interactive",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let config_path = tmp.path().join(".aaai.yaml");
-    assert!(config_path.exists(), "non-interactive init should create .aaai.yaml");
+    assert!(
+        config_path.exists(),
+        "non-interactive init should create .aaai.yaml"
+    );
 }
 
 #[test]
 fn lint_json_output_valid() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -629,14 +831,16 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
         .args(["lint", yaml.to_str().unwrap(), "--json-output"])
-        .output().unwrap();
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    let parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("lint --json-output must produce valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("lint --json-output must produce valid JSON");
     assert!(parsed.is_array(), "lint JSON must be an array");
 }
 
@@ -644,7 +848,9 @@ entries:
 fn lint_json_output_finds_empty_linematch() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -653,15 +859,19 @@ entries:
       type: LineMatch
       rules: []
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
         .args(["lint", yaml.to_str().unwrap(), "--json-output"])
-        .output().unwrap();
+        .run_output()
+        .unwrap();
     // Should exit 1 because of empty-linematch error
     assert_eq!(out.status.code(), Some(1));
     let stdout = String::from_utf8(out.stdout).unwrap();
     let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    let has_empty_linematch = issues.as_array().unwrap()
+    let has_empty_linematch = issues
+        .as_array()
+        .unwrap()
         .iter()
         .any(|i| i["kind"] == "empty-linematch");
     assert!(has_empty_linematch, "should detect empty-linematch");
@@ -669,18 +879,21 @@ entries:
 
 #[test]
 fn version_json_output_valid() {
-    let out = aaai().args(["version", "--json-output"]).output().unwrap();
+    let out = aaai()
+        .args(["version", "--json-output"])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    let v: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("version --json-output must produce valid JSON");
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout).expect("version --json-output must produce valid JSON");
     assert!(v["version"].is_string(), "version field must be present");
     assert!(v["license"].is_string(), "license field must be present");
 }
 
 #[test]
 fn version_plain_exits_0() {
-    let status = aaai().args(["version"]).status().unwrap();
+    let status = aaai().args(["version"]).run_status().unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -698,12 +911,18 @@ fn audit_exit_4_on_config_error() {
     write_audit(&bad_yaml, "not: valid: yaml: [[[\n");
 
     let status = aaai()
-        .args(["audit",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", bad_yaml.to_str().unwrap(),
-               "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            bad_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(4), "invalid YAML config must exit 4");
 }
 
@@ -716,7 +935,9 @@ fn audit_verbose_shows_reason() {
     write(&b, "f.txt", "old\n");
     write(&a, "f.txt", "new\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -724,18 +945,28 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
-        .args(["audit",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--verbose", "--no-history"])
-        .output().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--verbose",
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("verbose reason text"),
-        "verbose mode should print the reason");
+    assert!(
+        stdout.contains("verbose reason text"),
+        "verbose mode should print the reason"
+    );
 }
 
 #[test]
@@ -747,7 +978,9 @@ fn audit_mask_secrets_redacts_output() {
     write(&b, "f.txt", "x\n");
     write(&a, "f.txt", "y\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -755,20 +988,33 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
-        .args(["audit",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--verbose", "--mask-secrets", "--no-history"])
-        .output().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--verbose",
+            "--mask-secrets",
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!stdout.contains("sk-abcdefghijklmnop"),
-        "--mask-secrets must redact secret values from output");
-    assert!(stdout.contains("MASKED"),
-        "--mask-secrets should replace with MASKED marker");
+    assert!(
+        !stdout.contains("sk-abcdefghijklmnop"),
+        "--mask-secrets must redact secret values from output"
+    );
+    assert!(
+        stdout.contains("MASKED"),
+        "--mask-secrets should replace with MASKED marker"
+    );
 }
 
 #[test]
@@ -780,7 +1026,9 @@ fn audit_suppress_warnings_flag() {
     write(&b, "f.txt", "old\n");
     write(&a, "f.txt", "new\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -788,15 +1036,23 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let status = aaai()
-        .args(["audit",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--suppress-warnings", "no-approver",
-               "--no-history"])
-        .status().unwrap();
+        .args([
+            "audit",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--suppress-warnings",
+            "no-approver",
+            "--no-history",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -805,15 +1061,24 @@ entries:
 #[test]
 fn snap_list_templates_exits_0() {
     let out = aaai()
-        .args(["snap",
-               "--left", "/tmp", "--right", "/tmp",
-               "--out", "/tmp/x.yaml",
-               "--list-templates"])
-        .output().unwrap();
+        .args([
+            "snap",
+            "--left",
+            "/tmp",
+            "--right",
+            "/tmp",
+            "--out",
+            "/tmp/x.yaml",
+            "--list-templates",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("version_bump") || stdout.contains("port_change"),
-        "list-templates should show template IDs");
+    assert!(
+        stdout.contains("version_bump") || stdout.contains("port_change"),
+        "list-templates should show template IDs"
+    );
 }
 
 #[test]
@@ -827,16 +1092,25 @@ fn snap_template_applied() {
     let out_path = tmp.path().join("audit.yaml");
 
     let status = aaai()
-        .args(["snap",
-               "--left",     b.to_str().unwrap(),
-               "--right",    a.to_str().unwrap(),
-               "--out",      out_path.to_str().unwrap(),
-               "--template", "version_bump"])
-        .status().unwrap();
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+            "--template",
+            "version_bump",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out_path).unwrap();
-    assert!(content.contains("Regex") || content.contains("regex"),
-        "version_bump template should set Regex strategy");
+    assert!(
+        content.contains("Regex") || content.contains("regex"),
+        "version_bump template should set Regex strategy"
+    );
 }
 
 #[test]
@@ -849,16 +1123,25 @@ fn snap_approver_flag_sets_approved_by() {
     let out_path = tmp.path().join("audit.yaml");
 
     let status = aaai()
-        .args(["snap",
-               "--left",     b.to_str().unwrap(),
-               "--right",    a.to_str().unwrap(),
-               "--out",      out_path.to_str().unwrap(),
-               "--approver", "alice"])
-        .status().unwrap();
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+            "--approver",
+            "alice",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out_path).unwrap();
-    assert!(content.contains("alice"),
-        "--approver should set approved_by in generated entries");
+    assert!(
+        content.contains("alice"),
+        "--approver should set approved_by in generated entries"
+    );
 }
 
 #[test]
@@ -869,15 +1152,22 @@ fn snap_merge_adds_only_new_entries() {
     setup_dirs(&b, &a);
     write(&b, "existing.txt", "old\n");
     write(&a, "existing.txt", "new\n");
-    write(&a, "added.txt",    "hello\n");
+    write(&a, "added.txt", "hello\n");
 
     let out_path = tmp.path().join("audit.yaml");
     // First snap
-    aaai().args(["snap",
-                 "--left",  b.to_str().unwrap(),
-                 "--right", a.to_str().unwrap(),
-                 "--out",   out_path.to_str().unwrap()])
-          .status().unwrap();
+    aaai()
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     // Set reason on existing entry so --merge should skip it
     let content = fs::read_to_string(&out_path).unwrap();
     let with_reason = content.replace("reason: ''", "reason: 'already approved'");
@@ -885,16 +1175,24 @@ fn snap_merge_adds_only_new_entries() {
 
     // Second snap with --merge should not overwrite existing reason
     let status = aaai()
-        .args(["snap",
-               "--left",  b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--out",   out_path.to_str().unwrap(),
-               "--merge"])
-        .status().unwrap();
+        .args([
+            "snap",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--out",
+            out_path.to_str().unwrap(),
+            "--merge",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let final_content = fs::read_to_string(&out_path).unwrap();
-    assert!(final_content.contains("already approved"),
-        "--merge should not overwrite entries that already have a reason");
+    assert!(
+        final_content.contains("already approved"),
+        "--merge should not overwrite entries that already have a reason"
+    );
 }
 
 // ── report: 追加フォーマット ───────────────────────────────────────────────────
@@ -910,18 +1208,28 @@ fn report_json_format_creates_valid_file() {
     let out = tmp.path().join("report.json");
 
     let status = aaai()
-        .args(["report",
-               "--left",   b.to_str().unwrap(),
-               "--right",  a.to_str().unwrap(),
-               "--config", yaml.to_str().unwrap(),
-               "--format", "json",
-               "--out",    out.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--format",
+            "json",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(out.exists());
-    let v: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
-    assert!(v.get("result").is_some(), "JSON report must have 'result' field");
+    let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(&out).unwrap()).unwrap();
+    assert!(
+        v.get("result").is_some(),
+        "JSON report must have 'result' field"
+    );
 }
 
 #[test]
@@ -933,7 +1241,9 @@ fn report_include_diff_embeds_diff_block() {
     write(&b, "f.txt", "line1\n");
     write(&a, "f.txt", "line2\n");
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -941,52 +1251,31 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = tmp.path().join("report.md");
 
     let status = aaai()
-        .args(["report",
-               "--left",         b.to_str().unwrap(),
-               "--right",        a.to_str().unwrap(),
-               "--config",       yaml.to_str().unwrap(),
-               "--include-diff",
-               "--out",          out.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--include-diff",
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     let content = fs::read_to_string(&out).unwrap();
-    assert!(content.contains("```diff") || content.contains("-line1") || content.contains("+line2"),
-        "--include-diff should embed actual diff text");
-}
-
-// ── history: 追加フラグ ────────────────────────────────────────────────────────
-
-#[test]
-fn history_prune_exits_0() {
-    // prune は履歴ファイルが存在しなくても 0 で終了する
-    let status = aaai()
-        .args(["history", "--prune", "100"])
-        .status().unwrap();
-    assert_eq!(status.code(), Some(0));
-}
-
-#[test]
-fn history_n_flag_limits_output() {
-    let out = aaai()
-        .args(["history", "-n", "3"])
-        .output().unwrap();
-    assert_eq!(out.status.code(), Some(0));
-}
-
-#[test]
-fn history_json_output_is_array() {
-    let out = aaai()
-        .args(["history", "--json-output", "-n", "5"])
-        .output().unwrap();
-    assert_eq!(out.status.code(), Some(0));
-    let stdout = String::from_utf8(out.stdout).unwrap();
-    let v: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("history --json-output must be valid JSON");
-    assert!(v.is_array(), "history --json-output must be a JSON array");
+    assert!(
+        content.contains("```diff") || content.contains("-line1") || content.contains("+line2"),
+        "--include-diff should embed actual diff text"
+    );
 }
 
 // ── lint: 追加フラグ ──────────────────────────────────────────────────────────
@@ -995,7 +1284,9 @@ fn history_json_output_is_array() {
 fn lint_detects_duplicate_path() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("dup.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -1009,16 +1300,21 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
         .args(["lint", yaml.to_str().unwrap(), "--json-output"])
-        .output().unwrap();
+        .run_output()
+        .unwrap();
     // duplicate-path is an error → exit 1
     assert_eq!(out.status.code(), Some(1));
     let issues: serde_json::Value =
         serde_json::from_str(&String::from_utf8(out.stdout).unwrap()).unwrap();
-    let has_dup = issues.as_array().unwrap()
-        .iter().any(|i| i["kind"] == "duplicate-path");
+    let has_dup = issues
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|i| i["kind"] == "duplicate-path");
     assert!(has_dup, "lint should detect duplicate-path entries");
 }
 
@@ -1026,7 +1322,9 @@ entries:
 fn lint_require_ticket_warns_missing() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -1034,23 +1332,37 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
-        .args(["lint", yaml.to_str().unwrap(),
-               "--require-ticket", "--json-output"])
-        .output().unwrap();
+        .args([
+            "lint",
+            yaml.to_str().unwrap(),
+            "--require-ticket",
+            "--json-output",
+        ])
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
     let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    let has_ticket_warn = issues.as_array().unwrap()
-        .iter().any(|i| i["kind"] == "missing-ticket");
-    assert!(has_ticket_warn, "--require-ticket should warn when ticket is absent");
+    let has_ticket_warn = issues
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|i| i["kind"] == "missing-ticket");
+    assert!(
+        has_ticket_warn,
+        "--require-ticket should warn when ticket is absent"
+    );
 }
 
 #[test]
 fn lint_min_reason_len_warns_short() {
     let tmp = tempfile::tempdir().unwrap();
     let yaml = tmp.path().join("audit.yaml");
-    write_audit(&yaml, r#"version: "1"
+    write_audit(
+        &yaml,
+        r#"version: "1"
 entries:
   - path: f.txt
     diff_type: Modified
@@ -1058,16 +1370,29 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
     let out = aaai()
-        .args(["lint", yaml.to_str().unwrap(),
-               "--min-reason-len", "20", "--json-output"])
-        .output().unwrap();
+        .args([
+            "lint",
+            yaml.to_str().unwrap(),
+            "--min-reason-len",
+            "20",
+            "--json-output",
+        ])
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
     let issues: serde_json::Value = serde_json::from_str(&stdout).unwrap();
-    let has_short = issues.as_array().unwrap()
-        .iter().any(|i| i["kind"] == "short-reason");
-    assert!(has_short, "--min-reason-len should warn when reason is shorter than threshold");
+    let has_short = issues
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|i| i["kind"] == "short-reason");
+    assert!(
+        has_short,
+        "--min-reason-len should warn when reason is shorter than threshold"
+    );
 }
 
 // ── merge: 実際のマージ動作 ────────────────────────────────────────────────────
@@ -1079,7 +1404,9 @@ fn merge_actually_merges_entries() {
     let overlay = tmp.path().join("overlay.yaml");
     let merged = tmp.path().join("merged.yaml");
 
-    write_audit(&base, r#"version: "1"
+    write_audit(
+        &base,
+        r#"version: "1"
 entries:
   - path: base.txt
     diff_type: Added
@@ -1087,8 +1414,11 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
-    write_audit(&overlay, r#"version: "1"
+"#,
+    );
+    write_audit(
+        &overlay,
+        r#"version: "1"
 entries:
   - path: overlay.txt
     diff_type: Added
@@ -1096,19 +1426,30 @@ entries:
     strategy:
       type: None
     enabled: true
-"#);
+"#,
+    );
 
     let status = aaai()
-        .args(["merge",
-               base.to_str().unwrap(),
-               overlay.to_str().unwrap(),
-               "--out", merged.to_str().unwrap()])
-        .status().unwrap();
+        .args([
+            "merge",
+            base.to_str().unwrap(),
+            overlay.to_str().unwrap(),
+            "--out",
+            merged.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
     assert!(merged.exists(), "merge should create output file");
     let content = fs::read_to_string(&merged).unwrap();
-    assert!(content.contains("base.txt"),    "merged file should contain base entries");
-    assert!(content.contains("overlay.txt"), "merged file should contain overlay entries");
+    assert!(
+        content.contains("base.txt"),
+        "merged file should contain base entries"
+    );
+    assert!(
+        content.contains("overlay.txt"),
+        "merged file should contain overlay entries"
+    );
 }
 
 #[test]
@@ -1118,18 +1459,25 @@ fn merge_dry_run_does_not_write() {
     let overlay = tmp.path().join("overlay.yaml");
     let out = tmp.path().join("out.yaml");
 
-    write_audit(&base,    "version: \"1\"\n");
+    write_audit(&base, "version: \"1\"\n");
     write_audit(&overlay, "version: \"1\"\n");
 
     let status = aaai()
-        .args(["merge",
-               base.to_str().unwrap(),
-               overlay.to_str().unwrap(),
-               "--out", out.to_str().unwrap(),
-               "--dry-run"])
-        .status().unwrap();
+        .args([
+            "merge",
+            base.to_str().unwrap(),
+            overlay.to_str().unwrap(),
+            "--out",
+            out.to_str().unwrap(),
+            "--dry-run",
+        ])
+        .run_status()
+        .unwrap();
     assert_eq!(status.code(), Some(0));
-    assert!(!out.exists(), "merge --dry-run must NOT write the output file");
+    assert!(
+        !out.exists(),
+        "merge --dry-run must NOT write the output file"
+    );
 }
 
 // ── diff: 追加フラグ ──────────────────────────────────────────────────────────
@@ -1144,15 +1492,22 @@ fn diff_content_flag_shows_diff_text() {
     write(&a, "f.txt", "new line\n");
 
     let out = aaai()
-        .args(["diff",
-               "--left",    b.to_str().unwrap(),
-               "--right",   a.to_str().unwrap(),
-               "--content"])
-        .output().unwrap();
+        .args([
+            "diff",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--content",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("+new line") || stdout.contains("-old line"),
-        "--content should show inline diff text");
+    assert!(
+        stdout.contains("+new line") || stdout.contains("-old line"),
+        "--content should show inline diff text"
+    );
 }
 
 #[test]
@@ -1166,15 +1521,22 @@ fn diff_all_flag_includes_unchanged() {
     write(&a, "added.txt", "new\n");
 
     let out = aaai()
-        .args(["diff",
-               "--left",  b.to_str().unwrap(),
-               "--right", a.to_str().unwrap(),
-               "--all"])
-        .output().unwrap();
+        .args([
+            "diff",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--all",
+        ])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("same.txt"),
-        "--all should include Unchanged files in output");
+    assert!(
+        stdout.contains("same.txt"),
+        "--all should include Unchanged files in output"
+    );
 }
 
 // ── config: discover ==========================================================
@@ -1186,20 +1548,21 @@ fn config_show_when_no_config_found() {
     let out = aaai()
         .args(["config"])
         .current_dir(tmp.path())
-        .output().unwrap();
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("No") || stdout.contains("not found"),
-        "config with no .aaai.yaml should report not found");
+    assert!(
+        stdout.contains("No") || stdout.contains("not found"),
+        "config with no .aaai.yaml should report not found"
+    );
 }
 
 // ── watch: smoke test =========================================================
 
 #[test]
 fn watch_help_exits_0() {
-    let status = aaai()
-        .args(["watch", "--help"])
-        .status().unwrap();
+    let status = aaai().args(["watch", "--help"]).run_status().unwrap();
     assert_eq!(status.code(), Some(0));
 }
 
@@ -1207,15 +1570,20 @@ fn watch_help_exits_0() {
 
 #[test]
 fn completions_fish_exits_0() {
-    let out = aaai().args(["completions", "fish"]).output().unwrap();
+    let out = aaai().args(["completions", "fish"]).run_output().unwrap();
     assert_eq!(out.status.code(), Some(0));
-    assert!(!String::from_utf8(out.stdout).unwrap().is_empty(),
-        "fish completion output should not be empty");
+    assert!(
+        !String::from_utf8(out.stdout).unwrap().is_empty(),
+        "fish completion output should not be empty"
+    );
 }
 
 #[test]
 fn completions_powershell_exits_0() {
-    let out = aaai().args(["completions", "powershell"]).output().unwrap();
+    let out = aaai()
+        .args(["completions", "powershell"])
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
 }
 
@@ -1226,7 +1594,10 @@ fn completions_powershell_exits_0() {
 // started:" block, and that the new `exit-codes` subcommand works.
 
 fn help_stdout(args: &[&str]) -> String {
-    let out = aaai().args(args).output().expect("aaai binary should run");
+    let out = aaai()
+        .args(args)
+        .run_output()
+        .expect("aaai binary should run");
     assert_eq!(out.status.code(), Some(0), "{args:?} should exit 0");
     String::from_utf8(out.stdout).expect("--help output should be UTF-8")
 }
@@ -1234,8 +1605,10 @@ fn help_stdout(args: &[&str]) -> String {
 #[test]
 fn rfc024_top_level_help_has_getting_started() {
     let out = help_stdout(&["--help"]);
-    assert!(out.contains("Getting started:"),
-        "top-level --help should carry a 'Getting started:' block, got:\n{out}");
+    assert!(
+        out.contains("Getting started:"),
+        "top-level --help should carry a 'Getting started:' block, got:\n{out}"
+    );
     // The block lists the core onboarding commands.
     assert!(out.contains("aaai init"));
     assert!(out.contains("aaai snap"));
@@ -1250,32 +1623,50 @@ fn rfc024_every_subcommand_help_has_next_steps() {
     // exit-codes is a leaf command that prints the codes inline and doesn't
     // need a Next-steps section.
     let subcommands = [
-        "audit", "snap", "report", "check", "history", "config",
-        "dashboard", "watch", "completions", "diff", "merge", "init",
-        "export", "version", "lint",
+        "audit",
+        "snap",
+        "report",
+        "check",
+        "history",
+        "config",
+        "dashboard",
+        "watch",
+        "completions",
+        "diff",
+        "merge",
+        "init",
+        "export",
+        "version",
+        "lint",
     ];
     for sc in subcommands {
         let out = help_stdout(&[sc, "--help"]);
-        assert!(out.contains("Next steps:"),
-            "`aaai {sc} --help` should contain 'Next steps:', got:\n{out}");
+        assert!(
+            out.contains("Next steps:"),
+            "`aaai {sc} --help` should contain 'Next steps:', got:\n{out}"
+        );
     }
 }
 
 #[test]
 fn rfc024_audit_help_lists_exit_codes() {
     let out = help_stdout(&["audit", "--help"]);
-    assert!(out.contains("Exit codes"),
-        "audit --help should call out exit codes, got:\n{out}");
+    assert!(
+        out.contains("Exit codes"),
+        "audit --help should call out exit codes, got:\n{out}"
+    );
     // The short-form table lists the canonical names.
     for code_name in ["PASSED", "FAILED", "PENDING", "ERROR", "CONFIG_ERROR"] {
-        assert!(out.contains(code_name),
-            "audit --help should mention {code_name}, got:\n{out}");
+        assert!(
+            out.contains(code_name),
+            "audit --help should mention {code_name}, got:\n{out}"
+        );
     }
 }
 
 #[test]
 fn rfc024_exit_codes_subcommand_prints_table() {
-    let out = aaai().arg("exit-codes").output().unwrap();
+    let out = aaai().arg("exit-codes").run_output().unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
     assert!(stdout.contains("Exit code reference:"));
@@ -1287,8 +1678,14 @@ fn rfc024_exit_codes_subcommand_prints_table() {
         ("3", "ERROR"),
         ("4", "CONFIG_ERROR"),
     ] {
-        assert!(stdout.contains(code),  "exit-codes table should mention {code}, got:\n{stdout}");
-        assert!(stdout.contains(name),  "exit-codes table should mention {name}, got:\n{stdout}");
+        assert!(
+            stdout.contains(code),
+            "exit-codes table should mention {code}, got:\n{stdout}"
+        );
+        assert!(
+            stdout.contains(name),
+            "exit-codes table should mention {name}, got:\n{stdout}"
+        );
     }
 }
 
@@ -1299,49 +1696,79 @@ fn rfc024_audit_zone4_hint_appears_for_pending() {
     // mentions 'reason' and `re-run`.
     let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "config.toml", "port = 80\n");
-    write(&after,  "config.toml", "port = 8080\n");
+    write(&after, "config.toml", "port = 8080\n");
     let audit_yaml = tmp.path().join("audit.yaml");
 
     let snap = aaai()
-        .args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml)
-        .status().unwrap();
+        .args(["snap", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-o")
+        .arg(&audit_yaml)
+        .run_status()
+        .unwrap();
     assert_eq!(snap.code(), Some(0));
 
-    let out = aaai()
-        .args(["audit", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
-        .output().unwrap();
+    let mut audit_command = aaai();
+    let out = audit_command
+        .args(["audit", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-c")
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("Next: open your audit.yaml"),
-        "Zone 4 hint missing or wrong wording, got:\n{stdout}");
+    assert!(
+        stdout.contains("Next: open your audit.yaml"),
+        "Zone 4 hint missing or wrong wording, got:\n{stdout}"
+    );
     assert!(stdout.contains("Pending"));
     assert!(stdout.contains("re-run"));
+    assert_eq!(audit_command.history_records().len(), 1);
 }
 
 #[test]
 fn rfc024_dashboard_emits_next_action_hint() {
     let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "a.txt", "v1\n");
-    write(&after,  "a.txt", "v2\n");
+    write(&after, "a.txt", "v2\n");
     let audit_yaml = tmp.path().join("audit.yaml");
 
     let snap = aaai()
-        .args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml)
-        .status().unwrap();
+        .args(["snap", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-o")
+        .arg(&audit_yaml)
+        .run_status()
+        .unwrap();
     assert_eq!(snap.code(), Some(0));
 
     let out = aaai()
-        .args(["dashboard", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
-        .output().unwrap();
+        .args(["dashboard", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-c")
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     assert_eq!(out.status.code(), Some(0));
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("Next:"),
-        "dashboard should append a Next-action hint, got:\n{stdout}");
+    assert!(
+        stdout.contains("Next:"),
+        "dashboard should append a Next-action hint, got:\n{stdout}"
+    );
 }
 
 #[test]
@@ -1349,19 +1776,36 @@ fn rfc024_quiet_audit_suppresses_zone4_hint() {
     // RFC 024 NFR-1: --quiet should suppress the Next-action hint.
     let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "x.txt", "a\n");
-    write(&after,  "x.txt", "b\n");
+    write(&after, "x.txt", "b\n");
     let audit_yaml = tmp.path().join("audit.yaml");
-    let _ = aaai().args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml).status();
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-o")
+        .arg(&audit_yaml)
+        .run_status();
 
-    let out = aaai()
-        .args(["audit", "--quiet", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
-        .output().unwrap();
+    let mut audit_command = aaai();
+    let out = audit_command
+        .args(["audit", "--quiet", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-c")
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(!stdout.contains("Next: "),
-        "--quiet should suppress the Zone 4 hint, got:\n{stdout}");
+    assert!(
+        !stdout.contains("Next: "),
+        "--quiet should suppress the Zone 4 hint, got:\n{stdout}"
+    );
+    assert_eq!(audit_command.history_records().len(), 1);
 }
 
 #[test]
@@ -1369,20 +1813,38 @@ fn rfc024_json_output_audit_suppresses_zone4_hint() {
     // RFC 024 NFR-2: --json-output should keep machine output clean.
     let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "x.txt", "a\n");
-    write(&after,  "x.txt", "b\n");
+    write(&after, "x.txt", "b\n");
     let audit_yaml = tmp.path().join("audit.yaml");
-    let _ = aaai().args(["snap", "-l"]).arg(&before).arg("-r").arg(&after).arg("-o").arg(&audit_yaml).status();
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-o")
+        .arg(&audit_yaml)
+        .run_status();
 
-    let out = aaai()
-        .args(["audit", "--json-output", "-l"]).arg(&before).arg("-r").arg(&after).arg("-c").arg(&audit_yaml)
-        .output().unwrap();
+    let mut audit_command = aaai();
+    let out = audit_command
+        .args(["audit", "--json-output", "-l"])
+        .arg(&before)
+        .arg("-r")
+        .arg(&after)
+        .arg("-c")
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
+    assert!(serde_json::from_str::<serde_json::Value>(&stdout).is_ok());
     // JSON should not contain the hint string anywhere.
-    assert!(!stdout.contains("Next: "),
-        "--json-output should suppress the Zone 4 hint, got:\n{stdout}");
+    assert!(
+        !stdout.contains("Next: "),
+        "--json-output should suppress the Zone 4 hint, got:\n{stdout}"
+    );
+    assert_eq!(audit_command.history_records().len(), 1);
 }
 
 // ── RFC 056: `aaai watch` ─────────────────────────────────────────────────
@@ -1390,91 +1852,139 @@ fn rfc024_json_output_audit_suppresses_zone4_hint() {
 #[test]
 fn rfc056_watch_help_available() {
     // Smoke test: the watch subcommand exists and --help succeeds.
-    let out = aaai().args(["watch", "--help"]).output().unwrap();
-    assert!(out.status.success(), "watch --help failed:\n{}", String::from_utf8_lossy(&out.stderr));
+    let out = aaai().args(["watch", "--help"]).run_output().unwrap();
+    assert!(
+        out.status.success(),
+        "watch --help failed:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("before"), "watch --help should mention the before path");
-    assert!(stdout.contains("config"), "watch --help should mention the config path");
+    assert!(
+        stdout.contains("before"),
+        "watch --help should mention the before path"
+    );
+    assert!(
+        stdout.contains("config"),
+        "watch --help should mention the config path"
+    );
 }
 
 // ── RFC 057: `aaai export` ────────────────────────────────────────────────
 
 #[test]
 fn rfc057_export_csv_to_stdout() {
-    let tmp    = tempfile::tempdir().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "a.txt", "old\n");
-    write(&after,  "a.txt", "new\n");
+    write(&after, "a.txt", "new\n");
     let audit_yaml = tmp.path().join("audit.yaml");
-    let _ = aaai().args(["snap", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-o"]).arg(&audit_yaml)
-        .status();
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-o"])
+        .arg(&audit_yaml)
+        .run_status();
 
     let out = aaai()
-        .args(["export", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-c"]).arg(&audit_yaml)
-        .output().unwrap();
-    assert!(out.status.success(), "export failed: {}", String::from_utf8_lossy(&out.stderr));
+        .args(["export", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-c"])
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "export failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let csv = String::from_utf8(out.stdout).unwrap();
-    assert!(csv.starts_with("path,"), "first line should be CSV header, got: {csv}");
+    assert!(
+        csv.starts_with("path,"),
+        "first line should be CSV header, got: {csv}"
+    );
     assert!(csv.contains("a.txt"), "CSV should contain the changed file");
 }
 
 #[test]
 fn rfc057_export_tsv_format() {
-    let tmp    = tempfile::tempdir().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "b.txt", "x\n");
-    write(&after,  "b.txt", "y\n");
+    write(&after, "b.txt", "y\n");
     let audit_yaml = tmp.path().join("audit.yaml");
-    let _ = aaai().args(["snap", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-o"]).arg(&audit_yaml)
-        .status();
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-o"])
+        .arg(&audit_yaml)
+        .run_status();
 
     let out = aaai()
-        .args(["export", "--format", "tsv", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-c"]).arg(&audit_yaml)
-        .output().unwrap();
+        .args(["export", "--format", "tsv", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-c"])
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     assert!(out.status.success(), "export tsv failed");
     let tsv = String::from_utf8(out.stdout).unwrap();
     // TSV uses tab separators, not commas.
     let header = tsv.lines().next().unwrap_or("");
-    assert!(header.contains('\t'), "TSV header should use tab separators");
+    assert!(
+        header.contains('\t'),
+        "TSV header should use tab separators"
+    );
 }
 
 #[test]
 fn rfc057_export_to_file() {
-    let tmp    = tempfile::tempdir().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "c.txt", "1\n");
-    write(&after,  "c.txt", "2\n");
-    let audit_yaml  = tmp.path().join("audit.yaml");
-    let output_csv  = tmp.path().join("out.csv");
-    let _ = aaai().args(["snap", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-o"]).arg(&audit_yaml)
-        .status();
+    write(&after, "c.txt", "2\n");
+    let audit_yaml = tmp.path().join("audit.yaml");
+    let output_csv = tmp.path().join("out.csv");
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-o"])
+        .arg(&audit_yaml)
+        .run_status();
 
     let status = aaai()
-        .args(["export", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-c"]).arg(&audit_yaml)
-        .args(["-o"]).arg(&output_csv)
-        .status().unwrap();
+        .args(["export", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-c"])
+        .arg(&audit_yaml)
+        .args(["-o"])
+        .arg(&output_csv)
+        .run_status()
+        .unwrap();
     assert!(status.success(), "export to file failed");
     assert!(output_csv.exists(), "output CSV file should exist");
     let content = std::fs::read_to_string(&output_csv).unwrap();
-    assert!(content.contains("c.txt"), "output file should contain the changed entry");
+    assert!(
+        content.contains("c.txt"),
+        "output file should contain the changed entry"
+    );
 }
 
 // ── RFC 059: `aaai lint` ──────────────────────────────────────────────────
@@ -1483,24 +1993,32 @@ fn rfc057_export_to_file() {
 fn rfc059_lint_clean_file_exits_zero() {
     let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "a.txt", "hello\n");
-    write(&after,  "a.txt", "world\n");
+    write(&after, "a.txt", "world\n");
     let audit_yaml = tmp.path().join("audit.yaml");
     // snap, then manually set a proper reason so lint passes
-    let _ = aaai().args(["snap", "-l"]).arg(&before).args(["-r"]).arg(&after)
-        .args(["-o"]).arg(&audit_yaml).status();
+    let _ = aaai()
+        .args(["snap", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-o"])
+        .arg(&audit_yaml)
+        .run_status();
     // Set a long-enough reason via audit --approve-all-pending is not available;
     // write the YAML directly
     std::fs::write(&audit_yaml,
         "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: 'Changed for testing purposes'\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let out = aaai().args(["lint"]).arg(&audit_yaml).output().unwrap();
+    let out = aaai().args(["lint"]).arg(&audit_yaml).run_output().unwrap();
     assert!(out.status.success(), "lint should exit 0 on clean file");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("No issues") || !stdout.contains("error"),
-        "clean file should have no errors:\n{stdout}");
+    assert!(
+        stdout.contains("No issues") || !stdout.contains("error"),
+        "clean file should have no errors:\n{stdout}"
+    );
 }
 
 #[test]
@@ -1510,11 +2028,17 @@ fn rfc059_lint_short_reason_warns() {
     std::fs::write(&audit_yaml,
         "version: '1'\nentries:\n- path: b.txt\n  diff_type: Modified\n  reason: ok\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let out = aaai().args(["lint"]).arg(&audit_yaml).output().unwrap();
+    let out = aaai().args(["lint"]).arg(&audit_yaml).run_output().unwrap();
     // short reason → warning, not error → still exits 0
-    assert!(out.status.success(), "short reason is a warning not an error");
+    assert!(
+        out.status.success(),
+        "short reason is a warning not an error"
+    );
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("short-reason"), "should warn about short reason:\n{stdout}");
+    assert!(
+        stdout.contains("short-reason"),
+        "should warn about short reason:\n{stdout}"
+    );
 }
 
 #[test]
@@ -1524,11 +2048,15 @@ fn rfc059_lint_json_output() {
     std::fs::write(&audit_yaml,
         "version: '1'\nentries:\n- path: c.txt\n  diff_type: Modified\n  reason: hi\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let out = aaai().args(["lint", "--json-output"]).arg(&audit_yaml).output().unwrap();
+    let out = aaai()
+        .args(["lint", "--json-output"])
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     let stdout = String::from_utf8(out.stdout).unwrap();
     // Must be valid JSON array
-    let parsed: serde_json::Value = serde_json::from_str(&stdout)
-        .expect("--json-output must produce valid JSON");
+    let parsed: serde_json::Value =
+        serde_json::from_str(&stdout).expect("--json-output must produce valid JSON");
     assert!(parsed.is_array(), "output must be a JSON array");
 }
 
@@ -1537,27 +2065,39 @@ fn rfc059_lint_json_output() {
 #[test]
 fn rfc060_merge_combine_two_definitions() {
     let tmp = tempfile::tempdir().unwrap();
-    let base_yaml    = tmp.path().join("base.yaml");
+    let base_yaml = tmp.path().join("base.yaml");
     let overlay_yaml = tmp.path().join("overlay.yaml");
-    let out_yaml     = tmp.path().join("merged.yaml");
+    let out_yaml = tmp.path().join("merged.yaml");
 
     std::fs::write(&base_yaml,
         "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: Base reason\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
     std::fs::write(&overlay_yaml,
         "version: '1'\nentries:\n- path: b.txt\n  diff_type: Added\n  reason: Overlay reason\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let status = aaai().args(["merge"]).arg(&base_yaml).arg(&overlay_yaml)
-        .args(["-o"]).arg(&out_yaml).status().unwrap();
+    let status = aaai()
+        .args(["merge"])
+        .arg(&base_yaml)
+        .arg(&overlay_yaml)
+        .args(["-o"])
+        .arg(&out_yaml)
+        .run_status()
+        .unwrap();
     assert!(status.success(), "merge should succeed");
     let merged = std::fs::read_to_string(&out_yaml).unwrap();
-    assert!(merged.contains("a.txt"), "merged file should contain base entry");
-    assert!(merged.contains("b.txt"), "merged file should contain overlay entry");
+    assert!(
+        merged.contains("a.txt"),
+        "merged file should contain base entry"
+    );
+    assert!(
+        merged.contains("b.txt"),
+        "merged file should contain overlay entry"
+    );
 }
 
 #[test]
 fn rfc060_merge_dry_run_does_not_write() {
     let tmp = tempfile::tempdir().unwrap();
-    let base_yaml    = tmp.path().join("base.yaml");
+    let base_yaml = tmp.path().join("base.yaml");
     let overlay_yaml = tmp.path().join("overlay.yaml");
 
     std::fs::write(&base_yaml,
@@ -1566,17 +2106,24 @@ fn rfc060_merge_dry_run_does_not_write() {
         "version: '1'\nentries:\n- path: y.txt\n  diff_type: Added\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
     let original = std::fs::read_to_string(&base_yaml).unwrap();
 
-    let status = aaai().args(["merge", "--dry-run"]).arg(&base_yaml).arg(&overlay_yaml)
-        .status().unwrap();
+    let status = aaai()
+        .args(["merge", "--dry-run"])
+        .arg(&base_yaml)
+        .arg(&overlay_yaml)
+        .run_status()
+        .unwrap();
     assert!(status.success());
-    assert_eq!(std::fs::read_to_string(&base_yaml).unwrap(), original,
-        "--dry-run must not modify the base file");
+    assert_eq!(
+        std::fs::read_to_string(&base_yaml).unwrap(),
+        original,
+        "--dry-run must not modify the base file"
+    );
 }
 
 #[test]
 fn rfc060_merge_detect_conflicts() {
     let tmp = tempfile::tempdir().unwrap();
-    let base_yaml    = tmp.path().join("base.yaml");
+    let base_yaml = tmp.path().join("base.yaml");
     let overlay_yaml = tmp.path().join("overlay.yaml");
 
     std::fs::write(&base_yaml,
@@ -1584,11 +2131,18 @@ fn rfc060_merge_detect_conflicts() {
     std::fs::write(&overlay_yaml,
         "version: '1'\nentries:\n- path: conflict.txt\n  diff_type: Added\n  reason: r\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let out = aaai().args(["merge", "--detect-conflicts"])
-        .arg(&base_yaml).arg(&overlay_yaml).output().unwrap();
+    let out = aaai()
+        .args(["merge", "--detect-conflicts"])
+        .arg(&base_yaml)
+        .arg(&overlay_yaml)
+        .run_output()
+        .unwrap();
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("conflict.txt"), "should report the conflicting path:\n{stdout}");
+    assert!(
+        stdout.contains("conflict.txt"),
+        "should report the conflicting path:\n{stdout}"
+    );
 }
 
 // ── RFC 061: `aaai check` ─────────────────────────────────────────────────
@@ -1600,10 +2154,17 @@ fn rfc061_check_valid_file() {
     std::fs::write(&audit_yaml,
         "version: '1'\nentries:\n- path: a.txt\n  diff_type: Modified\n  reason: All good\n  strategy:\n    type: None\n  enabled: true\n").unwrap();
 
-    let out = aaai().args(["check"]).arg(&audit_yaml).output().unwrap();
+    let out = aaai()
+        .args(["check"])
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
     assert!(out.status.success(), "valid file should exit 0");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("valid"), "should say entries are valid:\n{stdout}");
+    assert!(
+        stdout.contains("valid"),
+        "should say entries are valid:\n{stdout}"
+    );
 }
 
 #[test]
@@ -1612,70 +2173,57 @@ fn rfc061_check_invalid_yaml_exits_nonzero() {
     let audit_yaml = tmp.path().join("audit.yaml");
     std::fs::write(&audit_yaml, "not: valid: aaai: yaml: [\n").unwrap();
 
-    let status = aaai().args(["check"]).arg(&audit_yaml).status().unwrap();
+    let status = aaai()
+        .args(["check"])
+        .arg(&audit_yaml)
+        .run_status()
+        .unwrap();
     assert!(!status.success(), "invalid YAML should exit non-zero");
-}
-
-// ── RFC 062: `aaai history` ───────────────────────────────────────────────
-
-#[test]
-fn rfc062_history_empty_exits_zero() {
-    // Set both HOME and XDG_CONFIG_HOME so dirs::config_dir() resolves to
-    // an isolated temp directory and never touches the real config dir.
-    let tmp = tempfile::tempdir().unwrap();
-    let cfg = tmp.path().join("config");
-    let out = aaai()
-        .env("HOME", tmp.path())
-        .env("XDG_CONFIG_HOME", &cfg)
-        .args(["history"]).output().unwrap();
-    assert!(out.status.success(), "history on empty store should exit 0");
-    let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("No audit runs") || stdout.contains("history"),
-        "should mention no records:\n{stdout}");
-}
-
-#[test]
-fn rfc062_history_stats_empty() {
-    let tmp = tempfile::tempdir().unwrap();
-    let cfg = tmp.path().join("config");
-    let out = aaai()
-        .env("HOME", tmp.path())
-        .env("XDG_CONFIG_HOME", &cfg)
-        .args(["history", "--stats"]).output().unwrap();
-    assert!(out.status.success());
 }
 
 // ── RFC 063: `aaai dashboard` ─────────────────────────────────────────────
 
 #[test]
 fn rfc063_dashboard_help_available() {
-    let out = aaai().args(["dashboard", "--help"]).output().unwrap();
+    let out = aaai().args(["dashboard", "--help"]).run_output().unwrap();
     assert!(out.status.success(), "dashboard --help failed");
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("left") || stdout.contains("before"),
-        "dashboard --help should mention input paths:\n{stdout}");
+    assert!(
+        stdout.contains("left") || stdout.contains("before"),
+        "dashboard --help should mention input paths:\n{stdout}"
+    );
 }
 
 #[test]
 fn rfc063_dashboard_basic_run() {
-    let tmp    = tempfile::tempdir().unwrap();
+    let tmp = tempfile::tempdir().unwrap();
     let before = tmp.path().join("before");
-    let after  = tmp.path().join("after");
+    let after = tmp.path().join("after");
     setup_dirs(&before, &after);
     write(&before, "f.txt", "old\n");
-    write(&after,  "f.txt", "new\n");
+    write(&after, "f.txt", "new\n");
     let audit_yaml = tmp.path().join("audit.yaml");
     std::fs::write(&audit_yaml, "version: '1'\nentries: []\n").unwrap();
 
     let out = aaai()
-        .args(["dashboard", "-l"]).arg(&before)
-        .args(["-r"]).arg(&after)
-        .args(["-c"]).arg(&audit_yaml)
-        .output().unwrap();
-    assert!(out.status.success(), "dashboard should succeed:\n{}", String::from_utf8_lossy(&out.stderr));
+        .args(["dashboard", "-l"])
+        .arg(&before)
+        .args(["-r"])
+        .arg(&after)
+        .args(["-c"])
+        .arg(&audit_yaml)
+        .run_output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "dashboard should succeed:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("Pending") || stdout.contains("FAILED"),
-        "dashboard output should show audit status:\n{stdout}");
+    assert!(
+        stdout.contains("Pending") || stdout.contains("FAILED"),
+        "dashboard output should show audit status:\n{stdout}"
+    );
 }
 
 // ── RFC 065: `aaai init` ──────────────────────────────────────────────────
@@ -1686,12 +2234,16 @@ fn rfc065_init_non_interactive_creates_config() {
     let status = aaai()
         .args(["init", "--non-interactive", "--dir"])
         .arg(tmp.path())
-        .status().unwrap();
+        .run_status()
+        .unwrap();
     assert!(status.success(), "init --non-interactive should exit 0");
     let config = tmp.path().join(".aaai.yaml");
     assert!(config.exists(), ".aaai.yaml should be created");
     let content = std::fs::read_to_string(&config).unwrap();
-    assert!(content.contains("version"), ".aaai.yaml should have a version field");
+    assert!(
+        content.contains("version"),
+        ".aaai.yaml should have a version field"
+    );
 }
 
 #[test]
@@ -1703,17 +2255,26 @@ fn rfc065_init_existing_config_warns_and_exits_zero() {
     let out = aaai()
         .args(["init", "--non-interactive", "--dir"])
         .arg(tmp.path())
-        .output().unwrap();
-    assert!(out.status.success(), "init with existing config should still exit 0");
+        .run_output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "init with existing config should still exit 0"
+    );
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("already exists") || stdout.contains("⚠"),
-        "should warn that config exists:\n{stdout}");
+    assert!(
+        stdout.contains("already exists") || stdout.contains("⚠"),
+        "should warn that config exists:\n{stdout}"
+    );
 }
 
 #[test]
 fn rfc065_init_help_available() {
-    let out = aaai().args(["init", "--help"]).output().unwrap();
+    let out = aaai().args(["init", "--help"]).run_output().unwrap();
     assert!(out.status.success());
     let stdout = String::from_utf8(out.stdout).unwrap();
-    assert!(stdout.contains("non-interactive"), "init --help should mention --non-interactive");
+    assert!(
+        stdout.contains("non-interactive"),
+        "init --help should mention --non-interactive"
+    );
 }

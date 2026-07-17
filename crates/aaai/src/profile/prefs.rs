@@ -11,7 +11,8 @@
 //! breaking the format because unknown YAML keys are ignored by serde.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+
+use crate::user_state::UserStatePaths;
 
 /// GUI colour theme.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,11 +36,11 @@ pub enum Theme {
 impl std::fmt::Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Theme::Light  => write!(f, "Light"),
-            Theme::Dark   => write!(f, "Dark"),
-            Theme::System            => write!(f, "System"),
+            Theme::Light => write!(f, "Light"),
+            Theme::Dark => write!(f, "Dark"),
+            Theme::System => write!(f, "System"),
             Theme::HighContrastLight => write!(f, "High Contrast Light"),
-            Theme::HighContrastDark  => write!(f, "High Contrast Dark"),
+            Theme::HighContrastDark => write!(f, "High Contrast Dark"),
         }
     }
 }
@@ -56,7 +57,12 @@ impl Theme {
     }
 
     pub fn choices() -> &'static [Theme] {
-        &[Theme::Light, Theme::Dark, Theme::HighContrastLight, Theme::HighContrastDark]
+        &[
+            Theme::Light,
+            Theme::Dark,
+            Theme::HighContrastLight,
+            Theme::HighContrastDark,
+        ]
     }
 }
 
@@ -90,21 +96,9 @@ fn default_ignored_dirs() -> Vec<String> {
 }
 
 impl UserPrefs {
-    fn path() -> anyhow::Result<PathBuf> {
-        let base = dirs::config_dir()
-            .ok_or_else(|| anyhow::anyhow!("Cannot determine OS config directory"))?
-            .join("aaai");
-        std::fs::create_dir_all(&base)?;
-        Ok(base.join("prefs.yaml"))
-    }
-
     /// Load from the OS config directory.  Returns defaults if the file is absent.
     pub fn load() -> Self {
-        match Self::path().and_then(|p| {
-            if !p.exists() { return Ok(Self::default()); }
-            let text = std::fs::read_to_string(&p)?;
-            serde_yaml::from_str(&text).map_err(|e| anyhow::anyhow!(e))
-        }) {
+        match UserStatePaths::resolve().and_then(|paths| Self::load_from(&paths)) {
             Ok(prefs) => prefs,
             Err(e) => {
                 log::warn!("Could not load prefs: {e}");
@@ -115,13 +109,25 @@ impl UserPrefs {
 
     /// Save to the OS config directory.
     pub fn save(&self) {
-        if let Err(e) = Self::path().and_then(|p| {
-            let yaml = serde_yaml::to_string(self).map_err(|e| anyhow::anyhow!(e))?;
-            std::fs::write(&p, yaml)?;
-            Ok(())
-        }) {
+        if let Err(e) = UserStatePaths::resolve().and_then(|paths| self.save_to(&paths)) {
             log::warn!("Could not save prefs: {e}");
         }
+    }
+
+    pub(crate) fn load_from(paths: &UserStatePaths) -> anyhow::Result<Self> {
+        let path = paths.prefs();
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let text = std::fs::read_to_string(&path)?;
+        serde_yaml::from_str(&text).map_err(|e| anyhow::anyhow!(e))
+    }
+
+    pub(crate) fn save_to(&self, paths: &UserStatePaths) -> anyhow::Result<()> {
+        paths.ensure_for_write()?;
+        let yaml = serde_yaml::to_string(self).map_err(|e| anyhow::anyhow!(e))?;
+        std::fs::write(paths.prefs(), yaml)?;
+        Ok(())
     }
 }
 

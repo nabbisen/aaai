@@ -1,4 +1,5 @@
 use super::*;
+use crate::user_state::UserStatePaths;
 use chrono::TimeZone;
 
 fn make_profile(name: &str) -> AuditProfile {
@@ -39,8 +40,10 @@ fn add_replaces_same_name() {
 #[test]
 fn last_used_at_defaults_to_none() {
     let p = make_profile("p");
-    assert!(p.last_used_at.is_none(),
-        "newly-constructed profiles must have last_used_at = None");
+    assert!(
+        p.last_used_at.is_none(),
+        "newly-constructed profiles must have last_used_at = None"
+    );
 }
 
 #[test]
@@ -57,8 +60,10 @@ profiles:
     let store: ProfileStore = serde_yaml::from_str(legacy_yaml).unwrap();
     assert_eq!(store.profiles.len(), 1);
     assert_eq!(store.profiles[0].name, "legacy");
-    assert!(store.profiles[0].last_used_at.is_none(),
-        "missing field must default to None");
+    assert!(
+        store.profiles[0].last_used_at.is_none(),
+        "missing field must default to None"
+    );
 }
 
 #[test]
@@ -84,7 +89,7 @@ fn sorted_by_recent_pushes_none_to_end() {
     // profile with a real timestamp — even an ancient one.
     let mut store = ProfileStore::default();
 
-    store.profiles.push(make_profile("never_used"));  // None
+    store.profiles.push(make_profile("never_used")); // None
 
     let mut ancient = make_profile("ancient");
     ancient.last_used_at = Some(Utc.with_ymd_and_hms(2000, 1, 1, 0, 0, 0).unwrap());
@@ -95,28 +100,43 @@ fn sorted_by_recent_pushes_none_to_end() {
     assert_eq!(sorted[1].name, "never_used");
 }
 
-// touch() unit-tests its bookkeeping by working on the in-memory
-// store; the `save()` call inside touch() touches the home directory,
-// so we deliberately avoid going through `touch()` here and exercise
-// the equivalent assignment instead. A full touch() test would need
-// a fakeable filesystem hook, which is out of scope for v0.20.
+#[test]
+fn missing_profiles_do_not_create_state_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("state");
+    let paths = UserStatePaths::from_root(root.clone()).unwrap();
+
+    assert!(ProfileStore::load_from(&paths).unwrap().profiles.is_empty());
+    assert!(!root.exists());
+}
 
 #[test]
-fn touch_marks_profile_when_found() {
-    // Verifies the lookup + assignment logic without persisting,
-    // by inlining the body of touch(): real touch() also calls
-    // save() which we avoid in tests.
+fn save_and_load_use_the_explicit_state_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = UserStatePaths::from_root(temp.path().join("state")).unwrap();
     let mut store = ProfileStore::default();
     store.profiles.push(make_profile("p"));
-    assert!(store.profiles[0].last_used_at.is_none());
+    store.save_to(&paths).unwrap();
 
+    let loaded = ProfileStore::load_from(&paths).unwrap();
+    assert_eq!(loaded.profiles.len(), 1);
+    assert_eq!(loaded.profiles[0].name, "p");
+}
+
+#[test]
+fn touch_marks_and_persists_profile_in_the_explicit_state_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let paths = UserStatePaths::from_root(temp.path().join("state")).unwrap();
+    let mut store = ProfileStore::default();
+    store.profiles.push(make_profile("p"));
     let before = Utc::now();
-    if let Some(p) = store.profiles.iter_mut().find(|p| p.name == "p") {
-        p.last_used_at = Some(Utc::now());
-    }
+    assert!(store.touch_in(&paths, "p").unwrap());
     let after = Utc::now();
 
-    let ts = store.profiles[0].last_used_at.expect("touched");
-    assert!(ts >= before && ts <= after,
-        "touched timestamp should fall within the call window");
+    let loaded = ProfileStore::load_from(&paths).unwrap();
+    let ts = loaded.profiles[0].last_used_at.expect("touched");
+    assert!(
+        ts >= before && ts <= after,
+        "touched timestamp should fall within the call window"
+    );
 }

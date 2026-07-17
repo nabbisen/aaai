@@ -3,7 +3,8 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+
+use crate::user_state::UserStatePaths;
 
 /// One saved audit project configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -33,7 +34,11 @@ pub struct ProfileStore {
 impl ProfileStore {
     /// Load from the OS config directory, returning an empty store if absent.
     pub fn load() -> anyhow::Result<Self> {
-        let path = profile_path()?;
+        Self::load_from(&UserStatePaths::resolve()?)
+    }
+
+    pub(crate) fn load_from(paths: &UserStatePaths) -> anyhow::Result<Self> {
+        let path = paths.profiles();
         if !path.exists() {
             return Ok(Self::default());
         }
@@ -43,7 +48,12 @@ impl ProfileStore {
 
     /// Save to the OS config directory.
     pub fn save(&self) -> anyhow::Result<()> {
-        let path = profile_path()?;
+        self.save_to(&UserStatePaths::resolve()?)
+    }
+
+    pub(crate) fn save_to(&self, paths: &UserStatePaths) -> anyhow::Result<()> {
+        paths.ensure_for_write()?;
+        let path = paths.profiles();
         let yaml = serde_yaml::to_string(self)?;
         std::fs::write(&path, yaml)?;
         Ok(())
@@ -69,9 +79,13 @@ impl ProfileStore {
     /// updated, `Ok(false)` if no such profile exists (the store is left
     /// unchanged). Errors only on I/O during save.
     pub fn touch(&mut self, name: &str) -> anyhow::Result<bool> {
+        self.touch_in(&UserStatePaths::resolve()?, name)
+    }
+
+    pub(crate) fn touch_in(&mut self, paths: &UserStatePaths, name: &str) -> anyhow::Result<bool> {
         if let Some(p) = self.profiles.iter_mut().find(|p| p.name == name) {
             p.last_used_at = Some(Utc::now());
-            self.save()?;
+            self.save_to(paths)?;
             Ok(true)
         } else {
             Ok(false)
@@ -88,14 +102,6 @@ impl ProfileStore {
         v.sort_by(|a, b| b.last_used_at.cmp(&a.last_used_at));
         v
     }
-}
-
-fn profile_path() -> anyhow::Result<PathBuf> {
-    let base = dirs::config_dir()
-        .ok_or_else(|| anyhow::anyhow!("Cannot determine OS config directory"))?
-        .join("aaai");
-    std::fs::create_dir_all(&base)?;
-    Ok(base.join("profiles.yaml"))
 }
 
 #[cfg(test)]
