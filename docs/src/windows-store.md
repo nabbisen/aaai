@@ -1,69 +1,32 @@
 # Windows — Installation and Setup
 
-aaai is available for Windows through the Microsoft Store and as direct
-download archives from GitHub Releases.
+The current supported Windows installation route is to build aaai from source.
 
----
+> **Distribution status:** Microsoft Store/MSIX distribution is deferred and
+> is not currently available. Do not search for or install an unofficial Store
+> listing.
 
-## Install from the Microsoft Store
+## Build from source
 
-1. Open the Microsoft Store on Windows.
-2. Search for **aaai**.
-3. Click **Get** or **Install**.
-
-After installation you will have:
-
-- **aaai** in the Start menu — opens the desktop review app.
-- **aaai** as a terminal command — available in Terminal, PowerShell,
-  and Command Prompt.
-
----
-
-## Desktop app
-
-Open **aaai** from the Start menu. The desktop app opens to the folder
-selection screen. Choose the older and newer folders you want to compare,
-then click **Check changes**.
-
-See [Getting Started](getting-started.md) for a full walkthrough.
-
----
-
-## Terminal command
-
-After installing from the Store, the `aaai` command is available in any
-terminal session without changing PATH. This is provided through a Windows
-App Execution Alias.
-
-To confirm the command is available:
+Install [Git](https://git-scm.com/download/win) and
+[Rust 1.91 or newer](https://rustup.rs/), then run:
 
 ```powershell
-aaai --help
+git clone https://github.com/nabbisen/aaai.git
+cd aaai
+cargo build --release -p aaai-cli -p aaai-gui
 ```
 
-If the command is not found immediately after install, open a new Terminal
-window and try again.
-
-### Basic CLI usage
-
-```sh
-# Generate a review template from the current diff
-aaai snap --left .\before --right .\after --out audit.yaml
-
-# Run a review against an existing definition
-aaai audit --left .\before --right .\after --config audit.yaml
-```
-
-See the [CLI Reference](cli.md) for the full command list.
+The build produces `target\release\aaai.exe` and
+`target\release\aaai-gui.exe`.
 
 ---
 
-## Direct download (GitHub Releases)
+## Planned direct download (v1 target)
 
-If you prefer not to use the Microsoft Store, download the release archive
-directly from [GitHub Releases](https://github.com/nabbisen/aaai/releases).
-
-Three Windows archives are available per release:
+The following Windows archives are planned v1 artifacts, contingent on the
+C1/R1 release gates. They are not currently available from
+[GitHub Releases](https://github.com/nabbisen/aaai/releases).
 
 | Archive | Contents |
 |---|---|
@@ -71,26 +34,64 @@ Three Windows archives are available per release:
 | `aaai-gui-v{version}-x86_64-pc-windows-msvc.zip` | `aaai-gui.exe` only |
 | `aaai-full-v{version}-x86_64-pc-windows-msvc.zip` | Both executables |
 
-Extract to a folder of your choice. To use `aaai.exe` from any terminal,
-add the folder to your `PATH`.
+When these archives become available, extract one to a folder of your choice.
 
 ---
 
-## Package model
+## Desktop app
 
-aaai is shipped as **one Store product** containing **two executables**:
+After building from source, run `target\release\aaai-gui.exe`. The desktop app
+opens to the folder selection screen. Choose the older and newer folders you
+want to compare, then click **Check changes**.
+
+Future direct archives will provide the same executable in the extracted
+folder.
+
+See [Getting Started](getting-started.md) for a full walkthrough.
+
+---
+
+## Terminal command
+
+After building from source, run `target\release\aaai.exe`. To use `aaai` from
+any terminal, add `target\release` to your `PATH`. Future direct archives will
+provide the same executable in the extracted folder, which can likewise be
+added to `PATH`.
+
+### Basic CLI usage
+
+```powershell
+# Generate a review template from the current diff
+.\target\release\aaai.exe snap --left .\before --right .\after --out audit.yaml
+
+# Run a review against an existing definition
+.\target\release\aaai.exe audit --left .\before --right .\after --config audit.yaml
+```
+
+See the [CLI Reference](cli.md) for the full command list.
+
+---
+
+## Deferred Microsoft Store package model
+
+RFC 091 retains a future design for **one Store product** containing **two
+executables**:
 
 | Binary | Role |
 |---|---|
 | `aaai-gui.exe` | Desktop review application |
 | `aaai.exe` | Command-line interface |
 
-The CLI is not a separate Store product. It is an advanced capability of
-the same product, accessed through the terminal alias.
+If Store distribution is implemented later, the GUI will be the visible app
+and the CLI will remain an advanced capability of the same product. This model
+is design guidance only: no Store listing, MSIX installation, or terminal alias
+is currently supported.
 
 ---
 
 ## Requirements
 
-- Windows 10 version 1803 or later (for App Execution Alias support)
-- x64 processor (ARM64 support is planned)
+- x64 Windows
+- Git
+- Rust 1.91 or newer
+- ARM64 packages are deferred

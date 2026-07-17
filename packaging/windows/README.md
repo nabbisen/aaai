@@ -1,11 +1,14 @@
 # Windows Packaging — aaai
 
-This directory contains everything needed to produce a Windows MSIX package
-suitable for the Microsoft Store.
+This directory contains deferred tooling for a future Windows MSIX package.
+RFC 095 excludes Microsoft Store/MSIX distribution from v1; the current v1
+distribution plan selects direct archives as contingent C1/R1 targets. Those
+archives are not currently published.
 
 ## Overview
 
-The MSIX package ships as **one Store product** with **two executables**:
+If Store work is authorized in a future scope amendment, the target package
+model is **one Store product** with **two executables**:
 
 | Binary | Role | Start menu |
 |---|---|---|
@@ -84,7 +87,7 @@ Per RFC 091 §13:
 
 | Stage | Action |
 |---|---|
-| 1 | Build direct Windows zip artifacts only (**current**) |
+| 1 | Build direct Windows zip artifacts only (**planned v1; contingent on C1/R1**) |
 | 2 | Build unsigned MSIX candidate as CI artifact |
 | 3 | Manually validate local install and CLI alias |
 | 4 | Manually submit to Store |
