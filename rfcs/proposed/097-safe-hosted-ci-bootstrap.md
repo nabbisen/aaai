@@ -43,10 +43,11 @@ accepted the workflow and the hosted B0 run for `main` SHA
 preceding deterministic Windows failures remain recorded. Repository rules do
 not currently require `B0 / gate`.
 
-**Proposed governance amendment.** While the project remains owner-only with
-one serial `main` integration line, B0 blocks continuation after a push instead
-of blocking a merge. This amendment requires independent architecture review
-before it may close B0.
+**Integrated governance amendment and proposed refinement.** While all updates
+to `main` are serialized through one integration authority, B0 blocks
+continuation after a push instead of blocking a merge. Developer and branch
+count are not prerequisites. Independent architecture review of this
+refinement is required before B0 may close.
 
 ## 1. Summary
 
@@ -71,12 +72,12 @@ cells succeed. It is the only status proposed as the B0 branch-protection
 candidate. Existing format, Clippy, security, i18n, visual-status, docs, GUI
 build, release, and MSIX surfaces are not relabeled as B0.
 
-During the proposed owner-only single-branch continuity mode, the same result
-is fail-closed operationally: an unsuccessful or unobserved result for the
-latest pushed `main` SHA stops unrelated continuation, downstream gate use,
-and release operations. Before the repository adopts concurrent integration,
-`B0 / gate` must become an observed required check on the actual merge-control
-path.
+During serialized-integration continuity mode, the same result is fail-closed
+operationally: an unsuccessful or unobserved result for the latest pushed
+`main` SHA stops the next unrelated integration, downstream gate use, and
+release operations. Before another actor or mechanism gains independent
+authority to update `main`, `B0 / gate` must become an observed required check
+on the actual merge-control path.
 
 The new B0 workflow is separate from the existing CI workflow. Existing
 format, Clippy, RustSec, docs, i18n, visual-status, and GUI jobs retain their
@@ -166,9 +167,10 @@ bootstrap a workflow that is not yet present on the default branch.
   unverified jobs and token authority, unchanged.
 - Define operations-owner-assigned PR, dispatch, and repository-rule actions
   separately from developer implementation without claiming technical
-  owner-only enforcement.
-- Define an objective owner-only serial mode in which B0 failure blocks
-  continuation, and mandatory triggers for activating merge-time enforcement.
+  exclusivity enforcement.
+- Define an objective serialized-integration mode in which B0 failure blocks
+  continuation, and mandatory triggers for activating merge-time enforcement
+  before independent update authority exists.
 
 ### 3.2 Non-goals
 
@@ -219,12 +221,12 @@ bootstrap a workflow that is not yet present on the default branch.
     infrastructure-only rerun is allowed and both run IDs are retained.
 16. Required-check configuration is an owner operation after a successful
     reviewed run; workflow code cannot silently modify repository rules.
-17. In single-branch continuity mode, an unsuccessful or unobserved B0 result
-    for the latest pushed `main` SHA blocks unrelated implementation pushes,
-    downstream gate consumption, and release, tag, or publish operations.
-18. Merge-time enforcement is mandatory before any second writer, concurrent
-    integration branch, pull-request integration flow, merge queue, or
-    independently integrating bot/automation is introduced.
+17. In serialized-integration continuity mode, an unsuccessful or unobserved
+    B0 result for the latest pushed `main` SHA blocks the next unrelated
+    integration, downstream gate consumption, and release, tag, or publish
+    operations. A corrective integration remains permitted.
+18. Merge-time enforcement is mandatory before another person, bot, merge
+    queue, or mechanism gains independent update authority.
 
 ## 5. Selected workflow design
 
@@ -378,20 +380,27 @@ aggregate. No result from `ci.yaml` is included in `B0 / gate`.
 
 ### 5.5 Blocking modes and enforcement activation
 
+**Independent update authority** means project authorization for a person,
+bot, merge queue, or other mechanism to update `main` without routing that
+update through the designated integration authority and its exact-current-SHA
+B0 wait. Technical GitHub permission or capability alone is not independent
+project authority. A technically capable but independently unauthorized actor
+remains governed by the designated serialized-integration procedure.
+
 | Mode | Preconditions | B0 trigger and barrier | Closure evidence |
 |---|---|---|---|
-| Owner-only single-branch continuity | nabbisen is the sole writer/integrator; exactly one serial `main` line; no integration-bound concurrent branch, outside contributor/PR flow, merge queue, or independently integrating automation | Every pushed `main` SHA triggers B0. A latest SHA without successful `B0 / gate` stops unrelated pushes, downstream gate use, and release operations | Accepted workflow implementation, retained failed attempts, accepted governance amendment, a valid closure entry in `continuity-mode.md`, RFC 000-consistent lifecycle records, and a green three-OS run for their exact resulting final `main` SHA |
-| Concurrent integration | Any serial-mode precondition is false or is about to become false | A pull request or merge queue must be unable to integrate without successful `B0 / gate` | Exact context required by the repository rule, rule snapshot, successful verification on the actual merge-control path, and independent review |
+| Serialized-integration continuity | Every `main` update passes through one designated integration authority; no person, bot, merge queue, or mechanism has independent update authority. Developer, branch, and PR counts are unrestricted. | Every updated `main` SHA triggers B0. A latest SHA without successful `B0 / gate` stops the next unrelated integration, downstream gate use, and release operations; corrective integration is permitted | Accepted workflow implementation, retained failed attempts, accepted governance amendment, a valid closure entry in `continuity-mode.md`, RFC 000-consistent lifecycle records, and a green three-OS run for their exact resulting final `main` SHA |
+| Independently authorized integration | Another actor or mechanism has or is about to be granted independent update authority | The actual merge-control path must be unable to update `main` without successful `B0 / gate` | Exact context required by the repository rule, rule snapshot, successful verification on the actual merge-control path, and independent review |
 
-Single-branch continuity mode accepts a bounded post-push risk: `main` can be
+Serialized-integration continuity mode accepts a bounded post-push risk: `main` can be
 temporarily red. While it is red, only diagnosis, correction, and evidence work
 may proceed. A deterministic failure is repaired at a new SHA; its failed run
 is retained and is not rerun unchanged to seek green.
 
-Enforcement activation occurs before a second writer, concurrent branch
-intended for integration, pull-request integration flow, bot or automation
-with integration authority, merge queue, or other departure from owner-only
-serial operation. Work stops while the owner:
+Enforcement activation occurs before another person, bot, merge queue, or
+mechanism gains independent update authority. Multiple developers,
+branches, and pull requests do not trigger activation when the designated
+authority alone integrates them serially. Work stops while the owner:
 
 1. selects the actual merge-control path;
 2. amends and re-reviews this RFC for a `merge_group` trigger if a merge queue
@@ -400,14 +409,16 @@ serial operation. Work stops while the owner:
    weakening unrelated checks;
 4. records the repository rule state without secrets;
 5. verifies the check on the actual merge-control path; and
-6. obtains independent review before concurrent work resumes.
+6. obtains independent review before independently authorized integration
+   resumes.
 
-The owner reconfirms the single-branch preconditions at entry to every later
-workstream. A false condition blocks entry until enforcement activation is
-complete. Neither mode waives a platform cell, test failure, read-only
+At entry to every later workstream, the integration-control record confirms
+that `main` updates remain serialized through the designated authority and no
+independent updater exists. Otherwise entry blocks until enforcement activation
+is complete. Neither mode waives a platform cell, test failure, read-only
 permission, or the later C0/C2/C1 gates.
 
-The durable serial-mode record is
+The durable serialized-integration record is
 `.git-exclude/evidence/097-safe-hosted-ci-bootstrap/continuity-mode.md`. It has
 one entry for B0 closure and a new entry at every later workstream boundary.
 Each entry contains:
@@ -415,19 +426,18 @@ Each entry contains:
 - timestamp and workstream or lifecycle-transition identifier;
 - exact current `main` SHA, B0 run ID, attempt, event, run `headSha`, and
   `B0 / gate` conclusion;
-- owner attestation that nabbisen is the sole writer and integrator and only
-  one integration line exists;
-- observed state or explicit owner attestation for the absence of an
-  integration-bound concurrent branch, outside-contributor/PR integration
-  flow, merge queue, and independently integrating bot/automation;
+- designated integration authority and confirmation that all updates to
+  `main` remain serialized through it;
+- whether another person, bot, merge queue, or mechanism has independent
+  authority to update `main`;
 - observed repository-rule and enforcement state, explicitly classifying the
   barrier as procedural or technical; and
-- the decision that serial mode remains valid, or that enforcement activation
-  blocks entry.
+- the decision that serialized mode remains valid, or that enforcement
+  activation blocks entry.
 
-When a read-only API cannot prove a condition, the entry labels it as owner
-attestation. It does not record credentials, tokens, secrets, or secret
-configuration.
+The entry does not require or record developer count, branch count, or a
+sole-developer disclaimer. It does not record credentials, tokens, secrets, or
+secret configuration.
 
 ## 6. B0 acceptance contract
 
@@ -454,13 +464,14 @@ not the designed initial pull-request route. Final implementation review
 accepted the workflow and hosted execution evidence but did not accept B0
 lifecycle closure under the original merge-enforcement contract.
 
-For single-branch continuity mode, a default-branch `push` run is authoritative
-when its recorded `headSha` is the exact intended current `main` commit and all
-cells belong to that run. Run `29798727537` satisfies this execution contract
-for SHA `03e9a2d4e00600a8519c4cc704cd2174b840bca7`. A manual-dispatch run is
+For serialized-integration continuity mode, a default-branch `push` run is
+authoritative when its recorded `headSha` is the exact intended current `main`
+commit and all cells belong to that run. Run `29798727537` satisfies this
+execution contract for SHA
+`03e9a2d4e00600a8519c4cc704cd2174b840bca7`. A manual-dispatch run is
 supplementary and does not replace the push result for the latest `main` SHA.
 The PR `H`/`B`/`M` relationship above becomes mandatory evidence when
-concurrent integration enforcement is activated.
+independent-authority enforcement is activated.
 
 For the accepted run:
 
@@ -544,9 +555,9 @@ package identities, command, duration, and conclusion per cell.
 `isolation-results.md` records the RFC 096 focused case names and conclusions
 per OS. It does not reproduce canary values.
 
-`continuity-mode.md` follows Section 5.5. It is required for serial-mode B0
-closure and for every later workstream entry; a missing, stale, or invalid-mode
-entry blocks continuation.
+`continuity-mode.md` follows Section 5.5. It is required for serialized-
+integration B0 closure and for every later workstream entry; a missing, stale,
+or invalid-mode entry blocks continuation.
 
 ## 7. Failure, retry, and rollback policy
 
@@ -623,17 +634,17 @@ direct pushes to `main`; steps 7–12 above were therefore not followed as
 designed. Independent final implementation review accepted the code and the
 green three-OS push run, while leaving B0 open because neither the original PR
 evidence nor required-check enforcement existed. This amendment makes that
-deviation explicit and substitutes Section 5.5's single-branch continuity
-contract only for the duration of the stated owner-only serial conditions.
+deviation explicit and substitutes Section 5.5's serialized-integration
+continuity contract while one integration authority controls `main` updates.
 
-### 8.2 Ongoing single-branch operation
+### 8.2 Ongoing serialized-integration operation
 
 For each pushed `main` SHA, the owner observes the corresponding B0 run before
-unrelated continuation. Green preserves serial work eligibility. Failure,
-cancellation, absence, or an obsolete result invokes stop-work until a new
-corrected SHA succeeds. At every downstream workstream entry, the owner records
-that Section 5.5's preconditions still hold or activates merge-time enforcement
-before entry.
+unrelated continuation. Green preserves serialized-integration eligibility.
+Failure, cancellation, absence, or an obsolete result invokes stop-work until
+a new corrected SHA succeeds. At every downstream workstream entry, the
+integration-control record confirms that Section 5.5's authority invariant
+still holds or activates merge-time enforcement before entry.
 
 ### 8.3 Lifecycle closure handback
 
@@ -714,8 +725,8 @@ blocking format/Clippy policy. WS-09 owns full release/workflow convergence.
 | Owner required-check change deadlocks merges | Verify visible context first and use narrow rollback procedure |
 | Action tags are mutable | Retain current action families for B0; WS-07/C0 owns pin policy |
 | Local preflight is mistaken for B0 | Lifecycle and evidence require GitHub-hosted three-OS results |
-| `main` is temporarily red in serial mode | Stop all unrelated continuation, downstream gate use, and release operations until a corrected SHA is green |
-| The repository silently drifts into concurrent integration | Reconfirm serial preconditions at every workstream entry and require reviewed enforcement activation before any trigger condition |
+| `main` is temporarily red in serialized-integration mode | Stop all unrelated continuation, downstream gate use, and release operations until a corrected SHA is green |
+| An independently authorized updater is introduced without enforcement | Record integration-control authority at every workstream entry and require reviewed enforcement activation before independent update authority is granted |
 
 ## 12. Review questions
 
@@ -735,23 +746,22 @@ blocking format/Clippy policy. WS-09 owns full release/workflow convergence.
    repair, and full-workflow green status correctly deferred?
 8. May the owner confirm the proposed implementer/operations assignments and
    hosted-runner capacity after design acceptance?
-9. Are the single-branch continuity preconditions objective and narrow enough
-   to make post-push stop-work equivalent to a blocking B0 gate for this serial
-   operating model?
+9. Is serialized integration through one authority the correct and sufficient
+   safety invariant regardless of developer, branch, or pull-request count?
 10. Are the enforcement activation triggers and transition evidence complete
-    enough to prevent concurrent work from beginning without merge-time B0?
+    enough to prevent independent `main` updates without merge-time B0?
 11. May M1C/B0 and WS-03 close without current branch protection after this
     amendment is accepted and the amendment's resulting current `main` SHA is
     green, using run `29798727537` as accepted implementation evidence?
 12. Is the temporary-red-`main` limitation sufficiently explicit for later
     workstreams to consume B0 safely?
-13. Does `continuity-mode.md` make the serial prerequisites and enforcement
-    classification sufficiently durable and auditable?
+13. Does `continuity-mode.md` make the integration-authority invariant and
+    enforcement classification sufficiently durable and auditable?
 14. Is Section 8.3's two-stage RFC 000 lifecycle handback truthful and
     fail-closed through the final lifecycle SHA?
-15. Is required-check activation unambiguously mandatory before concurrency
-    while still requiring separate owner authorization for repository-rule
-    mutation?
+15. Is required-check activation unambiguously mandatory before independent
+    update authority is granted while still requiring separate owner
+    authorization for repository-rule mutation?
 
 ## 13. Sources
 

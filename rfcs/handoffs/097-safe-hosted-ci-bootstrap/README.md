@@ -33,12 +33,13 @@ release, or repository-rule mutation.
 The developer must not infer operations authority from implementation
 approval. Assigning an operation to nabbisen is a procedural control in this
 handoff. GitHub users with sufficient repository permission may technically
-perform some of the same operations; no owner-only technical enforcement is
-claimed without separate evidence.
+perform some of the same operations; no exclusive integration authority is
+claimed to be technically enforced without separate evidence.
 
-The current operational mode is owner-only single-branch continuity, pending
-acceptance of RFC 097's governance amendment. This is a procedural stop-work
-control, not technical owner-only enforcement.
+The current operational mode is serialized-integration continuity, pending
+acceptance of RFC 097's authority-model refinement. All `main` updates pass
+through one designated integration authority. This is a procedural stop-work
+control, not technical merge enforcement.
 
 ## 3. Reviewed implementation boundary
 
@@ -163,7 +164,14 @@ Do not run repository-wide mutating format for this YAML-only implementation.
 
 Only the operations owner performs or explicitly authorizes these steps.
 
-### 6.1 Concurrent-mode pull-request route
+**Independent update authority** means project authorization for a person,
+bot, merge queue, or other mechanism to update `main` without routing that
+update through the designated integration authority and its exact-current-SHA
+B0 wait. Technical GitHub permission or capability alone does not grant that
+project authority. A technically capable but independently unauthorized actor
+must follow the designated serialized-integration procedure.
+
+### 6.1 Independent-authority enforcement pull-request route
 
 - Confirm Actions is enabled for the repository.
 - Confirm hosted runner/minutes access for all three runner labels.
@@ -177,10 +185,11 @@ Only the operations owner performs or explicitly authorizes these steps.
 
 The `pull_request` event triggers the run automatically. This route was not
 used for the already accepted implementation evidence. It becomes mandatory
-before concurrent integration begins. Do not use `workflow_dispatch` as a
-substitute for evidence from the actual merge-control path.
+before independently authorized integration begins. Do not use
+`workflow_dispatch` as a substitute for evidence from the actual merge-control
+path.
 
-### 6.2 Observe a concurrent-mode run
+### 6.2 Observe an independent-authority enforcement run
 
 Use the GitHub UI or, when the owner authorizes CLI use:
 
@@ -252,33 +261,35 @@ Only after an accepted implementation review and a green current run:
 7. verify a subsequent pull-request run reports the context and that the
    repository's actual merge-control path requires it; and
 8. obtain independent acceptance of the rule snapshot and merge-path evidence
-   before concurrent work resumes.
+   before independently authorized integration resumes.
 
 The required-check change is not necessary to prove the workflow code works,
-but its observed configuration is required before concurrent work starts or
-B0 is claimed as an enforced merge control. Concurrent work may resume only
-when the applicable rule requires exactly `B0 / gate`, applies to `main`
-without weakening unrelated checks, the actual merge-control path emits the
-context, and independent review accepts that evidence. This procedure does not
-authorize repository-rule mutation; the operation still requires separate
-explicit owner authorization.
+but its observed configuration is required before independently authorized
+integration starts or B0 is claimed as an enforced merge control.
+Independently authorized integration may resume only when the applicable rule
+requires exactly `B0 / gate`, applies to `main` without weakening unrelated
+checks, the actual merge-control path emits the context, and independent review
+accepts that evidence. This procedure does not authorize repository-rule
+mutation; the operation still requires separate explicit owner authorization.
 
 An ordinary-PR verification branch and PR remain non-integrating review
-transport. They do not authorize merge and do not begin general concurrent
-development before the evidence above is accepted.
+transport. They do not authorize merge or independently authorized integration
+before the evidence above is accepted.
 
-### 6.5 Owner-only single-branch continuity
+### 6.5 Serialized-integration continuity
 
-This mode is available only while nabbisen is the sole writer/integrator,
-there is one serial `main` line, and there is no integration-bound concurrent
-branch, outside contributor/PR flow, merge queue, or independently integrating
-automation.
+This mode is available while every update to `main` passes through one
+designated integration authority and no person, bot, merge queue, or mechanism
+is authorized to update `main` independently. Multiple developers, branches,
+and pull requests are permitted when that authority integrates their updates
+one at a time. Technical GitHub capability is governed as defined above; it is
+not itself independent project authority.
 
 For every pushed `main` SHA, the operations owner:
 
 1. records the exact SHA and corresponding B0 run;
-2. observes all three platform cells and `B0 / gate` before unrelated work
-   continues;
+2. observes all three platform cells and `B0 / gate` before another unrelated
+   integration or downstream continuation proceeds;
 3. stops unrelated implementation pushes, downstream gate consumption, and
    release/tag/publish operations if the run fails, is cancelled, is missing,
    or tests another SHA;
@@ -286,8 +297,9 @@ For every pushed `main` SHA, the operations owner:
 5. records or updates `continuity-mode.md` as specified in Section 7.
 
 Only diagnosis, correction, and evidence work may proceed during stop-work.
-Before any mode condition becomes false, stop and complete Section 6.4. If a
-merge queue is selected, first amend and re-review RFC 097 for `merge_group`.
+Before any independent updater is authorized, stop and complete Section 6.4.
+If a merge queue is selected, first amend and re-review RFC 097 for
+`merge_group`.
 
 ## 7. Evidence checklist
 
@@ -313,18 +325,17 @@ Each `continuity-mode.md` entry records:
 - timestamp and workstream or lifecycle-transition identifier;
 - exact current `main` SHA, B0 run ID, attempt, event, run `headSha`, and
   `B0 / gate` conclusion;
-- owner attestation that nabbisen is the sole writer/integrator and only one
-  integration line exists;
-- observed state or explicit owner attestation that there is no
-  integration-bound concurrent branch, outside-contributor/PR integration
-  flow, merge queue, or independently integrating bot/automation;
+- designated integration authority and confirmation that every update to
+  `main` remains serialized through it;
+- whether another person, bot, merge queue, or mechanism has independent
+  authority to update `main`;
 - observed repository-rule/enforcement state and whether the barrier is
   procedural or technical; and
-- decision: serial mode remains valid, or enforcement activation blocks
+- decision: serialized mode remains valid, or enforcement activation blocks
   entry.
 
-Conditions not provable through read-only observation are labeled as owner
-attestations. Do not record credentials, tokens, or secret configuration. A
+Do not record or require developer count, branch count, or a sole-developer
+disclaimer. Do not record credentials, tokens, or secret configuration. A
 missing or stale entry blocks B0 closure or later workstream entry.
 
 ## 8. Failure and retry procedure
@@ -370,10 +381,10 @@ Stop and request RFC amendment/re-review if:
 - repository-rule changes would weaken unrelated protections;
 - implementation overlaps another workflow edit.
 
-Also stop before a second writer, concurrent integration branch, pull-request
-integration flow, independently integrating automation, or merge queue is
-introduced. That transition requires the enforcement evidence in Section 6.4
-and independent review before concurrent work resumes.
+Also stop before another person, bot, merge queue, or mechanism gains
+independent update authority. That transition requires the
+enforcement evidence in Section 6.4 and independent review before independently
+authorized integration resumes.
 
 ## 11. Completion handback
 
@@ -385,9 +396,10 @@ The developer hands back:
 - explicit red/non-B0 results;
 - an implementation-review entry package.
 
-For single-branch continuity closure, the handback also includes the accepted
-governance amendment and exact green push evidence for the then-current `main`
-SHA after amendment integration, plus its `continuity-mode.md` closure entry.
+For serialized-integration continuity closure, the handback also includes the
+accepted governance amendment and exact green push evidence for the
+then-current `main` SHA after amendment integration, plus its
+`continuity-mode.md` closure entry.
 
 The owner then performs RFC 097 Section 8.3's separately reviewed mechanical
 lifecycle handback: move RFC 097 to `done/`, update its status, the RFC index,
@@ -396,8 +408,9 @@ The resulting final `main` SHA must pass all B0 cells and `B0 / gate`; that
 result is added to `continuity-mode.md` before B0/WS-03 closes or unrelated
 work continues.
 
-For concurrent-mode closure, the handback instead includes the required-check
-rule snapshot and verification on the actual merge-control path.
+For independent-authority enforcement handback, the record instead includes
+the required-check rule snapshot and verification on the actual merge-control
+path.
 
 No commit message is requested until independent implementation review accepts
 B0 and the owner approves the commit point.
