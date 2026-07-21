@@ -134,8 +134,13 @@ fn fallback_mutation_is_reported_with_only_a_relative_path() {
     command.mutate_fallback_for_test();
     let error = command.arg("--help").run_output().unwrap_err();
     let rendered = error.to_string();
+    let expected_path = std::path::Path::new("fallback")
+        .join("home")
+        .join(".config")
+        .join("aaai")
+        .join("sentinel");
     assert!(error.has_failure("fallback-mutation"));
-    assert!(rendered.contains("fallback/home/.config/aaai/sentinel"));
+    assert!(rendered.contains(expected_path.to_string_lossy().as_ref()));
     assert!(!rendered.contains(command.state_root().parent().unwrap().to_str().unwrap()));
 }
 
