@@ -10,7 +10,9 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 Current remediation design awaiting review and owner decision:
 
-_None._
+| ID | Title | Tracks |
+|---|---|---|
+| [097](proposed/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | M1C / WS-03 / B0 |
 
 ---
 

@@ -1,0 +1,70 @@
+# RFC 097 — declared-MSRV hosted bootstrap authority.
+name: B0 Hosted Bootstrap
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: b0-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  b0-platform:
+    name: B0 / Rust 1.91 / ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux
+          - os: macos-latest
+            label: macOS
+          - os: windows-latest
+            label: Windows
+
+    steps:
+      - name: Check out tested revision
+        uses: actions/checkout@v6
+
+      - name: Install Rust 1.91
+        uses: dtolnay/rust-toolchain@1.91
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        continue-on-error: true
+        with:
+          shared-key: b0-${{ runner.os }}-rust-1.91
+
+      - name: Report toolchain
+        run: |
+          rustc -Vv
+          cargo -V
+
+      - name: Report locked workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1
+
+      - name: Test locked workspace
+        run: cargo test --workspace --locked
+
+  b0-gate:
+    name: B0 / gate
+    if: ${{ always() }}
+    needs: [b0-platform]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require successful platform matrix
+        env:
+          MATRIX_RESULT: ${{ needs.b0-platform.result }}
+        run: |
+          echo "B0 platform matrix result: ${MATRIX_RESULT}"
+          test "${MATRIX_RESULT}" = "success"
