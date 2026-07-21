@@ -10,8 +10,8 @@
 
 **Decision owner.** nabbisen, project owner
 
-**Proposed primary implementer.** Codex, only after independent design review
-and explicit owner approval
+**Primary implementer.** Codex; workflow implementation and corrections are
+complete and independently accepted
 
 **Required operations owner.** nabbisen, because GitHub Actions availability,
 manual dispatch, repository rules, and required-check configuration are
@@ -37,6 +37,17 @@ documentation, or repository rules by itself.
 **Handoff.** Required:
 [`rfcs/handoffs/097-safe-hosted-ci-bootstrap/README.md`](../handoffs/097-safe-hosted-ci-bootstrap/README.md)
 
+**Observed implementation evidence.** Independent implementation review
+accepted the workflow and the hosted B0 run for `main` SHA
+`03e9a2d4e00600a8519c4cc704cd2174b840bca7`, run `29798727537`. The two
+preceding deterministic Windows failures remain recorded. Repository rules do
+not currently require `B0 / gate`.
+
+**Proposed governance amendment.** While the project remains owner-only with
+one serial `main` integration line, B0 blocks continuation after a push instead
+of blocking a merge. This amendment requires independent architecture review
+before it may close B0.
+
 ## 1. Summary
 
 This RFC creates one trustworthy hosted bootstrap gate after S1:
@@ -59,6 +70,13 @@ A single aggregate job named `B0 / gate` succeeds only when all three matrix
 cells succeed. It is the only status proposed as the B0 branch-protection
 candidate. Existing format, Clippy, security, i18n, visual-status, docs, GUI
 build, release, and MSIX surfaces are not relabeled as B0.
+
+During the proposed owner-only single-branch continuity mode, the same result
+is fail-closed operationally: an unsuccessful or unobserved result for the
+latest pushed `main` SHA stops unrelated continuation, downstream gate use,
+and release operations. Before the repository adopts concurrent integration,
+`B0 / gate` must become an observed required check on the actual merge-control
+path.
 
 The new B0 workflow is separate from the existing CI workflow. Existing
 format, Clippy, RustSec, docs, i18n, visual-status, and GUI jobs retain their
@@ -149,6 +167,8 @@ bootstrap a workflow that is not yet present on the default branch.
 - Define operations-owner-assigned PR, dispatch, and repository-rule actions
   separately from developer implementation without claiming technical
   owner-only enforcement.
+- Define an objective owner-only serial mode in which B0 failure blocks
+  continuation, and mandatory triggers for activating merge-time enforcement.
 
 ### 3.2 Non-goals
 
@@ -199,6 +219,12 @@ bootstrap a workflow that is not yet present on the default branch.
     infrastructure-only rerun is allowed and both run IDs are retained.
 16. Required-check configuration is an owner operation after a successful
     reviewed run; workflow code cannot silently modify repository rules.
+17. In single-branch continuity mode, an unsuccessful or unobserved B0 result
+    for the latest pushed `main` SHA blocks unrelated implementation pushes,
+    downstream gate consumption, and release, tag, or publish operations.
+18. Merge-time enforcement is mandatory before any second writer, concurrent
+    integration branch, pull-request integration flow, merge queue, or
+    independently integrating bot/automation is introduced.
 
 ## 5. Selected workflow design
 
@@ -224,12 +250,12 @@ concurrency:
   cancel-in-progress: true
 ```
 
-The initial hosted validation route is an operations-owner-authorized,
-same-repository pull request targeting `main`. Its `pull_request` event can
-execute the proposed workflow before merge. Creating the review commit, branch
-push, and pull request are external operations requiring separate explicit
-owner authorization; they are provisional review transport, not approval to
-merge, close B0, or release.
+The designed initial hosted-validation route was an
+operations-owner-authorized, same-repository pull request targeting `main`.
+Its `pull_request` event could execute the proposed workflow before merge.
+Creating the review commit, branch push, and pull request were external
+operations requiring separate explicit owner authorization; they were
+provisional review transport, not approval to merge, close B0, or release.
 
 Manual dispatch is unavailable until a `workflow_dispatch` form of `b0.yaml`
 exists on the default branch. After that default-branch adoption only, a user
@@ -350,6 +376,59 @@ The existing Linux `check-msrv` remains a known broken legacy job, not B0
 authority. B0 authority is unambiguously the new workflow's three-OS matrix and
 aggregate. No result from `ci.yaml` is included in `B0 / gate`.
 
+### 5.5 Blocking modes and enforcement activation
+
+| Mode | Preconditions | B0 trigger and barrier | Closure evidence |
+|---|---|---|---|
+| Owner-only single-branch continuity | nabbisen is the sole writer/integrator; exactly one serial `main` line; no integration-bound concurrent branch, outside contributor/PR flow, merge queue, or independently integrating automation | Every pushed `main` SHA triggers B0. A latest SHA without successful `B0 / gate` stops unrelated pushes, downstream gate use, and release operations | Accepted workflow implementation, retained failed attempts, accepted governance amendment, a valid closure entry in `continuity-mode.md`, RFC 000-consistent lifecycle records, and a green three-OS run for their exact resulting final `main` SHA |
+| Concurrent integration | Any serial-mode precondition is false or is about to become false | A pull request or merge queue must be unable to integrate without successful `B0 / gate` | Exact context required by the repository rule, rule snapshot, successful verification on the actual merge-control path, and independent review |
+
+Single-branch continuity mode accepts a bounded post-push risk: `main` can be
+temporarily red. While it is red, only diagnosis, correction, and evidence work
+may proceed. A deterministic failure is repaired at a new SHA; its failed run
+is retained and is not rerun unchanged to seek green.
+
+Enforcement activation occurs before a second writer, concurrent branch
+intended for integration, pull-request integration flow, bot or automation
+with integration authority, merge queue, or other departure from owner-only
+serial operation. Work stops while the owner:
+
+1. selects the actual merge-control path;
+2. amends and re-reviews this RFC for a `merge_group` trigger if a merge queue
+   is selected;
+3. configures the exact observed `B0 / gate` context as required without
+   weakening unrelated checks;
+4. records the repository rule state without secrets;
+5. verifies the check on the actual merge-control path; and
+6. obtains independent review before concurrent work resumes.
+
+The owner reconfirms the single-branch preconditions at entry to every later
+workstream. A false condition blocks entry until enforcement activation is
+complete. Neither mode waives a platform cell, test failure, read-only
+permission, or the later C0/C2/C1 gates.
+
+The durable serial-mode record is
+`.git-exclude/evidence/097-safe-hosted-ci-bootstrap/continuity-mode.md`. It has
+one entry for B0 closure and a new entry at every later workstream boundary.
+Each entry contains:
+
+- timestamp and workstream or lifecycle-transition identifier;
+- exact current `main` SHA, B0 run ID, attempt, event, run `headSha`, and
+  `B0 / gate` conclusion;
+- owner attestation that nabbisen is the sole writer and integrator and only
+  one integration line exists;
+- observed state or explicit owner attestation for the absence of an
+  integration-bound concurrent branch, outside-contributor/PR integration
+  flow, merge queue, and independently integrating bot/automation;
+- observed repository-rule and enforcement state, explicitly classifying the
+  barrier as procedural or technical; and
+- the decision that serial mode remains valid, or that enforcement activation
+  blocks entry.
+
+When a read-only API cannot prove a condition, the entry labels it as owner
+attestation. It does not record credentials, tokens, secrets, or secret
+configuration.
+
 ## 6. B0 acceptance contract
 
 ### 6.1 Required green cells
@@ -370,10 +449,18 @@ pair. All three cells and the aggregate must belong to that same run and
 tested SHA. A run against an earlier head or base, a cancelled run, or a
 superseded synthetic merge is not evidence.
 
-After `b0.yaml` is adopted on the default branch, a `push` or manual-dispatch
-run may provide additional evidence. For those events, the operator records
-the selected ref and verifies the run `headSha` is the intended commit for
-that ref. Manual dispatch is not an initial-bootstrap route.
+The implemented workflow reached `main` through owner-performed direct pushes,
+not the designed initial pull-request route. Final implementation review
+accepted the workflow and hosted execution evidence but did not accept B0
+lifecycle closure under the original merge-enforcement contract.
+
+For single-branch continuity mode, a default-branch `push` run is authoritative
+when its recorded `headSha` is the exact intended current `main` commit and all
+cells belong to that run. Run `29798727537` satisfies this execution contract
+for SHA `03e9a2d4e00600a8519c4cc704cd2174b840bca7`. A manual-dispatch run is
+supplementary and does not replace the push result for the latest `main` SHA.
+The PR `H`/`B`/`M` relationship above becomes mandatory evidence when
+concurrent integration enforcement is activated.
 
 For the accepted run:
 
@@ -435,6 +522,7 @@ Create:
 
 ```text
 .git-exclude/evidence/097-safe-hosted-ci-bootstrap/
+  continuity-mode.md
   environment.md
   local-preflight.log
   workflow-validation.md
@@ -455,6 +543,10 @@ package identities, command, duration, and conclusion per cell.
 
 `isolation-results.md` records the RFC 096 focused case names and conclusions
 per OS. It does not reproduce canary values.
+
+`continuity-mode.md` follows Section 5.5. It is required for serial-mode B0
+closure and for every later workstream entry; a missing, stale, or invalid-mode
+entry blocks continuation.
 
 ## 7. Failure, retry, and rollback policy
 
@@ -524,6 +616,57 @@ If GitHub execution requires a product-code, dependency, MSRV, action-vendor,
 release-workflow, or platform-exclusion change, stop and amend/re-review this
 RFC before implementation continues.
 
+### 8.1 Observed implementation disposition
+
+The workflow implementation and corrections were integrated by the owner via
+direct pushes to `main`; steps 7–12 above were therefore not followed as
+designed. Independent final implementation review accepted the code and the
+green three-OS push run, while leaving B0 open because neither the original PR
+evidence nor required-check enforcement existed. This amendment makes that
+deviation explicit and substitutes Section 5.5's single-branch continuity
+contract only for the duration of the stated owner-only serial conditions.
+
+### 8.2 Ongoing single-branch operation
+
+For each pushed `main` SHA, the owner observes the corresponding B0 run before
+unrelated continuation. Green preserves serial work eligibility. Failure,
+cancellation, absence, or an obsolete result invokes stop-work until a new
+corrected SHA succeeds. At every downstream workstream entry, the owner records
+that Section 5.5's preconditions still hold or activates merge-time enforcement
+before entry.
+
+### 8.3 Lifecycle closure handback
+
+RFC 097 remains Proposed until the governance amendment is accepted and its
+integrated `main` SHA passes B0. The owner then performs a focused mechanical
+lifecycle transition under RFC 000:
+
+1. create the B0-closure entry in `continuity-mode.md` for the current green
+   amendment SHA and record the accepted governance review;
+2. move this RFC to `rfcs/done/097-safe-hosted-ci-bootstrap.md` and set its
+   status to Implemented / B0;
+3. move RFC 097 from Proposed to Done in `rfcs/README.md`;
+4. update every affected tracked relative link, including this handoff's RFC
+   link from `../../proposed/` to `../../done/`;
+5. update `ROADMAP.md` so its planning status, M1C/B0 milestone and gate row,
+   and WS-03 state say complete without claiming merge-time enforcement;
+6. record the accepted governance-review and continuity-evidence paths in the
+   lifecycle records; and
+7. independently review the mechanical closure boundary before owner
+   integration.
+
+That lifecycle transition creates a new `main` SHA. It enters stop-work until
+the corresponding push run succeeds on Linux, macOS, Windows, and `B0 / gate`
+with run `headSha` equal to that exact final SHA. B0, M1C, and WS-03 close only
+after that result is recorded in `continuity-mode.md`. WS-04 and all other
+unrelated continuation remain blocked until then. A failed lifecycle SHA is
+corrected at a new SHA and does not inherit the earlier green result.
+
+This two-stage handback keeps the tracked lifecycle transition mechanical and
+auditable: amendment acceptance and its green SHA precede the lifecycle move;
+the lifecycle move's own exact SHA then must be green before its completion
+claims become operative downstream.
+
 ## 9. Compatibility and downstream impact
 
 There is no product compatibility change. B0 supplies later workstreams with:
@@ -571,6 +714,8 @@ blocking format/Clippy policy. WS-09 owns full release/workflow convergence.
 | Owner required-check change deadlocks merges | Verify visible context first and use narrow rollback procedure |
 | Action tags are mutable | Retain current action families for B0; WS-07/C0 owns pin policy |
 | Local preflight is mistaken for B0 | Lifecycle and evidence require GitHub-hosted three-OS results |
+| `main` is temporarily red in serial mode | Stop all unrelated continuation, downstream gate use, and release operations until a corrected SHA is green |
+| The repository silently drifts into concurrent integration | Reconfirm serial preconditions at every workstream entry and require reviewed enforcement activation before any trigger condition |
 
 ## 12. Review questions
 
@@ -590,6 +735,23 @@ blocking format/Clippy policy. WS-09 owns full release/workflow convergence.
    repair, and full-workflow green status correctly deferred?
 8. May the owner confirm the proposed implementer/operations assignments and
    hosted-runner capacity after design acceptance?
+9. Are the single-branch continuity preconditions objective and narrow enough
+   to make post-push stop-work equivalent to a blocking B0 gate for this serial
+   operating model?
+10. Are the enforcement activation triggers and transition evidence complete
+    enough to prevent concurrent work from beginning without merge-time B0?
+11. May M1C/B0 and WS-03 close without current branch protection after this
+    amendment is accepted and the amendment's resulting current `main` SHA is
+    green, using run `29798727537` as accepted implementation evidence?
+12. Is the temporary-red-`main` limitation sufficiently explicit for later
+    workstreams to consume B0 safely?
+13. Does `continuity-mode.md` make the serial prerequisites and enforcement
+    classification sufficiently durable and auditable?
+14. Is Section 8.3's two-stage RFC 000 lifecycle handback truthful and
+    fail-closed through the final lifecycle SHA?
+15. Is required-check activation unambiguously mandatory before concurrency
+    while still requiring separate owner authorization for repository-rule
+    mutation?
 
 ## 13. Sources
 
@@ -602,6 +764,9 @@ blocking format/Clippy policy. WS-09 owns full release/workflow convergence.
 - GitHub Actions workflow syntax, permission defaults:
   <https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax>
 - Existing workflow baseline: `.github/workflows/ci.yaml`
+- Final implementation review:
+  `.git-exclude/reviewed/016-rfc097-safe-hosted-ci-bootstrap-final-implementation-review-2026-07-21.md`
+- Hosted evidence: `.git-exclude/evidence/097-safe-hosted-ci-bootstrap/`
 - [GitHub Actions matrix jobs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations)
 - [dtolnay/rust-toolchain usage](https://github.com/dtolnay/rust-toolchain)
 - [Swatinem/rust-cache usage](https://github.com/Swatinem/rust-cache)

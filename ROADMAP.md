@@ -9,9 +9,10 @@ revised in response to the roadmap architecture review at
 **Planning status:** Roadmap accepted with non-blocking notes. M0/D0 and M1/S1
 completed on 2026-07-17. RFC 095 establishes the owner-approved v1 authority,
 and RFC 096 establishes isolated test/user-state boundaries on the reviewed
-local Linux scope. Store/MSIX remains deferred from v1. Declared-MSRV and
-hosted Linux/macOS/Windows execution remain required at M1C/B0; no release
-activity is authorized.
+local Linux scope. RFC 097's workflow and hosted Linux/macOS/Windows evidence
+have passed implementation review; B0 closure awaits approval of its proposed
+single-branch governance amendment. Store/MSIX remains deferred from v1. No
+release activity is authorized.
 
 **Selected serial program window:** 2026-07-17 through 2027-04-23
 
@@ -29,6 +30,10 @@ scope statements, and readiness claims do not control this program.
 - No accelerated or parallel calendar is active. One may be published only
   after independent owners are named for the overlapping work, review capacity
   is confirmed, and changed-file ownership does not conflict.
+- The current operating assumption is one owner writing one serial `main`
+  integration line. While that remains true, a failed or missing B0 result on
+  the latest pushed `main` SHA stops unrelated continuation. Required-check
+  enforcement must be activated before this assumption changes.
 - Each RFC is approved before its implementation begins. A proposed calendar
   window is a planning target, not authorization to implement an unapproved
   RFC.
@@ -68,7 +73,7 @@ The program is complete only when all of the following are true:
 |---|---|---|---|---|
 | **M0 — Program charter and v1 authority** | **Completed Jul 17:** decision design, independent review, and owner approval | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
 | **M1 — Safe tests and local-state boundary** | **Completed Jul 17:** design, implementation, synthetic evidence, and independent review | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved RFC 096 | **S1 passed:** isolated local full-suite pass plus synthetic no-resolution/non-disclosure/non-mutation evidence |
-| **M1C — Safe hosted-CI bootstrap** | Aug 17–21: RFC design/review; Aug 24–28: implementation/evidence | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; approved CI-bootstrap RFC | **B0:** safe hosted platform matrix is green |
+| **M1C — Safe hosted-CI bootstrap** | Implementation and hosted evidence accepted Jul 21; governance amendment review pending | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; approved CI-bootstrap RFC | **B0:** safe hosted platform matrix is green and blocks either serial continuation or concurrent integration under the applicable mode |
 | **M2 — Untrusted input/output boundary** | Aug 31–Sep 4: symlink-contract design/review; Sep 7–11: implementation/evidence; Sep 14–18: output-contract design/review; Sep 21–Oct 2: implementation/evidence | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
 | **M3 — Cross-platform persistence** | Oct 5–9: RFC design/review; Oct 12–23: implementation/evidence | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
 | **M4A — Supply-chain disposition** | Oct 26–30: RFC design/review; Nov 2–13: implementation/evidence | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
@@ -114,13 +119,58 @@ review capacity, security/QA ownership, and non-conflicting changed-file
 boundaries for every overlap. Until then, the serial schedule is the only
 schedule used for commitments or risk reporting.
 
+### B0 enforcement activation policy
+
+B0 may operate in **single-branch continuity mode** only while all of these
+conditions remain true:
+
+- nabbisen is the sole writer and integrator for `main`;
+- there is exactly one active integration line, with no concurrent branch
+  intended for integration;
+- there is no outside contributor or pull-request integration flow, merge
+  queue, or bot/automation able to integrate changes independently; and
+- every pushed `main` SHA triggers B0 and is observed before unrelated work
+  continues.
+
+In this mode, a latest `main` SHA without a successful `B0 / gate` is a
+stop-work condition. Only diagnosis, correction, and evidence work may
+continue. No unrelated product or RFC implementation may be pushed, no
+downstream gate may consume that SHA, and no release, tag, or publish operation
+may proceed. A deterministic failure is corrected at a new SHA; the failed run
+is retained rather than laundered by rerunning unchanged code. This is
+post-push detection, so `main` can temporarily be red; the owner accepts that
+risk only under the conditions above.
+
+Before adding a second writer, starting a concurrent branch intended for
+integration, adopting pull-request integration, granting a bot integration
+authority, enabling a merge queue, or otherwise leaving the owner-only serial
+assumption, work stops for enforcement activation. The owner must select the
+actual merge-control path, amend and re-review RFC 097 for `merge_group` if a
+merge queue is selected, configure the exact `B0 / gate` required check,
+record the resulting rule state, and verify it on that path through independent
+review. Concurrent work resumes only after that evidence is accepted.
+
+At entry to each later workstream, the owner reconfirms the single-branch
+conditions. If any condition is false, enforcement activation blocks entry.
+This policy does not waive any B0 platform cell or failure, and does not alter
+the later C0, C2, or C1 contracts.
+
+The durable record is
+`.git-exclude/evidence/097-safe-hosted-ci-bootstrap/continuity-mode.md`. It
+contains a closure entry and a new entry at every later workstream boundary.
+Each entry identifies the boundary and timestamp, the exact current `main` SHA
+and B0 run, the owner attestations and observed repository state supporting
+every condition above, and either continued serial eligibility or blocked
+entry pending enforcement. Attestation is not represented as technical
+enforcement.
+
 ### Gate evidence contracts
 
 | Gate | Minimum auditable evidence |
 |---|---|
 | **D0 — passed 2026-07-17** | RFC 095 records owner-approved normative-source precedence, supported feature inventory and release disposition, guided/expert GUI baseline, compatibility ownership, direct v1 distribution set, Store/MSIX deferral, and feature freeze |
 | **S1 — passed 2026-07-17 (local Linux)** | RFC 096 centralizes state resolution; all subprocess helpers inject isolated platform home/config variables; deny/canary roots cover fallback lookups; destructive history fixtures exceed the prune threshold; captured streams and exact synthetic snapshots prove no canary disclosure or mutation. Hosted platform and declared-MSRV evidence remains B0. |
-| **B0** | Hosted Linux/macOS/Windows jobs use current crate names, the isolated test harness, and the declared MSRV; failures are blocking |
+| **B0** | Hosted Linux/macOS/Windows jobs use current crate names, the isolated test harness, and the declared MSRV. In owner-only single-branch continuity mode, the exact latest pushed `main` SHA is green, failure or missing evidence blocks continuation, and `continuity-mode.md` records a valid owner attestation plus observed enforcement state. Before concurrency, the exact `B0 / gate` context is configured and verified as required on the actual merge-control path. B0 closes only after RFC 097's lifecycle records are integrated and the exact resulting final `main` SHA is green. |
 | **S2** | Approved threat model; symlink/path/error reporting contract; adversarial encoding, formula, masking, cross-root-link, and platform tests run through B0 |
 | **P1** | Existing-target overwrite, atomic lock acquisition, concurrent writers, stale lock, temp collision, interrupted save, and recovery tests pass on Linux/macOS/Windows |
 | **C0** | `cargo audit` has no unapproved vulnerability/warning; every temporary exception records reachability, mitigation, owner, expiry, and removal condition |
@@ -148,7 +198,7 @@ and approval begin only after this roadmap revision is accepted.
 |---:|---|---|---|---|
 | 1 | **WS-01 — v1 authority, scope, GUI, and distribution baseline** | **Completed by RFC 095/D0.** Normative source precedence; supported feature inventory and evidence ownership; guided/expert GUI; compatibility and direct distribution boundary | None | No developer handoff; owner decision is the implemented artifact |
 | 2 | **WS-02 — test environment and user-state isolation** | **Completed by RFC 096/S1.** Per-test state sandbox; subprocess-helper migration; canary capture/snapshot contract; destructive regression evidence | WS-01 gate only for program sequencing, not technical design | No separate handoff; RFC 096 contains the complete migration table and checklist |
-| 3 | **WS-03 — safe hosted-CI bootstrap** | Current crate names; isolated tests; MSRV; blocking Linux/macOS/Windows bootstrap matrix | WS-02 | **Required** CI developer/operations handoff |
+| 3 | **WS-03 — safe hosted-CI bootstrap** | Current crate names; isolated tests; MSRV; Linux/macOS/Windows bootstrap matrix that blocks serial continuation or concurrent integration under the applicable mode | WS-02 | **Required** CI developer/operations handoff |
 | 4 | **WS-04 — selected-folder and symlink policy** | Link classification, containment, platform behavior, and shared path/error/reporting semantics | WS-01, WS-03 | **Required** platform developer/QA handoff |
 | 5 | **WS-05 — safe reports, exports, and masking** | Contextual encoding, spreadsheet neutralization, and masking across D0-approved Markdown/HTML/JSON/SARIF/CSV/TSV and GUI/CLI surfaces | WS-04 reporting contract, WS-03 test matrix | **Required** security developer/adversarial-QA handoff |
 | 6 | **WS-06 — atomic definition persistence** | Atomic replace, lock ownership, stale recovery, temp naming, crash and concurrent-writer behavior | WS-03, WS-05 gate for serial sequencing | **Required** cross-platform developer/QA handoff |

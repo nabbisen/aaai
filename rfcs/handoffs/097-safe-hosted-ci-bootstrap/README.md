@@ -2,8 +2,12 @@
 
 ## 1. Authority and entry conditions
 
-This handoff implements
-[`RFC 097`](../../proposed/097-safe-hosted-ci-bootstrap.md) only after:
+The workflow implementation governed by
+[`RFC 097`](../../proposed/097-safe-hosted-ci-bootstrap.md) has passed final
+implementation review. Sections 3–5 retain its reviewed implementation
+boundary and designed sequence; Section 6 governs current operations.
+
+The original implementation entry conditions were:
 
 1. independent architecture review accepts the RFC and this handoff;
 2. project owner nabbisen approves implementation;
@@ -12,8 +16,9 @@ This handoff implements
 4. Codex implementation capacity and owner operations/review capacity are
    confirmed.
 
-Design acceptance does not authorize a commit, push, pull request, workflow
-dispatch, required-check change, merge, release, or repository-rule mutation.
+Neither past implementation acceptance nor this governance amendment authorizes
+a commit, push, pull request, workflow dispatch, required-check change, merge,
+release, or repository-rule mutation.
 
 ## 2. Role split
 
@@ -31,16 +36,20 @@ handoff. GitHub users with sufficient repository permission may technically
 perform some of the same operations; no owner-only technical enforcement is
 claimed without separate evidence.
 
-## 3. Exact implementation boundary
+The current operational mode is owner-only single-branch continuity, pending
+acceptance of RFC 097's governance amendment. This is a procedural stop-work
+control, not technical owner-only enforcement.
 
-Expected tracked changes:
+## 3. Reviewed implementation boundary
+
+The reviewed tracked implementation boundary was:
 
 - new `.github/workflows/b0.yaml`
 - `rfcs/proposed/097-safe-hosted-ci-bootstrap.md`
 - `rfcs/handoffs/097-safe-hosted-ci-bootstrap/README.md`
 - `rfcs/README.md`
 
-Expected ignored review/evidence changes:
+The reviewed ignored review/evidence boundary was:
 
 - `.git-exclude/evidence/097-safe-hosted-ci-bootstrap/`
 - `.git-exclude/review-requests/...`
@@ -59,11 +68,11 @@ Do not change:
 
 Any required expansion stops implementation for RFC amendment and re-review.
 
-## 4. Developer change map
+## 4. Reviewed developer change map
 
 ### 4.1 Workflow triggers and authority
 
-Create `.github/workflows/b0.yaml`:
+The implementation created `.github/workflows/b0.yaml` with:
 
 - name it `B0 Hosted Bootstrap`;
 - trigger on `push` and `pull_request` for `main`, plus
@@ -72,13 +81,14 @@ Create `.github/workflows/b0.yaml`:
 - add per-change concurrency with cancellation of obsolete runs;
 - do not add secrets or write permission.
 
-The `pull_request` event is the initial hosted-validation route. Manual
-dispatch is unavailable until this workflow exists on the default branch and
-must not be used to bootstrap the implementation review.
+The `pull_request` event was the designed initial hosted-validation route.
+Manual dispatch was unavailable until this workflow existed on the default
+branch and could not bootstrap the implementation review. The actual
+direct-push deviation is recorded in Section 5 and RFC 097 Section 8.1.
 
 ### 4.2 B0 matrix
 
-Add one `b0-platform` matrix to `b0.yaml`:
+The implementation added one `b0-platform` matrix to `b0.yaml`:
 
 | Matrix label | Runner | Toolchain | Command |
 |---|---|---|---|
@@ -102,7 +112,7 @@ Required properties:
 
 ### 4.3 Aggregate
 
-Add `b0-gate`:
+The implementation added `b0-gate`:
 
 - visible name exactly `B0 / gate`;
 - Ubuntu runner;
@@ -121,7 +131,12 @@ stable test, format, Clippy, MSRV, Windows GUI, RustSec, i18n, visual-status,
 or docs jobs. In particular, the read-only permission in `b0.yaml` has no
 effect on the existing RustSec job's automatic-token permissions.
 
-## 5. Developer sequencing
+## 5. Designed developer sequence
+
+This is the accepted design sequence retained for traceability. The owner used
+direct pushes for the implementation and corrections, so steps 7–10 were not
+performed through the designed pull-request route. RFC 097 Section 8.1 and the
+final implementation review record that deviation.
 
 1. Re-read the accepted RFC and review result.
 2. Record the owner-approved baseline and preserve unrelated worktree changes.
@@ -148,7 +163,7 @@ Do not run repository-wide mutating format for this YAML-only implementation.
 
 Only the operations owner performs or explicitly authorizes these steps.
 
-### 6.1 Initial pull-request route
+### 6.1 Concurrent-mode pull-request route
 
 - Confirm Actions is enabled for the repository.
 - Confirm hosted runner/minutes access for all three runner labels.
@@ -160,11 +175,12 @@ Only the operations owner performs or explicitly authorizes these steps.
 - Treat this authorization only as review transport. It does not authorize
   merge, B0 closure, release, or a repository-rule change.
 
-The `pull_request` event triggers the initial run automatically. Do not run
-`gh workflow run` for initial validation: `workflow_dispatch` is unavailable
-until `b0.yaml` exists on the default branch.
+The `pull_request` event triggers the run automatically. This route was not
+used for the already accepted implementation evidence. It becomes mandatory
+before concurrent integration begins. Do not use `workflow_dispatch` as a
+substitute for evidence from the actual merge-control path.
 
-### 6.2 Observe the initial run
+### 6.2 Observe a concurrent-mode run
 
 Use the GitHub UI or, when the owner authorizes CLI use:
 
@@ -229,15 +245,49 @@ Only after an accepted implementation review and a green current run:
 2. if a merge queue is required, stop and amend/re-review RFC 097 for a
    `merge_group` trigger before configuring the check;
 3. inspect the exact status context exposed by GitHub;
-4. add only `B0 / gate` to the owner-selected required checks if desired;
+4. add exactly `B0 / gate` to the owner-selected required checks applying to
+   `main`;
 5. do not remove existing required checks without a separate owner decision;
 6. record timestamp and resulting rule summary without secrets;
 7. verify a subsequent pull-request run reports the context and that the
-   repository's actual merge-control path requires it.
+   repository's actual merge-control path requires it; and
+8. obtain independent acceptance of the rule snapshot and merge-path evidence
+   before concurrent work resumes.
 
 The required-check change is not necessary to prove the workflow code works,
-but its observed configuration is required before claiming B0 is an enforced
-merge control.
+but its observed configuration is required before concurrent work starts or
+B0 is claimed as an enforced merge control. Concurrent work may resume only
+when the applicable rule requires exactly `B0 / gate`, applies to `main`
+without weakening unrelated checks, the actual merge-control path emits the
+context, and independent review accepts that evidence. This procedure does not
+authorize repository-rule mutation; the operation still requires separate
+explicit owner authorization.
+
+An ordinary-PR verification branch and PR remain non-integrating review
+transport. They do not authorize merge and do not begin general concurrent
+development before the evidence above is accepted.
+
+### 6.5 Owner-only single-branch continuity
+
+This mode is available only while nabbisen is the sole writer/integrator,
+there is one serial `main` line, and there is no integration-bound concurrent
+branch, outside contributor/PR flow, merge queue, or independently integrating
+automation.
+
+For every pushed `main` SHA, the operations owner:
+
+1. records the exact SHA and corresponding B0 run;
+2. observes all three platform cells and `B0 / gate` before unrelated work
+   continues;
+3. stops unrelated implementation pushes, downstream gate consumption, and
+   release/tag/publish operations if the run fails, is cancelled, is missing,
+   or tests another SHA;
+4. preserves failures and corrects deterministic defects at a new SHA; and
+5. records or updates `continuity-mode.md` as specified in Section 7.
+
+Only diagnosis, correction, and evidence work may proceed during stop-work.
+Before any mode condition becomes false, stop and complete Section 6.4. If a
+merge queue is selected, first amend and re-review RFC 097 for `merge_group`.
 
 ## 7. Evidence checklist
 
@@ -250,11 +300,32 @@ Populate `.git-exclude/evidence/097-safe-hosted-ci-bootstrap/`:
   `headSha`/synthetic merge, and current-versus-obsolete disposition;
 - `matrix-results.md`: exact three-cell results;
 - `isolation-results.md`: RFC 096 focused case names per OS, without tokens;
+- `continuity-mode.md`: B0-closure entry and a new entry at every later
+  workstream boundary;
 - `focused-scans.log`: raw requested scan output;
 - `scope.diffstat`: tracked boundary and ELOC assessment.
 
 The implementation-review package is the architect's entry point and links
 these artifacts in review order.
+
+Each `continuity-mode.md` entry records:
+
+- timestamp and workstream or lifecycle-transition identifier;
+- exact current `main` SHA, B0 run ID, attempt, event, run `headSha`, and
+  `B0 / gate` conclusion;
+- owner attestation that nabbisen is the sole writer/integrator and only one
+  integration line exists;
+- observed state or explicit owner attestation that there is no
+  integration-bound concurrent branch, outside-contributor/PR integration
+  flow, merge queue, or independently integrating bot/automation;
+- observed repository-rule/enforcement state and whether the barrier is
+  procedural or technical; and
+- decision: serial mode remains valid, or enforcement activation blocks
+  entry.
+
+Conditions not provable through read-only observation are labeled as owner
+attestations. Do not record credentials, tokens, or secret configuration. A
+missing or stale entry blocks B0 closure or later workstream entry.
 
 ## 8. Failure and retry procedure
 
@@ -299,6 +370,11 @@ Stop and request RFC amendment/re-review if:
 - repository-rule changes would weaken unrelated protections;
 - implementation overlaps another workflow edit.
 
+Also stop before a second writer, concurrent integration branch, pull-request
+integration flow, independently integrating automation, or merge queue is
+introduced. That transition requires the enforcement evidence in Section 6.4
+and independent review before concurrent work resumes.
+
 ## 11. Completion handback
 
 The developer hands back:
@@ -308,6 +384,20 @@ The developer hands back:
 - all hosted run references supplied by the operations owner;
 - explicit red/non-B0 results;
 - an implementation-review entry package.
+
+For single-branch continuity closure, the handback also includes the accepted
+governance amendment and exact green push evidence for the then-current `main`
+SHA after amendment integration, plus its `continuity-mode.md` closure entry.
+
+The owner then performs RFC 097 Section 8.3's separately reviewed mechanical
+lifecycle handback: move RFC 097 to `done/`, update its status, the RFC index,
+affected links, and the roadmap completion state, and integrate those records.
+The resulting final `main` SHA must pass all B0 cells and `B0 / gate`; that
+result is added to `continuity-mode.md` before B0/WS-03 closes or unrelated
+work continues.
+
+For concurrent-mode closure, the handback instead includes the required-check
+rule snapshot and verification on the actual merge-control path.
 
 No commit message is requested until independent implementation review accepts
 B0 and the owner approves the commit point.
