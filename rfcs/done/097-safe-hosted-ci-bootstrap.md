@@ -1,6 +1,8 @@
 # RFC 097 — Safe Hosted-CI Bootstrap
 
-**Status.** Proposed
+**Status.** Implemented / B0 (2026-07-21). Lifecycle completion becomes
+operative only after the exact `main` SHA containing this transition passes
+Linux, macOS, Windows, and `B0 / gate` as required by Section 8.3.
 
 **Tracks.** `ROADMAP.md` M1C / WS-03 / gate B0
 
@@ -43,11 +45,17 @@ accepted the workflow and the hosted B0 run for `main` SHA
 preceding deterministic Windows failures remain recorded. Repository rules do
 not currently require `B0 / gate`.
 
-**Integrated governance amendment and proposed refinement.** While all updates
-to `main` are serialized through one integration authority, B0 blocks
-continuation after a push instead of blocking a merge. Developer and branch
-count are not prerequisites. Independent architecture review of this
-refinement is required before B0 may close.
+**Accepted governance model.** While all updates to `main` are serialized
+through one integration authority, B0 blocks continuation after a push instead
+of blocking a merge. Developer and branch count are not prerequisites. The
+serialized-integration-authority refinement was accepted by independent
+architecture review on 2026-07-21.
+
+**Governance acceptance.** Architecture re-review:
+`.git-exclude/reviewed/022-rfc097-independent-update-authority-question-design-rereview-2026-07-21.md`.
+
+**Lifecycle continuity evidence.**
+`.git-exclude/evidence/097-safe-hosted-ci-bootstrap/continuity-mode.md`.
 
 ## 1. Summary
 
@@ -648,8 +656,8 @@ still holds or activates merge-time enforcement before entry.
 
 ### 8.3 Lifecycle closure handback
 
-RFC 097 remains Proposed until the governance amendment is accepted and its
-integrated `main` SHA passes B0. The owner then performs a focused mechanical
+RFC 097 remained Proposed until the governance amendment was accepted and its
+integrated `main` SHA passed B0. The owner then performs this focused mechanical
 lifecycle transition under RFC 000:
 
 1. create the B0-closure entry in `continuity-mode.md` for the current green

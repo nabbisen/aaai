@@ -8,11 +8,7 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-Current remediation design awaiting review and owner decision:
-
-| ID | Title | Tracks |
-|---|---|---|
-| [097](proposed/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | M1C / WS-03 / B0 |
+_なし_
 
 ---
 
@@ -106,6 +102,7 @@ Current remediation design awaiting review and owner decision:
 | [094](done/094-high-contrast-themes.md) | High-Contrast Themes | v0.38.0 |
 | [095](done/095-v1-authority-scope-and-distribution.md) | v1 Authority, Scope, GUI, Compatibility, and Distribution | D0 decision (2026-07-17) |
 | [096](done/096-test-environment-and-user-state-isolation.md) | Test Environment and User-State Isolation | S1 local Linux (2026-07-17) |
+| [097](done/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | B0 hosted bootstrap (2026-07-21) |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |

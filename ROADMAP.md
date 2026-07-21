@@ -8,12 +8,12 @@ revised in response to the roadmap architecture review at
 
 **Planning status:** Roadmap accepted with non-blocking notes. M0/D0 and M1/S1
 completed on 2026-07-17. RFC 095 establishes the owner-approved v1 authority,
-and RFC 096 establishes isolated test/user-state boundaries on the reviewed
-local Linux scope. RFC 097's workflow and hosted Linux/macOS/Windows evidence
-have passed implementation review, and the integrated governance-amendment SHA
-is green. B0 closure awaits review of its serialized-integration-authority
-refinement and the RFC 097 lifecycle handback. Store/MSIX remains deferred
-from v1. No release activity is authorized.
+and RFC 096 establishes isolated test/user-state boundaries. RFC 097 implements
+the reviewed hosted Linux/macOS/Windows B0 workflow and serialized-integration
+governance. M1C/B0 and WS-03 are complete when the exact `main` SHA containing
+this lifecycle transition passes B0; until then its completion claims are not
+operative and unrelated continuation remains blocked. Store/MSIX remains
+deferred from v1. No release activity is authorized.
 
 **Selected serial program window:** 2026-07-17 through 2027-04-23
 
@@ -75,7 +75,7 @@ The program is complete only when all of the following are true:
 |---|---|---|---|---|
 | **M0 — Program charter and v1 authority** | **Completed Jul 17:** decision design, independent review, and owner approval | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
 | **M1 — Safe tests and local-state boundary** | **Completed Jul 17:** design, implementation, synthetic evidence, and independent review | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved RFC 096 | **S1 passed:** isolated local full-suite pass plus synthetic no-resolution/non-disclosure/non-mutation evidence |
-| **M1C — Safe hosted-CI bootstrap** | Implementation and hosted evidence accepted Jul 21; serialized-authority refinement review pending | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; approved CI-bootstrap RFC | **B0:** safe hosted platform matrix is green and blocks serialized continuation or independently authorized integration under the applicable mode |
+| **M1C — Safe hosted-CI bootstrap** | **Completed Jul 21, conditional on exact lifecycle-transition SHA B0:** design, implementation, governance, hosted evidence, and lifecycle records | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; implemented RFC 097 | **B0 passed when the containing lifecycle SHA is green:** safe hosted platform matrix blocks serialized continuation or independently authorized integration under the applicable mode |
 | **M2 — Untrusted input/output boundary** | Aug 31–Sep 4: symlink-contract design/review; Sep 7–11: implementation/evidence; Sep 14–18: output-contract design/review; Sep 21–Oct 2: implementation/evidence | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
 | **M3 — Cross-platform persistence** | Oct 5–9: RFC design/review; Oct 12–23: implementation/evidence | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
 | **M4A — Supply-chain disposition** | Oct 26–30: RFC design/review; Nov 2–13: implementation/evidence | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
@@ -173,7 +173,7 @@ require developer count, branch count, or a sole-developer disclaimer.
 |---|---|
 | **D0 — passed 2026-07-17** | RFC 095 records owner-approved normative-source precedence, supported feature inventory and release disposition, guided/expert GUI baseline, compatibility ownership, direct v1 distribution set, Store/MSIX deferral, and feature freeze |
 | **S1 — passed 2026-07-17 (local Linux)** | RFC 096 centralizes state resolution; all subprocess helpers inject isolated platform home/config variables; deny/canary roots cover fallback lookups; destructive history fixtures exceed the prune threshold; captured streams and exact synthetic snapshots prove no canary disclosure or mutation. Hosted platform and declared-MSRV evidence remains B0. |
-| **B0** | Hosted Linux/macOS/Windows jobs use current crate names, the isolated test harness, and the declared MSRV. In serialized-integration continuity mode, the exact latest pushed `main` SHA is green, failure or missing evidence blocks the next unrelated integration and downstream continuation, and `continuity-mode.md` records the designated integration authority plus integration-control and observed enforcement state. Before any independent updater is authorized, the exact `B0 / gate` context is configured and verified as required on the actual merge-control path. B0 closes only after RFC 097's lifecycle records are integrated and the exact resulting final `main` SHA is green. |
+| **B0 — conditional pass; operative only when the lifecycle-transition SHA is green** | Hosted Linux/macOS/Windows jobs use current crate names, the isolated test harness, and the declared MSRV. In serialized-integration continuity mode, the exact latest pushed `main` SHA is green, failure or missing evidence blocks the next unrelated integration and downstream continuation, and `continuity-mode.md` records the designated integration authority plus integration-control and observed enforcement state. Before any independent updater is authorized, the exact `B0 / gate` context is configured and verified as required on the actual merge-control path. The passing result for the exact lifecycle-transition SHA makes this gate completion operative. |
 | **S2** | Approved threat model; symlink/path/error reporting contract; adversarial encoding, formula, masking, cross-root-link, and platform tests run through B0 |
 | **P1** | Existing-target overwrite, atomic lock acquisition, concurrent writers, stale lock, temp collision, interrupted save, and recovery tests pass on Linux/macOS/Windows |
 | **C0** | `cargo audit` has no unapproved vulnerability/warning; every temporary exception records reachability, mitigation, owner, expiry, and removal condition |
@@ -201,7 +201,7 @@ and approval begin only after this roadmap revision is accepted.
 |---:|---|---|---|---|
 | 1 | **WS-01 — v1 authority, scope, GUI, and distribution baseline** | **Completed by RFC 095/D0.** Normative source precedence; supported feature inventory and evidence ownership; guided/expert GUI; compatibility and direct distribution boundary | None | No developer handoff; owner decision is the implemented artifact |
 | 2 | **WS-02 — test environment and user-state isolation** | **Completed by RFC 096/S1.** Per-test state sandbox; subprocess-helper migration; canary capture/snapshot contract; destructive regression evidence | WS-01 gate only for program sequencing, not technical design | No separate handoff; RFC 096 contains the complete migration table and checklist |
-| 3 | **WS-03 — safe hosted-CI bootstrap** | Current crate names; isolated tests; MSRV; Linux/macOS/Windows bootstrap matrix that blocks serialized continuation or independently authorized integration under the applicable mode | WS-02 | **Required** CI developer/operations handoff |
+| 3 | **WS-03 — safe hosted-CI bootstrap** | **Completed by RFC 097/B0, conditional on the exact lifecycle-transition SHA passing B0.** Current crate names; isolated tests; MSRV; Linux/macOS/Windows bootstrap matrix that blocks serialized continuation or independently authorized integration under the applicable mode | WS-02 | Completed CI developer/operations handoff under `rfcs/handoffs/097-safe-hosted-ci-bootstrap/` |
 | 4 | **WS-04 — selected-folder and symlink policy** | Link classification, containment, platform behavior, and shared path/error/reporting semantics | WS-01, WS-03 | **Required** platform developer/QA handoff |
 | 5 | **WS-05 — safe reports, exports, and masking** | Contextual encoding, spreadsheet neutralization, and masking across D0-approved Markdown/HTML/JSON/SARIF/CSV/TSV and GUI/CLI surfaces | WS-04 reporting contract, WS-03 test matrix | **Required** security developer/adversarial-QA handoff |
 | 6 | **WS-06 — atomic definition persistence** | Atomic replace, lock ownership, stale recovery, temp naming, crash and concurrent-writer behavior | WS-03, WS-05 gate for serial sequencing | **Required** cross-platform developer/QA handoff |
@@ -213,7 +213,8 @@ and approval begin only after this roadmap revision is accepted.
 | 12 | **WS-12 — product and documentation convergence** | Produce and pass the RFC 095 compatibility acceptance matrix; reconcile public truth, mdBook range, RFC lifecycle/index, E1 branch, and D0 distribution claims | WS-01–WS-11 | Documentation and compatibility acceptance matrix may live in the RFC |
 | 13 | **WS-13 — release-candidate evidence plan** | Assemble prior gates; define operators, environments, evidence locations, rerun/rollback commands, and independent review input without redefining acceptance | WS-01–WS-12 | **Required** release/QA operator handoff |
 
-WS-01 is complete as RFC 095/D0, and WS-02 is complete as RFC 096/S1. Later
+WS-01 is complete as RFC 095/D0, WS-02 is complete as RFC 096/S1, and WS-03 is
+complete as RFC 097/B0 once the exact lifecycle-transition SHA is green. Later
 numbers follow actual creation order.
 
 WS-04 defines the shared external path/error/reporting contract before WS-05

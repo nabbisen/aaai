@@ -3,7 +3,7 @@
 ## 1. Authority and entry conditions
 
 The workflow implementation governed by
-[`RFC 097`](../../proposed/097-safe-hosted-ci-bootstrap.md) has passed final
+[`RFC 097`](../../done/097-safe-hosted-ci-bootstrap.md) has passed final
 implementation review. Sections 3–5 retain its reviewed implementation
 boundary and designed sequence; Section 6 governs current operations.
 
@@ -36,17 +36,17 @@ handoff. GitHub users with sufficient repository permission may technically
 perform some of the same operations; no exclusive integration authority is
 claimed to be technically enforced without separate evidence.
 
-The current operational mode is serialized-integration continuity, pending
-acceptance of RFC 097's authority-model refinement. All `main` updates pass
-through one designated integration authority. This is a procedural stop-work
-control, not technical merge enforcement.
+The current operational mode is accepted serialized-integration continuity.
+All `main` updates pass through one designated integration authority. This is a
+procedural stop-work control, not technical merge enforcement.
 
 ## 3. Reviewed implementation boundary
 
 The reviewed tracked implementation boundary was:
 
 - new `.github/workflows/b0.yaml`
-- `rfcs/proposed/097-safe-hosted-ci-bootstrap.md`
+- `rfcs/proposed/097-safe-hosted-ci-bootstrap.md` (now at
+  `rfcs/done/097-safe-hosted-ci-bootstrap.md`)
 - `rfcs/handoffs/097-safe-hosted-ci-bootstrap/README.md`
 - `rfcs/README.md`
 
