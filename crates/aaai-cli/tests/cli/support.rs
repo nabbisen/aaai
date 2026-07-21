@@ -84,8 +84,10 @@ impl IsolatedCommand {
         let roaming = fallback.join("roaming");
         let local = fallback.join("local");
         let fallback_roots = vec![
-            home.join(".config/aaai"),
-            home.join("Library/Application Support/aaai"),
+            home.join(".config").join("aaai"),
+            home.join("Library")
+                .join("Application Support")
+                .join("aaai"),
             xdg.join("aaai"),
             roaming.join("aaai"),
             local.join("aaai"),
