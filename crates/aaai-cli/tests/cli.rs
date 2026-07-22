@@ -26,7 +26,109 @@ fn write_audit(path: &Path, yaml: &str) {
     fs::write(path, yaml).unwrap();
 }
 
+fn empty_audit(path: &Path) {
+    write_audit(path, "version: \"1\"\nentries: []\n");
+}
+
 // ── audit subcommand ──────────────────────────────────────────────────────
+
+#[test]
+fn audit_maps_selected_root_failure_to_exit_3() {
+    let tmp = tempfile::tempdir().unwrap();
+    let missing = tmp.path().join("missing");
+    let after = tmp.path().join("after");
+    fs::create_dir(&after).unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    empty_audit(&audit_yaml);
+
+    let output = aaai()
+        .args([
+            "audit",
+            "--left",
+            missing.to_str().unwrap(),
+            "--right",
+            after.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("AAAI-ROOT-UNAVAILABLE"));
+    assert!(!stderr.contains(tmp.path().to_str().unwrap()));
+}
+
+#[cfg(unix)]
+#[test]
+fn audit_treats_link_as_error_and_does_not_disclose_target() {
+    use std::os::unix::fs::symlink;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after = tmp.path().join("after");
+    let outside = tmp.path().join("outside-secret-name");
+    setup_dirs(&before, &after);
+    fs::create_dir(&outside).unwrap();
+    write(&outside, "canary", "outside-secret-content");
+    symlink(outside.join("canary"), after.join("linked")).unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    empty_audit(&audit_yaml);
+
+    let output = aaai()
+        .args([
+            "audit",
+            "--left",
+            before.to_str().unwrap(),
+            "--right",
+            after.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
+        ])
+        .run_output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(3));
+    let rendered = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(rendered.contains("linked"));
+    assert!(!rendered.contains("outside-secret-name"));
+    assert!(!rendered.contains("outside-secret-content"));
+}
+
+#[cfg(unix)]
+#[test]
+fn audit_maps_unreadable_regular_file_to_error_exit_3() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let before = tmp.path().join("before");
+    let after = tmp.path().join("after");
+    setup_dirs(&before, &after);
+    write(&after, "blocked", "synthetic-content");
+    write(&after, "safe", "safe-content");
+    fs::set_permissions(after.join("blocked"), fs::Permissions::from_mode(0o000)).unwrap();
+    let audit_yaml = tmp.path().join("audit.yaml");
+    empty_audit(&audit_yaml);
+
+    let output = aaai()
+        .args([
+            "audit", "--left", before.to_str().unwrap(), "--right", after.to_str().unwrap(),
+            "--config", audit_yaml.to_str().unwrap(), "--no-history",
+        ])
+        .run_output()
+        .unwrap();
+    fs::set_permissions(after.join("blocked"), fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(output.status.code(), Some(3));
+    let rendered = format!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    assert!(rendered.contains("blocked"));
+    assert!(rendered.contains("AAAI-PATH-READ"));
+    assert!(!rendered.contains("Permission denied"));
+}
 
 #[test]
 fn audit_exits_0_when_all_ok() {

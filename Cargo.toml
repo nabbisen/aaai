@@ -33,7 +33,10 @@ rfd                 = { version = "0.17" }
 similar             = "3"
 
 # Filesystem / traversal
+cap-std             = "4"
+cap-fs-ext          = "4"
 walkdir             = "2"
+windows-sys         = { version = "0.60", features = ["Win32_Storage_FileSystem"] }
 
 # Home directory (for history / profiles)
 dirs                = "6"

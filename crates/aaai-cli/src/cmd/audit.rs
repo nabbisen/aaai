@@ -107,7 +107,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     });
 
     // Diff + audit
-    let diffs = if args.progress {
+    let diff_result = if args.progress {
         use aaai::{ChannelProgress, DiffProgress};
         use std::sync::mpsc;
         let (tx, rx) = mpsc::channel::<DiffProgress>();
@@ -136,10 +136,14 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
                 }
             }
         }
-        handle.join().unwrap()?
+        handle.join().unwrap()
     } else {
-        DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)?
+        DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)
     };
+    let diffs = diff_result.unwrap_or_else(|error| {
+        eprintln!("ERROR: {error}");
+        process::exit(3);
+    });
     let result = AuditEngine::evaluate(&diffs, &definition);
     let s      = &result.summary;
 

@@ -2305,10 +2305,6 @@ impl App {
         let after  = std::path::PathBuf::from(&self.after_path);
         let ignore = self.active_ignore.clone();
 
-        if !before.is_dir() || !after.is_dir() {
-            return Task::none();
-        }
-
         self.is_loading = true;
         self.load_progress = Some(t!("progress.rerunning").to_string());
 
@@ -2399,6 +2395,60 @@ fn dnd_sub() -> Subscription<Message> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rfc098_path_issue_diff() -> aaai::DiffEntry {
+        aaai::DiffEntry {
+            path: "linked".into(),
+            diff_type: aaai::DiffType::Incomparable,
+            is_dir: false,
+            before_text: None,
+            after_text: None,
+            is_binary: false,
+            before_size: None,
+            after_size: None,
+            before_sha256: None,
+            after_sha256: None,
+            stats: None,
+            error_detail: Some("[AAAI-PATH-LINK] Link-like entries are not followed.".into()),
+        }
+    }
+
+    #[test]
+    fn rfc098_initial_failure_is_actionable_without_replacing_prior_data() {
+        let mut app = App::default();
+        app.diffs = vec![rfc098_path_issue_diff()];
+        app.is_loading = true;
+        let _ = app.update(Message::DiffFailed(
+            "[AAAI-ROOT-UNAVAILABLE] Select a physical directory".into(),
+        ));
+        assert!(!app.is_loading);
+        assert_eq!(app.diffs.len(), 1);
+        let error = app.open_error.as_ref().expect("root failure must be presented");
+        assert!(error.message.contains("AAAI-ROOT-UNAVAILABLE"));
+        assert!(!error.hint.is_empty());
+    }
+
+    #[test]
+    fn rfc098_rerun_failure_retains_prior_result_as_stale() {
+        let mut app = App::default();
+        app.diffs = vec![rfc098_path_issue_diff()];
+        app.audit_dirty = true;
+        app.is_loading = true;
+        let _ = app.update(Message::RerunDiffReady(Err(
+            "[AAAI-ROOT-UNAVAILABLE] Select a physical directory".into(),
+        )));
+        assert!(!app.is_loading);
+        assert!(
+            app.audit_dirty,
+            "a failed rerun must not mark stale data current"
+        );
+        assert_eq!(app.diffs.len(), 1);
+        assert!(
+            app.toasts
+                .iter()
+                .any(|toast| toast.message.contains("AAAI-ROOT-UNAVAILABLE"))
+        );
+    }
 
     /// RFC 028 — verify the new `hint` field is populated when the
     /// construction site passes `Some(...)`, alongside the existing

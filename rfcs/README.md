@@ -8,7 +8,9 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-_なし_
+| ID | タイトル |
+|---|---|
+| [098](proposed/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy |
 
 ---
 
