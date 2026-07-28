@@ -738,23 +738,3 @@ fn windows_junction_is_a_reparse_error() {
     );
     assert_windows_reparse(after.path(), "junction");
 }
-
-#[cfg(windows)]
-#[test]
-fn windows_non_name_surrogate_reparse_is_rejected() {
-    use std::process::Command;
-
-    let after = tmp_dir();
-    let compressed = after.path().join("wof-compressed");
-    fs::write(&compressed, vec![b'x'; 128 * 1024]).unwrap();
-    let status = Command::new("compact.exe")
-        .args(["/C", "/EXE:LZX"])
-        .arg(&compressed)
-        .status()
-        .expect("hosted Windows WOF reparse fixture");
-    assert!(
-        status.success(),
-        "hosted Windows non-name-surrogate fixture is required"
-    );
-    assert_windows_reparse(after.path(), "wof-compressed");
-}

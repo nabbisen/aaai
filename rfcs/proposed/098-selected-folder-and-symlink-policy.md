@@ -479,12 +479,42 @@ test (`display_preserves_unpaired_utf16_without_collision`); the engine-level
 native-name collision test is `#[cfg(unix)]` by this reviewed platform
 constraint, not by omission.
 
-Windows must exercise file symlink, directory symlink, junction, mount-point
-or equivalent name-surrogate, and non-name-surrogate/unknown reparse rejection
-through the exact production handle/attribute path. Unix must exercise
-FIFO/socket classification without opening or blocking. Platform fixture
-creation failure is a failed required case, not an automatic skip; amendment
-is required if the runner cannot supply a reviewed equivalent fixture.
+Windows must exercise file symlink, directory symlink, junction, and
+mount-point or equivalent name-surrogate reparse rejection through the exact
+production handle/attribute path.
+
+The non-name-surrogate/unknown reparse case has no constructible hosted
+fixture. WOF System Compression
+(`compact.exe /exe:xpress4k|xpress8k|xpress16k|lzx`) is a Windows client
+NTFS/WOF-driver capability and is absent from the Windows Server images GitHub
+hosts; on `windows-2025-vs2026` `compact.exe` reports success while silently
+applying ordinary NTFS compression, which sets `FILE_ATTRIBUTE_COMPRESSED` and
+no reparse point. This was observed identically in runs `81038738047` and
+`82177458147`. NTFS Data Deduplication requires feature installation and an
+asynchronous job on every run and is not guaranteed on ephemeral system
+volumes; the stock Windows compatibility reparse points are junctions and
+therefore name surrogates.
+
+This case is therefore **deferred, not waived**, on the same
+reviewed-platform-constraint basis as the macOS APFS invalid-byte case and the
+Windows name-collision case above. Until it is discharged, rejection of
+non-name-surrogate reparse points is evidenced only by the tag-agnostic
+construction of the production decision procedure, which reads the generic
+`FILE_ATTRIBUTE_REPARSE_POINT` bit at both call sites and never a reparse tag.
+That is an argument from source, not from execution, and it is explicitly not
+equivalent to a passing fixture.
+
+Discharging it requires a behavioural fixture constructing a real
+non-name-surrogate reparse point. The reviewed mechanism is
+`FSCTL_SET_REPARSE_POINT` with a non-Microsoft tag
+(`REPARSE_GUID_DATA_BUFFER`, name-surrogate bit clear) issued from an external
+helper process, adding no project `unsafe` or FFI, validated on the hosted
+Windows image. **S2 does not close until that fixture exists and passes.**
+
+Unix must exercise FIFO/socket classification without opening or blocking.
+Platform fixture creation failure is a failed required case, not an automatic
+skip; amendment is required if the runner cannot supply a reviewed equivalent
+fixture.
 
 ### 9.2 Assertions
 
