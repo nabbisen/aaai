@@ -400,26 +400,37 @@ fn ignored_link_is_omitted_without_granting_traversal() {
 #[test]
 fn native_names_remain_distinct_and_have_collision_free_display_ids() {
     use std::ffi::OsStr;
+    #[cfg(target_os = "linux")]
     use std::os::unix::ffi::OsStrExt;
 
     let before = tmp_dir();
     let after = tmp_dir();
+    #[cfg(target_os = "linux")]
+    fs::write(after.path().join(OsStr::from_bytes(b"x\x80")), b"safe").unwrap();
     for name in [
-        OsStr::from_bytes(b"x\x80"),
         OsStr::new("%78%80"),
         OsStr::new("back\\slash"),
-        OsStr::from_bytes(b"control\nname"),
+        OsStr::new("control\nname"),
     ] {
         fs::write(after.path().join(name), b"safe").unwrap();
     }
+    write(after.path(), "back/slash", "safe");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let paths: Vec<&str> = diffs.iter().map(|entry| entry.path.as_str()).collect();
-    assert_eq!(diffs.len(), 4);
+    #[cfg(target_os = "linux")]
     assert!(paths.contains(&"%78%80"));
+    #[cfg(target_os = "linux")]
+    assert!(paths.contains(&"%2578%2580"));
+    #[cfg(target_os = "macos")]
     assert!(paths.contains(&"%2578%2580"));
     assert!(paths.contains(&"back%5Cslash"));
+    assert!(paths.contains(&"back/slash"));
     assert!(paths.contains(&"control%0Aname"));
+    #[cfg(target_os = "linux")]
+    assert_eq!(diffs.len(), 6);
+    #[cfg(target_os = "macos")]
+    assert_eq!(diffs.len(), 5);
 }
 
 #[cfg(unix)]
@@ -558,10 +569,17 @@ fn link_audit_preserves_namespace_content_and_stable_metadata() {
 
 #[cfg(windows)]
 fn assert_windows_reparse(after: &std::path::Path, name: &str) {
-    use std::os::windows::fs::MetadataExt as _;
-    use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+    use std::os::windows::fs::{MetadataExt as _, OpenOptionsExt as _};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+    };
 
-    let metadata = fs::symlink_metadata(after.join(name)).unwrap();
+    let file = fs::OpenOptions::new()
+        .access_mode(0)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS)
+        .open(after.join(name))
+        .unwrap();
+    let metadata = file.metadata().unwrap();
     assert_ne!(
         metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT,
         0,
@@ -708,13 +726,8 @@ fn windows_junction_is_a_reparse_error() {
 
     let after = tmp_dir();
     let outside = tmp_dir();
-    let status = Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-Command",
-            "param($p,$t) New-Item -ItemType Junction -Path $p -Target $t | Out-Null",
-        ])
+    let status = Command::new("cmd.exe")
+        .args(["/C", "mklink", "/J"])
         .arg(after.path().join("junction"))
         .arg(outside.path())
         .status()

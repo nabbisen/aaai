@@ -341,10 +341,14 @@ On Windows, root-final, child-directory, and regular-file opens all use the
 same concrete sequence:
 
 1. call `Dir::open_with` on exactly one native name with
-   `FollowSymlinks::No` and `OpenOptionsMaybeDirExt::maybe_dir(true)`;
-2. at pinned `cap-primitives` 4.0.2, `FollowSymlinks::No` adds
+   `FollowSymlinks::No`, an explicit `FILE_FLAG_OPEN_REPARSE_POINT`, and
+   `OpenOptionsMaybeDirExt::maybe_dir(true)`;
+2. `FollowSymlinks::No` already causes `cap-primitives` 4.0.2 to add
    `FILE_FLAG_OPEN_REPARSE_POINT` before the OS open, so the final reparse
-   point itself is opened rather than processed;
+   point itself is opened rather than processed; supplying the flag explicitly
+   additionally suppresses that crate's own name-surrogate short-circuit, so
+   every reparse kind — name surrogate or not — is returned as a handle and
+   rejected by this project's single all-reparse check;
 3. obtain metadata from that returned handle;
 4. reject the handle when
    `OsMetadataExt::file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0`;
@@ -454,11 +458,26 @@ test opens a bounded, known mounted-child candidate through the production
 parent-capability/single-component function, obtains metadata from the actual
 returned handle, observes a device mismatch, emits `AAAI-PATH-XDEV`, and proves
 the child enumerator was never entered. Linux candidates include `/proc` and
-`/dev/shm`; macOS candidates include mounted children below `/System/Volumes`
-and `/Volumes`. The test must find at least one accessible differing-device
-candidate and fails if none exists. A mocked device detector or automatic skip
-is not equivalent evidence; an unavailable hosted fixture stops acceptance for
-amendment.
+`/dev/shm`; macOS candidates include `/dev` and mounted children below
+`/System/Volumes` and `/Volumes`. The test must find at least one accessible
+differing-device candidate and fails if none exists. A mocked device detector
+or automatic skip is not equivalent evidence; an unavailable hosted fixture
+stops acceptance for amendment.
+
+Invalid Unix-byte encoding is exercised through the formatter on all Unix
+targets and through actual filesystem entries on Linux. APFS rejects such
+names, so macOS filesystem collision evidence instead uses both the literal
+single-component name `back\slash` and the nested native path `back/slash`.
+They collided under the former slash-replacement mapping and must remain two
+distinct native-key entries with distinct escaped display identifiers.
+
+Windows forbids `\` in a filename because it is the path separator, and Win32
+rejects control characters below `0x20`, so a Windows filesystem-level
+collision pair equivalent to the Unix case is not constructible. Windows
+collision-freedom is instead evidenced by the unpaired-UTF-16 formatter unit
+test (`display_preserves_unpaired_utf16_without_collision`); the engine-level
+native-name collision test is `#[cfg(unix)]` by this reviewed platform
+constraint, not by omission.
 
 Windows must exercise file symlink, directory symlink, junction, mount-point
 or equivalent name-surrogate, and non-name-surrogate/unknown reparse rejection

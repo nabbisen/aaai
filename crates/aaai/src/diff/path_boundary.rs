@@ -17,6 +17,8 @@ use cap_fs_ext::OsMetadataExt;
 use cap_fs_ext::OpenOptionsSyncExt;
 use cap_fs_ext::{FileTypeExt, FollowSymlinks, MetadataExt, OpenOptionsFollowExt};
 use cap_std::ambient_authority;
+#[cfg(windows)]
+use cap_std::fs::OpenOptionsExt;
 use cap_std::fs::{Dir, OpenOptions};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -365,7 +367,13 @@ fn read_file_with(
     #[cfg(unix)]
     options.nonblock(true);
     #[cfg(windows)]
-    options.maybe_dir(true);
+    {
+        use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+
+        options
+            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
+            .maybe_dir(true);
+    }
 
     let cap_file = before_open()
         .and_then(|()| file.parent.open_with(&file.name, &options))
@@ -424,11 +432,14 @@ fn open_directory_nofollow(parent: &Dir, name: &OsStr) -> std::io::Result<Dir> {
 
 #[cfg(windows)]
 fn open_directory_nofollow(parent: &Dir, name: &OsStr) -> std::io::Result<Dir> {
-    use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_OPEN_REPARSE_POINT,
+    };
 
     let mut options = OpenOptions::new();
     options
         .read(true)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
         .follow(FollowSymlinks::No)
         .maybe_dir(true);
     let file = parent.open_with(name, &options)?;
@@ -462,9 +473,12 @@ fn windows_reparse(_metadata: &cap_std::fs::Metadata) -> bool {
 
 #[cfg(windows)]
 fn entry_is_windows_reparse(parent: &Dir, name: &OsStr) -> std::io::Result<bool> {
+    use windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+
     let mut options = OpenOptions::new();
     options
-        .read(true)
+        .access_mode(0)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT)
         .follow(FollowSymlinks::No)
         .maybe_dir(true);
     let file = parent.open_with(name, &options)?;
@@ -772,17 +786,25 @@ mod tests {
         let root = tempfile::tempdir().unwrap();
         let outside = tempfile::tempdir().unwrap();
         std::fs::write(root.path().join("item"), b"inside").unwrap();
-        std::fs::write(outside.path().join("canary"), b"outside-secret-content").unwrap();
+        let canary = outside.path().join("canary");
+        std::fs::write(&canary, b"outside-secret-content").unwrap();
+        let before_canary = std::fs::read(&canary).unwrap();
         let paths = collect(root.path()).unwrap();
         let Node::File(file) = &paths.get(Path::new("item")).unwrap().node else { panic!() };
         let result = read_file_with(file, || {
             std::fs::remove_file(root.path().join("item")).unwrap();
-            symlink_file(outside.path().join("canary"), root.path().join("item"))
+            symlink_file(&canary, root.path().join("item"))
                 .expect("hosted Windows file-symlink race fixture");
             Ok(())
         });
         let issue = result.expect_err("outside-link replacement must not be read");
         assert_eq!(issue.code, "AAAI-PATH-RACE");
+        assert_eq!(
+            issue.detail,
+            "The file changed to a reparse point before it was read."
+        );
+        assert!(!issue_text(&issue).contains("outside-secret-content"));
+        assert_eq!(std::fs::read(&canary).unwrap(), before_canary);
     }
 
     #[cfg(windows)]
@@ -818,6 +840,7 @@ mod tests {
         }
         #[cfg(target_os = "macos")]
         {
+            candidates.push((PathBuf::from("/"), OsString::from("dev")));
             candidates.push((PathBuf::from("/System/Volumes"), OsString::from("Data")));
             if let Ok(entries) = std::fs::read_dir("/Volumes") {
                 candidates.extend(

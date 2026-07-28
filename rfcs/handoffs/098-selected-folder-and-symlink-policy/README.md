@@ -150,8 +150,8 @@ Required fixture families:
 | Unix special | FIFO and socket; classification must not block/open |
 | Root | direct directory/anchor succeeds; final-component link rejects with no trailing-slash or `/.` bypass; terminal `..` rejects |
 | Mutation | barrier replaces file and directory after classification with outside link; Unix directory-to-FIFO replacement must fail without blocking before classification |
-| Names | `%`, literal Unix backslash, controls, invalid Unix bytes, unpaired UTF-16 formatter unit |
-| Collision | two native names whose former lossy renderings collide |
+| Names | `%`, literal Unix backslash, controls; invalid Unix bytes in the Unix formatter and Linux filesystem runtime (APFS rejects their creation); unpaired UTF-16 formatter unit |
+| Collision | two filesystem-native names whose former lossy renderings collide on Unix at filesystem level; Unix uses literal `back\slash` versus nested `back/slash`. On Windows, collision-freedom is evidenced through the unpaired-UTF-16 formatter unit (see RFC §9.1 platform constraint); a filesystem-level pair is not constructible there |
 | XDEV | mandatory real production-path differing-device child on Linux and macOS; actual returned-handle metadata, `AAAI-PATH-XDEV`, and zero child enumeration; no mocked substitute/skip |
 
 The test-only barrier is injected at the production classification/open
