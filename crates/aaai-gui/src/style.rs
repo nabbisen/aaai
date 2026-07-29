@@ -29,7 +29,7 @@ pub fn card_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> container::Style {
 /// hand-rolled with a token-derived border colour.
 pub fn panel_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> container::Style {
     let border_color = to_iced(tokens.palette.border);
-    let bg = Color::from_rgb(0.95, 0.96, 0.97);
+    let bg = to_iced(tokens.palette.surface);
     move |_theme| container::Style {
         background: Some(Background::Color(bg)),
         border: Border { color: border_color, width: 1.0, radius: 0.0.into() },
@@ -54,8 +54,8 @@ pub fn empty_state_panel_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> conta
 // Usage — callers clone tokens once into the closure, keeping own padding:
 //
 //   let t = app.design_tokens.clone();
-//   button(text("Save").size(13))
-//       .padding([10.0, 20.0])           // ABDD: ≥44px height
+//   button(text("Save").size(t.typography.label.size).line_height(t.typography.label.line_height))
+//       .padding([t.spacing.md, t.spacing.xl])           // ABDD: ≥44px height
 //       .on_press(Message::Save)
 //       .style(move |_theme, s| btn_primary(&t, s))
 

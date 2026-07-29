@@ -32,7 +32,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
     })
     .width(Length::Fill)
     .height(Length::Fill)
-    .spacing(2)
+    .spacing(app.design_tokens.spacing.xs)
     .on_resize(6, Message::PaneResized);
 
     column![
@@ -61,14 +61,18 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     let toolbar_btn = |icon: &'a str, label: String, msg: Message| -> Element<'a, Message> {
         button(
             row![
-                text(icon).size(12),
-                text(label).size(12),
+                text(icon)
+                    .size(app.design_tokens.typography.label.size)
+                    .line_height(app.design_tokens.typography.label.line_height),
+                text(label)
+                    .size(app.design_tokens.typography.label.size)
+                    .line_height(app.design_tokens.typography.label.line_height),
             ]
-            .spacing(4)
+            .spacing(app.design_tokens.spacing.xs)
             .align_y(iced::Alignment::Center)
         )
         .on_press(msg)
-        .padding(Padding::from([10.0, 16.0]))
+        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
         .into()
     };
 
@@ -86,25 +90,33 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
     // RFC 070 — "✓ saved Nm ago" marks stack BELOW their button in a fixed-height
     // sub-column so the row width is stable regardless of mark presence.
     let save_mark: Element<'_, Message> = match save_mark_text {
-        Some(m) => text(m).size(9).color(Color::from_rgb(0.35, 0.55, 0.35)).into(),
+        Some(m) => text(m)
+            .size(app.design_tokens.typography.body_small.size)
+            .line_height(app.design_tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(app.design_tokens.palette.success)).into(),
         None    => space().height(Length::Fixed(13.0)).into(),
     };
     let save_col = column![save_btn, save_mark]
-        .spacing(1)
+        .spacing(app.design_tokens.spacing.xs)
         .align_x(iced::Alignment::Center);
 
     let report_mark: Element<'_, Message> = match report_mark_text {
-        Some(m) => text(m).size(9).color(Color::from_rgb(0.35, 0.55, 0.35)).into(),
+        Some(m) => text(m)
+            .size(app.design_tokens.typography.body_small.size)
+            .line_height(app.design_tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(app.design_tokens.palette.success)).into(),
         None    => space().height(Length::Fixed(13.0)).into(),
     };
     let report_col = column![report_btn, report_mark]
-        .spacing(1)
+        .spacing(app.design_tokens.spacing.xs)
         .align_x(iced::Alignment::Center);
 
     // Audit status — compact colored pill: "● PASSED" / "● FAILED"
     let status_element: Element<'_, Message> = if app.audit_dirty && app.is_loading {
         text(format!("○ {}", t!("toolbar.rerunning")))
-            .size(12).color(crate::theme::status_color(aaai::AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast())).into()
+            .size(app.design_tokens.typography.label.size)
+            .line_height(app.design_tokens.typography.label.line_height)
+            .color(crate::theme::status_color(aaai::AuditStatus::Pending, &app.design_tokens, app.theme.is_high_contrast())).into()
     } else if let Some(result) = &app.audit_result {
         let s = &result.summary;
         let (label, color) = if s.is_passing() {
@@ -113,7 +125,9 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
             (t!("toolbar.failed").to_string(), crate::theme::status_color(aaai::AuditStatus::Failed, &app.design_tokens, app.theme.is_high_contrast()))
         };
         text(format!("● {}", label))
-            .size(12).color(color).into()
+            .size(app.design_tokens.typography.label.size)
+            .line_height(app.design_tokens.typography.label.line_height)
+            .color(color).into()
     } else {
         space().width(Length::Fixed(1.0)).into()
     };
@@ -124,9 +138,9 @@ fn build_toolbar<'a>(app: &'a App) -> Element<'a, Message> {
             space().width(Length::Fill),
             status_element,
         ]
-        .spacing(4)
+        .spacing(app.design_tokens.spacing.xs)
         .align_y(iced::Alignment::Center)
-        .padding(Padding::from([3.0, 10.0])),
+        .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.md])),
     )
     .width(Length::Fill)
     .style(panel_style(app.design_tokens.clone()))
@@ -158,14 +172,19 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
             None    => t!(base_key).to_string(),
         };
         let active = app.filter_mode == mode;
-        let btn = button(text(label).size(11))
+        let btn = button(
+            text(label)
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height),
+        )
             .on_press(Message::SetFilter(mode))
-            .padding(Padding::from([10.0, 14.0]));
+            .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]));
         if active {
+            let accent = crate::style::to_iced(app.design_tokens.palette.accent);
             container(btn)
-                .style(|_| iced::widget::container::Style {
+                .style(move |_| iced::widget::container::Style {
                     background: Some(iced::Background::Color(
-                        Color::from_rgba(0.20, 0.45, 0.85, 0.18)
+                        Color { a: 0.18, ..accent }
                     )),
                     border: iced::Border { radius: 4.0.into(), ..Default::default() },
                     ..Default::default()
@@ -181,9 +200,13 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
     };
 
     // RFC 076 — status legend ? button at the right of the filter bar
-    let legend_btn = button(text("?").size(11))
+    let legend_btn = button(
+        text("?")
+            .size(app.design_tokens.typography.label.size)
+            .line_height(app.design_tokens.typography.label.line_height),
+    )
         .on_press(Message::ToggleStatusLegend)
-        .padding(Padding::from([8.0, 12.0]))
+        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
         .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
     let filter_row = row![
@@ -194,24 +217,26 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
         space().width(Length::Fill),
         legend_btn,
     ]
-    .spacing(4)
+    .spacing(app.design_tokens.spacing.xs)
     .align_y(iced::Alignment::Center)
-    .padding(Padding::from([3.0, 8.0]));
+    .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.sm]));
 
     // RFC 076 — status legend popover (shown inline below the filter bar
     // so it stays close to the ? button and the status badges it explains)
     let legend_popup: Element<'_, Message> = if app.status_legend_open {
         let line = |key: &str| -> Element<'_, Message> {
             text(t!(key).to_string())
-                .size(11)
-                .color(Color::from_rgb(0.30, 0.32, 0.38))
+                .size(app.design_tokens.typography.body_small.size)
+                .line_height(app.design_tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary))
                 .into()
         };
         container(
             column![
                 text(t!("main.status_legend_title").to_string())
-                    .size(12)
-                    .color(Color::from_rgb(0.20, 0.22, 0.28))
+                    .size(app.design_tokens.typography.title.size)
+                    .line_height(app.design_tokens.typography.title.line_height)
+                    .color(crate::style::to_iced(app.design_tokens.palette.text_secondary))
                     .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
                 space().height(Length::Fixed(6.0)),
                 line("main.status_legend_pending"),
@@ -219,18 +244,22 @@ fn build_filter_bar<'a>(app: &'a App) -> Element<'a, Message> {
                 line("main.status_legend_failed"),
                 line("main.status_legend_error"),
             ]
-            .spacing(3)
+            .spacing(app.design_tokens.spacing.xs)
         )
-        .padding(Padding::from([10.0, 14.0]))
+        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
         .width(Length::Fill)
-        .style(|_| iced::widget::container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.96, 0.97, 0.99))),
-            border: iced::Border {
-                color: Color::from_rgb(0.80, 0.82, 0.88),
-                width: 1.0,
-                radius: 4.0.into(),
-            },
-            ..Default::default()
+        .style({
+            let surface = crate::style::to_iced(app.design_tokens.palette.surface);
+            let border = crate::style::to_iced(app.design_tokens.palette.border);
+            move |_| iced::widget::container::Style {
+                background: Some(iced::Background::Color(surface)),
+                border: iced::Border {
+                    color: border,
+                    width: 1.0,
+                    radius: 4.0.into(),
+                },
+                ..Default::default()
+            }
         })
         .into()
     } else {
@@ -256,21 +285,27 @@ fn build_search_bar<'a>(app: &'a App) -> Element<'a, Message> {
     let search_placeholder = t!("main.search_placeholder").to_string();
     container(
         row![
-            text("🔍").size(12),
+            text("🔍")
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height),
             text_input(&search_placeholder, &app.search_query)
                 .on_input(Message::SearchQueryChanged)
-                .padding(Padding::from([3.0, 6.0]))
-                .size(12)
+                .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.sm]))
+                .size(app.design_tokens.typography.body_small.size)
+                .line_height(app.design_tokens.typography.body_small.line_height)
                 .width(Length::Fill),
         ]
-        .spacing(6)
+        .spacing(app.design_tokens.spacing.sm)
         .align_y(iced::Alignment::Center),
     )
-    .padding(Padding::from([6.0, 10.0]))
+    .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
     .width(Length::Fill)
-    .style(|_| iced::widget::container::Style {
-        background: Some(iced::Background::Color(Color::from_rgb(0.95, 0.96, 0.97))),
-        ..Default::default()
+    .style({
+        let surface = crate::style::to_iced(app.design_tokens.palette.surface);
+        move |_| iced::widget::container::Style {
+            background: Some(iced::Background::Color(surface)),
+            ..Default::default()
+        }
     })
     .into()
 }
@@ -293,29 +328,37 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
     // (they dismiss it once and it stays gone for the session).
     let coach_line: Option<Element<'_, Message>> =
         if !app.coach_dismissed {
-            let dismiss_btn = button(text(t!("main.coach_dismiss").to_string()).size(10))
+            let dismiss_btn = button(
+                text(t!("main.coach_dismiss").to_string())
+                    .size(app.design_tokens.typography.label.size)
+                    .line_height(app.design_tokens.typography.label.line_height),
+            )
                 .on_press(Message::DismissCoach)
-                .padding(Padding::from([3.0, 8.0]))
+                .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.sm]))
                 .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
             Some(
                 container(
                     row![
                         text(t!("main.coach_line").to_string())
-                            .size(11)
-                            .color(Color::from_rgb(0.28, 0.38, 0.56)),
+                            .size(app.design_tokens.typography.body_small.size)
+                            .line_height(app.design_tokens.typography.body_small.line_height)
+                            .color(crate::style::to_iced(app.design_tokens.palette.accent)),
                         space().width(Length::Fill),
                         dismiss_btn,
                     ]
                     .align_y(iced::Alignment::Center)
-                    .spacing(4),
+                    .spacing(app.design_tokens.spacing.xs),
                 )
-                .padding(Padding::from([6.0, 10.0]))
+                .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
                 .width(Length::Fill)
-                .style(|_| iced::widget::container::Style {
-                    background: Some(iced::Background::Color(
-                        Color::from_rgb(0.93, 0.96, 1.00)
-                    )),
-                    ..Default::default()
+                .style({
+                    let accent = crate::style::to_iced(app.design_tokens.palette.accent);
+                    move |_| iced::widget::container::Style {
+                        background: Some(iced::Background::Color(
+                            Color { a: 0.10, ..accent }
+                        )),
+                        ..Default::default()
+                    }
                 })
                 .into()
             )
@@ -353,16 +396,18 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
             let dir_btn = button(
                 row![
                     space().width(Length::Fixed((parts.len().saturating_sub(1)) as f32 * 14.0)),
-                    text(format!("{icon} {}", parts[parts.len()-2])).size(11)
-                        .color(Color::from_rgb(0.5, 0.5, 0.55))
+                    text(format!("{icon} {}", parts[parts.len()-2]))
+                        .size(app.design_tokens.typography.label.size)
+                        .line_height(app.design_tokens.typography.label.line_height)
+                        .color(crate::style::to_iced(app.design_tokens.palette.text_secondary))
                         .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
                 ]
-                .spacing(4)
+                .spacing(app.design_tokens.spacing.xs)
                 .align_y(iced::Alignment::Center),
             )
             .on_press(Message::ToggleDir(dir_clone))
             .width(Length::Fill)
-            .padding(Padding::from([4.0, 6.0]))  // ABDD minimum
+            .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.sm]))  // ABDD minimum
             .style({ let t = app.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
             items.push(dir_btn.into());
             prev_dir = dir.clone();
@@ -380,9 +425,11 @@ fn build_file_tree<'a>(app: &'a App) -> Element<'a, Message> {
         if let Some(coach) = coach_line { col = col.push(coach); }
         return col.push(
             container(
-                text(t!("empty_state.no_entries_match_filter").to_string()).size(12)
-                    .color(Color::from_rgb(0.55, 0.55, 0.58))
-            ).padding(12)
+                text(t!("empty_state.no_entries_match_filter").to_string())
+                    .size(app.design_tokens.typography.body_small.size)
+                    .line_height(app.design_tokens.typography.body_small.line_height)
+                    .color(crate::style::to_iced(app.design_tokens.palette.text_muted))
+            ).padding(app.design_tokens.spacing.md)
         ).spacing(0).width(Length::Fill).height(Length::Fill).into();
     }
 
@@ -415,33 +462,41 @@ fn build_file_row<'a>(
     let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {
         Some(
             container(
-                text(format!("⚠{}", far.warnings.len())).size(9)
-                    .color(Color::from_rgb(0.60, 0.40, 0.00))
+                text(format!("⚠{}", far.warnings.len()))
+                    .size(app.design_tokens.typography.label.size)
+                    .line_height(app.design_tokens.typography.label.line_height)
+                    .color(crate::style::to_iced(app.design_tokens.palette.warning))
             )
-            .padding(Padding::from([1.0, 3.0]))
-            .style(|_| iced::widget::container::Style {
-                background: Some(iced::Background::Color(
-                    Color::from_rgba(0.95, 0.85, 0.20, 0.25)
-                )),
-                border: iced::Border {
-                    color: Color::from_rgba(0.85, 0.65, 0.10, 0.50),
-                    width: 1.0,
-                    radius: 3.0.into(),
-                },
-                ..Default::default()
+            .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.xs]))
+            .style({
+                let warning = crate::style::to_iced(app.design_tokens.palette.warning);
+                move |_| iced::widget::container::Style {
+                    background: Some(iced::Background::Color(
+                        Color { a: 0.25, ..warning }
+                    )),
+                    border: iced::Border {
+                        color: Color { a: 0.50, ..warning },
+                        width: 1.0,
+                        radius: 3.0.into(),
+                    },
+                    ..Default::default()
+                }
             })
             .into()
         )
     } else { None };
 
     let sicon = status_icon(far.status, &app.design_tokens, app.theme.is_high_contrast());
-    let dtype_tag = diff_type_tag(far.diff.diff_type);
+    let dtype_tag = diff_type_tag(far.diff.diff_type, &app.design_tokens);
     let mut name_row = row![
         space().width(Length::Fixed(indent)),
         sicon,
-        text(short).size(12).font(iced::Font::MONOSPACE),
+        text(short)
+            .size(app.design_tokens.typography.body_small.size)
+            .line_height(app.design_tokens.typography.body_small.line_height)
+            .font(iced::Font::MONOSPACE),
     ]
-    .spacing(5)
+    .spacing(app.design_tokens.spacing.sm)
     .align_y(iced::Alignment::Center);
     if let Some(wb) = warn_badge {
         name_row = name_row.push(wb);
@@ -452,12 +507,13 @@ fn build_file_row<'a>(
         space().width(Length::Fill),
         dtype_tag,
     ]
-    .spacing(4)
+    .spacing(app.design_tokens.spacing.xs)
     .align_y(iced::Alignment::Center);
 
+    let selected_bg = crate::style::to_iced(app.design_tokens.palette.accent);
     let bg = move |_: &iced::Theme| iced::widget::container::Style {
         background: if is_selected {
-            Some(iced::Background::Color(Color::from_rgba(0.15, 0.45, 0.85, 0.18)))
+            Some(iced::Background::Color(Color { a: 0.18, ..selected_bg }))
         } else { None },
         ..Default::default()
     };
@@ -465,7 +521,7 @@ fn build_file_row<'a>(
     button(
         container(full_row)
             .width(Length::Fill)
-            .padding(Padding::from([3.0, 6.0]))
+            .padding(Padding::from([app.design_tokens.spacing.xs, app.design_tokens.spacing.sm]))
             .style(bg),
     )
     .on_press(Message::SelectEntry(idx))
@@ -522,11 +578,14 @@ fn status_icon(status: AuditStatus, tokens: &snora::design::Tokens, is_hc: bool)
         AuditStatus::Error   => ("!", crate::theme::status_color(AuditStatus::Error,   tokens, is_hc)),
         AuditStatus::Ignored => ("—", crate::theme::status_color(AuditStatus::Ignored, tokens, is_hc)),
     };
-    text(sym).size(13).color(color).into()
+    text(sym)
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height)
+        .color(color).into()
 }
 
 // RFC 013: diff-type tag — right-aligned subtle grey symbol.
-fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
+fn diff_type_tag(dtype: DiffType, tokens: &snora::design::Tokens) -> Element<'static, Message> {
     let sym = match dtype {
         DiffType::Added        => "+",
         DiffType::Removed      => "−",
@@ -536,8 +595,10 @@ fn diff_type_tag(dtype: DiffType) -> Element<'static, Message> {
         DiffType::Unreadable   => "!",
         DiffType::Incomparable => "?",
     };
-    text(sym).size(11)
-        .color(iced::Color::from_rgb(0.60, 0.62, 0.66))
+    text(sym)
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted))
         .into()
 }
 
@@ -574,14 +635,15 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     let t_approve = app.design_tokens.clone();
     let approve_btn_inner = button(
         text(t!("bottombar.approve_and_save").to_string())
-            .size(13)
+            .size(app.design_tokens.typography.label.size)
+            .line_height(app.design_tokens.typography.label.line_height)
             .font(iced::Font {
                 weight: iced::font::Weight::Semibold,
                 ..Default::default()
             }),
     )
     .on_press_maybe(if can_approve { Some(Message::ApproveAndSave) } else { None })
-    .padding(Padding::from([10.0, 20.0]))  // ABDD ≥44px
+    .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.xl]))  // ABDD ≥44px
     .style(move |_theme, s| crate::style::btn_primary(&t_approve, s));
 
     let approve_btn: Element<'_, Message> = match disabled_reason {
@@ -591,13 +653,17 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
                 approve_btn_inner,
                 iced::widget::container(
                     iced::widget::column![
-                        iced::widget::text(reason).size(12),
-                        iced::widget::text(hint).size(11)
-                            .color(iced::Color::from_rgb(0.55, 0.57, 0.62)),
+                        iced::widget::text(reason)
+                            .size(app.design_tokens.typography.body_small.size)
+                            .line_height(app.design_tokens.typography.body_small.line_height),
+                        iced::widget::text(hint)
+                            .size(app.design_tokens.typography.body_small.size)
+                            .line_height(app.design_tokens.typography.body_small.line_height)
+                            .color(crate::style::to_iced(app.design_tokens.palette.text_muted)),
                     ]
-                    .spacing(3)
+                    .spacing(app.design_tokens.spacing.xs)
                 )
-                .padding(iced::Padding::from([6.0, 10.0])),
+                .padding(iced::Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md])),
                 iced::widget::tooltip::Position::Top,
             )
             .into()
@@ -609,8 +675,9 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     let selected_label: Element<'_, Message> = if let Some(idx) = app.selected_index {
         if let Some(r) = app.audit_result.as_ref().and_then(|r| r.results.get(idx)) {
             text(format!("{}  {}", t!("bottombar.selected"), r.diff.path))
-                .size(12)
-                .color(iced::Color::from_rgb(0.40, 0.42, 0.48))
+                .size(app.design_tokens.typography.body_small.size)
+                .line_height(app.design_tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary))
                 .into()
         } else {
             space().width(Length::Fill).into()
@@ -625,15 +692,16 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
     {
         let unresolved = s.failed + s.pending + s.error;
         let color = if unresolved > 0 {
-            iced::Color::from_rgb(0.75, 0.30, 0.10)
+            crate::style::to_iced(app.design_tokens.palette.danger)
         } else {
-            iced::Color::from_rgb(0.15, 0.60, 0.25)
+            crate::style::to_iced(app.design_tokens.palette.success)
         };
         // RFC 043 — i18n'd; was hardcoded Japanese.
         text(t!("filter.count_summary",
                 total = s.total.to_string(),
                 unresolved = unresolved.to_string()).to_string())
-            .size(12)
+            .size(app.design_tokens.typography.body_small.size)
+            .line_height(app.design_tokens.typography.body_small.line_height)
             .color(color)
             .into()
     } else {
@@ -648,9 +716,9 @@ fn build_bottom_bar<'a>(app: &'a App) -> Element<'a, Message> {
             space().width(Length::Fill),
             count_label,
         ]
-        .spacing(6)
+        .spacing(app.design_tokens.spacing.sm)
         .align_y(iced::Alignment::Center)
-        .padding(Padding::from([5.0, 12.0])),
+        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md])),
     )
     .width(Length::Fill)
     .style(panel_style(app.design_tokens.clone()))
@@ -669,18 +737,20 @@ fn empty_state_file_tree<'a>(tokens: snora::design::Tokens) -> Element<'a, Messa
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.file_tree_no_result_title").to_string())
-            .size(13)
-            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+            .size(tokens.typography.title.size)
+            .line_height(tokens.typography.title.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_secondary)),
         space().height(Length::Fixed(6.0)),
         text(t!("empty_state.file_tree_no_result_hint").to_string())
-            .size(11)
-            .color(Color::from_rgb(0.55, 0.55, 0.60)),
+            .size(tokens.typography.body_small.size)
+            .line_height(tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_muted)),
     ]
     .spacing(0)
     .align_x(iced::Alignment::Center)
     .width(Length::Fill);
     container(body)
-        .padding(Padding::from([24.0, 16.0]))
+        .padding(Padding::from([tokens.spacing.xl, tokens.spacing.lg]))
         .width(Length::Fill)
         .center_x(Length::Fill)
         .style(empty_state_panel_style(tokens))
@@ -691,26 +761,29 @@ fn empty_state_diff_panel<'a>(tokens: snora::design::Tokens) -> Element<'a, Mess
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.diff_no_audit_title").to_string())
-            .size(14)
-            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+            .size(tokens.typography.title.size)
+            .line_height(tokens.typography.title.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_secondary)),
         space().height(Length::Fixed(10.0)),
         // Two-step guidance. Stepping is implicit in the order; we keep
         // the symbols inline with each line so ABDD's "no colour
         // dependence" rule is met (the bullet character itself carries
         // the meaning, not styling).
         text(format!("①  {}", t!("empty_state.diff_no_audit_step1")))
-            .size(12)
-            .color(Color::from_rgb(0.50, 0.52, 0.58)),
+            .size(tokens.typography.body_small.size)
+            .line_height(tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_muted)),
         space().height(Length::Fixed(4.0)),
         text(format!("②  {}", t!("empty_state.diff_no_audit_step2")))
-            .size(12)
-            .color(Color::from_rgb(0.50, 0.52, 0.58)),
+            .size(tokens.typography.body_small.size)
+            .line_height(tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_muted)),
     ]
     .spacing(0)
     .align_x(iced::Alignment::Center)
     .width(Length::Fill);
     container(body)
-        .padding(Padding::from([32.0, 24.0]))
+        .padding(Padding::from([tokens.spacing.xxl, tokens.spacing.xl]))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
@@ -723,18 +796,20 @@ fn empty_state_inspector<'a>(tokens: snora::design::Tokens) -> Element<'a, Messa
     use crate::style::empty_state_panel_style;
     let body = column![
         text(t!("empty_state.inspector_no_selection").to_string())
-            .size(13)
-            .color(Color::from_rgb(0.40, 0.42, 0.48)),
+            .size(tokens.typography.title.size)
+            .line_height(tokens.typography.title.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_secondary)),
         space().height(Length::Fixed(6.0)),
         text(format!("←  {}", t!("empty_state.inspector_no_selection_hint")))
-            .size(11)
-            .color(Color::from_rgb(0.55, 0.55, 0.60)),
+            .size(tokens.typography.body_small.size)
+            .line_height(tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(tokens.palette.text_muted)),
     ]
     .spacing(0)
     .align_x(iced::Alignment::Center)
     .width(Length::Fill);
     container(body)
-        .padding(Padding::from([24.0, 16.0]))
+        .padding(Padding::from([tokens.spacing.xl, tokens.spacing.lg]))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)

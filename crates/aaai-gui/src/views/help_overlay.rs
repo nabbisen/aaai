@@ -10,30 +10,35 @@ use iced::{
 use rust_i18n::t;
 
 use crate::app::Message;
+use snora::design::Tokens;
 
 /// Build the help dialog box (without the backdrop overlay).
-pub fn view<'a>() -> Element<'a, Message> {
+pub fn view<'a>(tokens: &'a Tokens) -> Element<'a, Message> {
     let title = text(t!("help.title").to_string())
-        .size(16)
+        .size(tokens.typography.title.size)
+        .line_height(tokens.typography.title.line_height)
         .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
 
     // Column headers
     let header = row![
         text(t!("help.shortcut_label").to_string())
-            .size(12)
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height)
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() })
             .width(Length::Fixed(160.0)),
         text(t!("help.action_label").to_string())
-            .size(12)
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height)
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
     ]
-    .spacing(12);
+    .spacing(tokens.spacing.md);
 
+    let separator_border = crate::style::to_iced(tokens.palette.border);
     let separator = container(iced::widget::space().height(1))
         .width(Length::Fill)
         .height(Length::Fixed(1.0))
-        .style(|_| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.88, 0.88, 0.90))),
+        .style(move |_| container::Style {
+            background: Some(iced::Background::Color(separator_border)),
             ..Default::default()
         });
 
@@ -52,28 +57,36 @@ pub fn view<'a>() -> Element<'a, Message> {
         ("?",                 "help.show_help"),
     ];
 
+    let key_color = crate::style::to_iced(tokens.palette.text_primary);
+    let action_color = crate::style::to_iced(tokens.palette.text_secondary);
     let rows: Vec<Element<'_, Message>> = shortcuts
         .iter()
         .map(|(key, action_key)| {
             row![
                 text(*key)
-                    .size(12)
+                    .size(tokens.typography.label.size)
+                    .line_height(tokens.typography.label.line_height)
                     .font(iced::Font::MONOSPACE)
-                    .color(Color::from_rgb(0.20, 0.20, 0.24))
+                    .color(key_color)
                     .width(Length::Fixed(160.0)),
                 text(t!(*action_key).to_string())
-                    .size(12)
-                    .color(Color::from_rgb(0.30, 0.30, 0.35)),
+                    .size(tokens.typography.body_small.size)
+                    .line_height(tokens.typography.body_small.line_height)
+                    .color(action_color),
             ]
-            .spacing(12)
+            .spacing(tokens.spacing.md)
             .into()
         })
         .collect();
 
     // Close button
-    let close_btn = button(text(t!("help.close").to_string()).size(13))
+    let close_btn = button(
+        text(t!("help.close").to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height),
+    )
         .on_press(Message::CloseHelp)
-        .padding(Padding::from([6.0, 14.0]));
+        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
 
     let body = column![
         title,
@@ -88,21 +101,20 @@ pub fn view<'a>() -> Element<'a, Message> {
         ]
         .align_y(iced::Alignment::Center),
     )
-    .spacing(8)
+    .spacing(tokens.spacing.sm)
     .width(Length::Fixed(380.0));
 
     container(body)
-        .padding(Padding::from([24.0, 28.0]))
-        .style(dialog_style)
+        .padding(Padding::from([tokens.spacing.xl, tokens.spacing.xxl]))
+        .style(move |_theme| dialog_style(tokens))
         .into()
 }
 
-fn dialog_style(theme: &iced::Theme) -> container::Style {
-    let _ = theme;
+fn dialog_style(tokens: &Tokens) -> container::Style {
     container::Style {
-        background: Some(iced::Background::Color(Color::WHITE)),
+        background: Some(iced::Background::Color(crate::style::to_iced(tokens.palette.surface_raised))),
         border: iced::Border {
-            color: Color::from_rgb(0.78, 0.78, 0.82),
+            color: crate::style::to_iced(tokens.palette.border),
             width: 1.0,
             radius: iced::border::Radius::from(8.0),
         },

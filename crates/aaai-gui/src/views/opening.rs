@@ -18,13 +18,17 @@ use crate::app::{App, Message};
 pub fn view(app: &App) -> Element<'_, Message> {
     // ── Welcome section ─────────────────────────────────────────────
     let title = text(t!("opening.title").to_string())
-        .size(48)
+        .size(app.design_tokens.typography.display.size)
+        .line_height(app.design_tokens.typography.display.line_height)
         .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
-    let subtitle = text(t!("opening.subtitle").to_string()).size(16)
-        .color(Color::from_rgb(0.45, 0.47, 0.52));
+    let subtitle = text(t!("opening.subtitle").to_string())
+        .size(app.design_tokens.typography.body.size)
+        .line_height(app.design_tokens.typography.body.line_height)
+        .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
     let guide = text(t!("opening.guide").to_string())
-        .size(14)
-        .color(Color::from_rgb(0.30, 0.32, 0.38));
+        .size(app.design_tokens.typography.body_small.size)
+        .line_height(app.design_tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
 
     // ── Required folder cards ───────────────────────────────────────
     let before_card = folder_picker_card(
@@ -50,10 +54,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
     let drop_hint: Element<'_, Message> = if app.file_hovering {
         container(
             text(format!("↓ {}", t!("opening.drop_here")))
-                .size(13)
-                .color(Color::from_rgb(0.18, 0.45, 0.85)),
+                .size(app.design_tokens.typography.body_small.size)
+                .line_height(app.design_tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.accent)),
         )
-        .padding(Padding::from([10.0, 14.0]))
+        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
         .style(card_style(app.design_tokens.clone()))
         .width(Length::Fill)
         .into()
@@ -66,16 +71,18 @@ pub fn view(app: &App) -> Element<'_, Message> {
     // rendered) ────────────────────────────────────────────────────
     let error_banner: Element<'_, Message> = if let Some(err) = &app.open_error {
         let msg_line = text(format!("⚠ {}", err.message))
-            .size(13)
-            .color(Color::from_rgb(0.82, 0.18, 0.18));
+            .size(app.design_tokens.typography.body.size)
+            .line_height(app.design_tokens.typography.body.line_height)
+            .color(crate::style::to_iced(app.design_tokens.palette.danger));
         let hint_line = text(err.hint.as_str())
-            .size(11)
-            .color(Color::from_rgb(0.45, 0.47, 0.52));
+            .size(app.design_tokens.typography.body_small.size)
+            .line_height(app.design_tokens.typography.body_small.line_height)
+            .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
         container(
             column![msg_line, hint_line]
-                .spacing(4),
+                .spacing(app.design_tokens.spacing.xs),
         )
-        .padding(Padding::from([10.0, 14.0]))
+        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
         .style(card_style(app.design_tokens.clone()))
         .width(Length::Fill)
         .into()
@@ -90,11 +97,12 @@ pub fn view(app: &App) -> Element<'_, Message> {
         && !app.is_loading;
     let start_btn = button(
         text(t!("opening.start_button").to_string())
-            .size(15)
+            .size(app.design_tokens.typography.label.size)
+            .line_height(app.design_tokens.typography.label.line_height)
             .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
     )
     .on_press_maybe(if can_start { Some(Message::StartAudit) } else { None })
-    .padding(Padding::from([12.0, 32.0]))
+    .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.xxl]))
     .style({
         let t = app.design_tokens.clone();
         move |_theme, s| crate::style::btn_primary(&t, s)
@@ -122,10 +130,11 @@ pub fn view(app: &App) -> Element<'_, Message> {
         iced::widget::column![
             start_btn,
             iced::widget::text(hint)
-                .size(12)
-                .color(iced::Color::from_rgb(0.50, 0.52, 0.58)),
+                .size(app.design_tokens.typography.body_small.size)
+                .line_height(app.design_tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_muted)),
         ]
-        .spacing(6)
+        .spacing(app.design_tokens.spacing.sm)
         .align_x(iced::Alignment::Center)
         .into()
     } else {
@@ -161,7 +170,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
     .spacing(0)
     .align_x(Center)
     .max_width(720)
-    .padding(Padding::from([16.0, 32.0]));
+    .padding(Padding::from([app.design_tokens.spacing.lg, app.design_tokens.spacing.xxl]));
 
     scrollable(
         container(main_col)
@@ -189,26 +198,36 @@ fn folder_picker_card<'a>(
         let valid = error.is_none();
         let icon = if valid { "✓" } else { "✗" };
         let color = if valid {
-            Color::from_rgb(0.15, 0.60, 0.25)
+            crate::style::to_iced(tokens.palette.success)
         } else {
-            Color::from_rgb(0.80, 0.15, 0.15)
+            crate::style::to_iced(tokens.palette.danger)
         };
         row![
-            text(icon).size(14).color(color),
-            text(current_path).size(13)
+            text(icon)
+                .size(tokens.typography.label.size)
+                .line_height(tokens.typography.label.line_height)
+                .color(color),
+            text(current_path)
+                .size(tokens.typography.body_small.size)
+                .line_height(tokens.typography.body_small.line_height)
                 .font(iced::Font::MONOSPACE)
-                .color(Color::from_rgb(0.25, 0.27, 0.32)),
+                .color(crate::style::to_iced(tokens.palette.text_secondary)),
         ]
-        .spacing(6)
+        .spacing(tokens.spacing.sm)
         .align_y(Center)
         .into()
     } else {
         row![
-            text("✗").size(14).color(Color::from_rgb(0.65, 0.40, 0.10)),
-            text(t!("opening.unselected").to_string()).size(13)
-                .color(Color::from_rgb(0.55, 0.55, 0.60)),
+            text("✗")
+                .size(tokens.typography.label.size)
+                .line_height(tokens.typography.label.line_height)
+                .color(crate::style::to_iced(tokens.palette.warning)),
+            text(t!("opening.unselected").to_string())
+                .size(tokens.typography.body_small.size)
+                .line_height(tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(tokens.palette.text_muted)),
         ]
-        .spacing(6)
+        .spacing(tokens.spacing.sm)
         .align_y(Center)
         .into()
     };
@@ -218,12 +237,17 @@ fn folder_picker_card<'a>(
     } else {
         t!("opening.pick_folder")
     };
-    let pick_btn = button(text(pick_btn_label.to_string()).size(13))
+    let pick_btn = button(
+        text(pick_btn_label.to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height),
+    )
         .on_press(pick_msg)
-        .padding(Padding::from([10.0, 18.0]));
+        .padding(Padding::from([tokens.spacing.md, tokens.spacing.xl]));
 
     let card_label = text(format!("📁 {}", label))
-        .size(14)
+        .size(tokens.typography.title.size)
+        .line_height(tokens.typography.title.line_height)
         .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
 
     let body = column![
@@ -234,7 +258,7 @@ fn folder_picker_card<'a>(
             space().width(Length::Fill),
             pick_btn,
         ]
-        .spacing(12)
+        .spacing(tokens.spacing.md)
         .align_y(Center)
         .width(Length::Fill),
     ]
@@ -245,15 +269,17 @@ fn folder_picker_card<'a>(
         column![
             body,
             space().height(Length::Fixed(6.0)),
-            text(format!("⚠ {}", err)).size(11)
-                .color(Color::from_rgb(0.80, 0.30, 0.10)),
+            text(format!("⚠ {}", err))
+                .size(tokens.typography.body_small.size)
+                .line_height(tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(tokens.palette.warning)),
         ].into()
     } else {
         body.into()
     };
 
     container(body_with_error)
-        .padding(Padding::from([14.0, 16.0]))
+        .padding(Padding::from([tokens.spacing.lg, tokens.spacing.lg]))
         .width(Length::Fill)
         .style(card_style(tokens))
         .into()
@@ -265,13 +291,16 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
 
     let header = button(
         row![
-            text(arrow).size(13)
-                .color(Color::from_rgb(0.45, 0.47, 0.52)),
+            text(arrow)
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary)),
             text(t!("opening.optional_section").to_string())
-                .size(13)
-                .color(Color::from_rgb(0.30, 0.32, 0.38)),
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary)),
         ]
-        .spacing(8)
+        .spacing(app.design_tokens.spacing.sm)
         .align_y(Center)
     )
     .on_press(Message::ToggleOptionalSettings)
@@ -279,14 +308,14 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
             let t = app.design_tokens.clone();
             move |_theme, s| crate::style::btn_ghost(&t, s)
         })
-    .padding(Padding::from([6.0, 4.0]));
+    .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.xs]));
 
     // RFC 045 — hint text removed; .aaaiignore row removed
     // (global ignored dirs live in App Settings; per-project .aaaiignore
     // is auto-detected from Before folder silently).
 
     if !expanded {
-        return column![header].spacing(2).into();
+        return column![header].spacing(app.design_tokens.spacing.xs).into();
     }
 
     let def_row = file_picker_row(
@@ -295,6 +324,8 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
         &app.definition_path,
         Message::PickDefinitionFile,
         Message::DefinitionPathChanged,
+        crate::style::to_iced(app.design_tokens.palette.text_secondary),
+        &app.design_tokens,
     );
 
     column![
@@ -302,7 +333,7 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
         space().height(Length::Fixed(8.0)),
         def_row,
     ]
-    .spacing(2)
+    .spacing(app.design_tokens.spacing.xs)
     .into()
 }
 
@@ -312,25 +343,34 @@ fn file_picker_row<'a, F>(
     current: &'a str,
     pick_msg: Message,
     on_text_change: F,
+    label_color: Color,
+    tokens: &snora::design::Tokens,
 ) -> Element<'a, Message>
 where
     F: 'a + Fn(String) -> Message,
 {
-    let label_text = text(label).size(12)
-        .color(Color::from_rgb(0.35, 0.37, 0.42));
+    let label_text = text(label)
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height)
+        .color(label_color);
     let input = text_input(&placeholder, current)
         .on_input(on_text_change)
-        .padding(Padding::from([8.0, 10.0]))
-        .size(12);
-    let pick_btn = button(text(t!("opening.pick_file").to_string()).size(12))
+        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.md]))
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height);
+    let pick_btn = button(
+        text(t!("opening.pick_file").to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height),
+    )
         .on_press(pick_msg)
-        .padding(Padding::from([8.0, 14.0]));
+        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
 
     column![
         label_text,
-        row![input, pick_btn].spacing(8).align_y(Center),
+        row![input, pick_btn].spacing(tokens.spacing.sm).align_y(Center),
     ]
-    .spacing(4)
+    .spacing(tokens.spacing.xs)
     .into()
 }
 
@@ -342,10 +382,11 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
     }
 
     let header = text(format!("─── {} ───", t!("opening.recent_section")))
-        .size(12)
-        .color(Color::from_rgb(0.55, 0.55, 0.60));
+        .size(app.design_tokens.typography.body_small.size)
+        .line_height(app.design_tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(app.design_tokens.palette.text_muted));
 
-    let mut col = column![header, space().height(Length::Fixed(6.0))].spacing(4);
+    let mut col = column![header, space().height(Length::Fixed(6.0))].spacing(app.design_tokens.spacing.xs);
 
     // RFC 023 FR-5: sort by last_used_at descending. Tracking the
     // original index lets us keep the existing `LoadProfile(usize)`
@@ -356,7 +397,9 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
     indexed.sort_by(|(_, a), (_, b)| b.last_used_at.cmp(&a.last_used_at));
 
     for (orig_idx, prof) in indexed.iter().take(5) {
-        let label = text(format!("▸ {}", prof.name)).size(13);
+        let label = text(format!("▸ {}", prof.name))
+            .size(app.design_tokens.typography.body.size)
+            .line_height(app.design_tokens.typography.body.line_height);
         // RFC 023 §3.4: render the relative "time ago" alongside the
         // name. Legacy profiles (None) show nothing — the absence of
         // a timestamp is the cue that they predate the feature.
@@ -368,19 +411,27 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
             before = prof.before.clone(),
             after  = prof.after.clone(),
         ).to_string())
-        .size(11)
-        .color(Color::from_rgb(0.55, 0.55, 0.60))
+        .size(app.design_tokens.typography.body_small.size)
+        .line_height(app.design_tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(app.design_tokens.palette.text_muted))
         .font(iced::Font::MONOSPACE);
-        let open_btn = button(text(t!("opening.open_recent").to_string()).size(12))
+        let open_btn = button(
+            text(t!("opening.open_recent").to_string())
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height),
+        )
             .on_press(Message::LoadProfile(*orig_idx))
-            .padding(Padding::from([8.0, 14.0]));
+            .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.lg]));
 
         let t_del = app.design_tokens.clone();
         let delete_btn = button(
-            text("×").size(12).color(Color::from_rgb(0.55, 0.55, 0.55))
+            text("×")
+                .size(app.design_tokens.typography.label.size)
+                .line_height(app.design_tokens.typography.label.line_height)
+                .color(crate::style::to_iced(app.design_tokens.palette.text_muted))
         )
         .on_press(Message::DeleteProfile(*orig_idx))
-        .padding(Padding::from([8.0, 10.0]))
+        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
         .style(move |_theme, s| crate::style::btn_ghost(&t_del, s));
 
         let header_row: Element<'_, Message> = if let Some(when) = when_text {
@@ -388,10 +439,11 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
                 label,
                 space().width(Length::Fill),
                 text(when)
-                    .size(11)
-                    .color(Color::from_rgb(0.55, 0.55, 0.60)),
+                    .size(app.design_tokens.typography.body_small.size)
+                    .line_height(app.design_tokens.typography.body_small.line_height)
+                    .color(crate::style::to_iced(app.design_tokens.palette.text_muted)),
             ]
-            .spacing(8)
+            .spacing(app.design_tokens.spacing.sm)
             .align_y(Center)
             .into()
         } else {
@@ -400,16 +452,16 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
 
         let row_el = container(
             row![
-                column![header_row, detail].spacing(2),
+                column![header_row, detail].spacing(app.design_tokens.spacing.xs),
                 space().width(Length::Fill),
                 open_btn,
                 delete_btn,
             ]
-            .spacing(8)
+            .spacing(app.design_tokens.spacing.sm)
             .align_y(Center)
             .width(Length::Fill),
         )
-        .padding(Padding::from([8.0, 12.0]))
+        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
         .width(Length::Fill)
         .style(card_style(app.design_tokens.clone()));
 
@@ -430,8 +482,9 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
 fn onboarding_section<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
     
     let title = text(t!("empty_state.onboarding_title").to_string())
-        .size(14)
-        .color(Color::from_rgb(0.40, 0.42, 0.48))
+        .size(tokens.typography.title.size)
+        .line_height(tokens.typography.title.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_secondary))
         .font(iced::Font {
             weight: iced::font::Weight::Semibold,
             ..Default::default()
@@ -441,25 +494,30 @@ fn onboarding_section<'a>(tokens: snora::design::Tokens) -> Element<'a, Message>
     // A newcomer who has never done a structured audit doesn't know what
     // they'll get at the end; this sentence closes that gap.
     let context = text(t!("empty_state.onboarding_context").to_string())
-        .size(12)
-        .color(Color::from_rgb(0.38, 0.40, 0.46));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_secondary));
 
     // Numbered steps using ① ② ③ — Unicode bullets that carry meaning
     // without color (ABDD §2 colour independence) and are unambiguous
     // across en/ja.
     let step1 = text(format!("①  {}", t!("empty_state.onboarding_step1")))
-        .size(12)
-        .color(Color::from_rgb(0.50, 0.52, 0.58));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted));
     let step2 = text(format!("②  {}", t!("empty_state.onboarding_step2")))
-        .size(12)
-        .color(Color::from_rgb(0.50, 0.52, 0.58));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted));
     let step3 = text(format!("③  {}", t!("empty_state.onboarding_step3")))
-        .size(12)
-        .color(Color::from_rgb(0.50, 0.52, 0.58));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted));
 
     let note = text(t!("empty_state.onboarding_note").to_string())
-        .size(11)
-        .color(Color::from_rgb(0.60, 0.62, 0.68));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted));
 
     let body = column![
         title,
@@ -478,7 +536,7 @@ fn onboarding_section<'a>(tokens: snora::design::Tokens) -> Element<'a, Message>
     .width(Length::Fill);
 
     container(body)
-        .padding(Padding::from([20.0, 24.0]))
+        .padding(Padding::from([tokens.spacing.xl, tokens.spacing.xl]))
         .width(Length::Fill)
         .style(empty_state_panel_style(tokens))
         .into()

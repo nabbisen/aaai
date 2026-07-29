@@ -19,11 +19,14 @@ use crate::app::Message;
 pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
     // ── Title ─────────────────────────────────────────────────────────
     let title = text(t!("settings.title").to_string())
-        .size(16)
+        .size(tokens.typography.title.size)
+        .line_height(tokens.typography.title.line_height)
         .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
 
     // ── Language section ──────────────────────────────────────────────
-    let lang_label = text(t!("settings.language").to_string()).size(13);
+    let lang_label = text(t!("settings.language").to_string())
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height);
 
     // Use the existing SUPPORTED_LOCALES from i18n module.
     // Language picker: labels are the own-language names ("English", "日本語").
@@ -52,21 +55,23 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
         },
     )
     .text_size(13)
-    .padding(Padding::from([4.0, 8.0]));
+    .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]));
 
     let language_section = column![
         lang_label,
         lang_pick,
-    ].spacing(6);
+    ].spacing(tokens.spacing.sm);
 
     // ── Ignored directories section ───────────────────────────────────
     let ignored_label = text(t!("settings.ignored_dirs").to_string())
-        .size(13)
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height)
         .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
 
     let ignored_hint = text(t!("settings.ignored_dirs_hint").to_string())
-        .size(11)
-        .color(Color::from_rgb(0.5, 0.5, 0.5));
+        .size(tokens.typography.body_small.size)
+        .line_height(tokens.typography.body_small.line_height)
+        .color(crate::style::to_iced(tokens.palette.text_muted));
 
     let placeholder = t!("settings.dir_placeholder").to_string();
 
@@ -77,31 +82,39 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
         .map(|(i, dir)| {
             let input = text_input(&placeholder, dir)
                 .on_input(move |s| Message::SettingsIgnoreDirEdit(i, s))
-                .padding(Padding::from([3.0, 6.0]))
-                .size(12)
+                .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
+                .size(tokens.typography.body_small.size)
+                .line_height(tokens.typography.body_small.line_height)
                 .width(Length::Fill);
 
             let remove_btn = button(
-                text("×").size(12).color(Color::from_rgb(0.55, 0.55, 0.55))
+                text("×")
+                    .size(tokens.typography.label.size)
+                    .line_height(tokens.typography.label.line_height)
+                    .color(crate::style::to_iced(tokens.palette.text_muted))
             )
             .on_press(Message::SettingsIgnoreDirRemove(i))
-            .padding(Padding::from([3.0, 6.0]))
+            .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
             .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
             row![input, remove_btn]
-                .spacing(4)
+                .spacing(tokens.spacing.xs)
                 .align_y(iced::Alignment::Center)
                 .into()
         })
         .collect();
 
-    let add_btn = button(text(t!("settings.add_dir").to_string()).size(12))
+    let add_btn = button(
+        text(t!("settings.add_dir").to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height),
+    )
         .on_press(Message::SettingsIgnoreDirAdd)
-        .padding(Padding::from([4.0, 8.0]))
+        .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
         .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) });
 
     let dir_list = scrollable(
-        column(dir_rows).spacing(4),
+        column(dir_rows).spacing(tokens.spacing.xs),
     )
     .height(Length::Shrink);
 
@@ -110,34 +123,39 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
         ignored_hint,
         dir_list,
         add_btn,
-    ].spacing(6);
+    ].spacing(tokens.spacing.sm);
 
     // ── Action buttons ────────────────────────────────────────────────
     let cancel_btn = button(
-        text(t!("settings.cancel").to_string()).size(13)
+        text(t!("settings.cancel").to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height)
     )
     .on_press(Message::CloseSettings)
-    .padding(Padding::from([6.0, 14.0]))
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
     .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_secondary(&t, s) });
 
     let save_btn = button(
-        text(t!("settings.save").to_string()).size(13)
+        text(t!("settings.save").to_string())
+            .size(tokens.typography.label.size)
+            .line_height(tokens.typography.label.line_height)
     )
     .on_press(Message::SaveSettings)
-    .padding(Padding::from([6.0, 14.0]));
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
 
     let actions = row![
         space().width(Length::Fill),
         cancel_btn,
         save_btn,
     ]
-    .spacing(8)
+    .spacing(tokens.spacing.sm)
     .align_y(iced::Alignment::Center);
 
     // ── Dialog box ────────────────────────────────────────────────────
     // ── Theme picker (RFC 093) ─────────────────────────────────────────────
     let theme_label = text(t!("settings.theme").to_string())
-        .size(13)
+        .size(tokens.typography.label.size)
+        .line_height(tokens.typography.label.line_height)
         .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
 
     let theme_options: Vec<aaai::profile::prefs::Theme> =
@@ -179,47 +197,45 @@ pub fn view<'a>(draft: &'a UserPrefs, locale: &'a str, tokens: &'a snora::design
     )
     .width(Length::Fill);
 
-    let theme_section = column![theme_label, theme_pick].spacing(6);
+    let theme_section = column![theme_label, theme_pick].spacing(tokens.spacing.sm);
 
     let body = column![
         title,
-        separator(),
+        separator(tokens),
         theme_section,
-        separator(),
+        separator(tokens),
         language_section,
-        separator(),
+        separator(tokens),
         ignored_section,
-        separator(),
+        separator(tokens),
         actions,
     ]
-    .spacing(14)
+    .spacing(tokens.spacing.lg)
     .width(Length::Fixed(400.0));
 
     container(body)
-        .padding(Padding::from([24.0, 28.0]))
-        .style(dialog_style)
+        .padding(Padding::from([tokens.spacing.xl, tokens.spacing.xxl]))
+        .style(move |_theme| dialog_style(tokens))
         .into()
 }
 
-fn separator<'a>() -> Element<'a, Message> {
+fn separator<'a>(tokens: &snora::design::Tokens) -> Element<'a, Message> {
+    let border = crate::style::to_iced(tokens.palette.border);
     container(space().height(1))
         .width(Length::Fill)
         .height(Length::Fixed(1.0))
-        .style(|_| container::Style {
-            background: Some(iced::Background::Color(
-                Color::from_rgb(0.88, 0.88, 0.90),
-            )),
+        .style(move |_| container::Style {
+            background: Some(iced::Background::Color(border)),
             ..Default::default()
         })
         .into()
 }
 
-fn dialog_style(theme: &iced::Theme) -> container::Style {
-    let _ = theme;
+fn dialog_style(tokens: &snora::design::Tokens) -> container::Style {
     container::Style {
-        background: Some(iced::Background::Color(Color::WHITE)),
+        background: Some(iced::Background::Color(crate::style::to_iced(tokens.palette.surface_raised))),
         border: iced::Border {
-            color: Color::from_rgb(0.78, 0.78, 0.82),
+            color: crate::style::to_iced(tokens.palette.border),
             width: 1.0,
             radius: iced::border::Radius::from(8.0),
         },

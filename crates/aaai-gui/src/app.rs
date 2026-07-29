@@ -1974,7 +1974,7 @@ impl App {
             .on_press(Message::CloseHelp);
 
             let dialog = iced::widget::center(
-                crate::views::help_overlay::view()
+                crate::views::help_overlay::view(&self.design_tokens)
             );
 
             stack![base, backdrop, dialog].into()
@@ -2015,29 +2015,46 @@ impl App {
         // RFC 036 — language picker moved to Settings dialog.
         // RFC 038 — ? button (help overlay) + ⚙ settings button.
         let help_btn = tooltip(
-            button(text("?").size(13))
+            button(
+                text("?")
+                    .size(self.design_tokens.typography.label.size)
+                    .line_height(self.design_tokens.typography.label.line_height),
+            )
                 .on_press(Message::ToggleHelp)
-                .padding(iced::Padding::from([2.0, 6.0]))
+                .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.sm]))
                 .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
-            text(t!("help.title").to_string()).size(11),
+            text(t!("help.title").to_string())
+                .size(self.design_tokens.typography.body_small.size)
+                .line_height(self.design_tokens.typography.body_small.line_height),
             Position::Top,
         );
 
         let settings_btn = tooltip(
-            button(text("⚙").size(13))
+            button(
+                text("⚙")
+                    .size(self.design_tokens.typography.label.size)
+                    .line_height(self.design_tokens.typography.label.line_height),
+            )
                 .on_press(Message::OpenSettings)
-                .padding(iced::Padding::from([2.0, 6.0]))
+                .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.sm]))
                 .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
-            text(t!("settings.button_tooltip").to_string()).size(11),
+            text(t!("settings.button_tooltip").to_string())
+                .size(self.design_tokens.typography.body_small.size)
+                .line_height(self.design_tokens.typography.body_small.line_height),
             Position::Top,
         );
 
         let left: Element<'_, Message> = if self.dirty {
-            text(t!("footer.unsaved")).size(12)
-                .color(iced::Color::from_rgb(0.85, 0.45, 0.10))
+            text(t!("footer.unsaved"))
+                .size(self.design_tokens.typography.body_small.size)
+                .line_height(self.design_tokens.typography.body_small.line_height)
+                .color(crate::style::to_iced(self.design_tokens.palette.warning))
                 .into()
         } else {
-            text("").size(12).into()
+            text("")
+                .size(self.design_tokens.typography.body_small.size)
+                .line_height(self.design_tokens.typography.body_small.line_height)
+                .into()
         };
 
         container(
@@ -2046,13 +2063,15 @@ impl App {
                 space().width(Length::Fill),
                 help_btn,
                 settings_btn,
-                text(format!("v{}", env!("CARGO_PKG_VERSION"))).size(11),
+                text(format!("v{}", env!("CARGO_PKG_VERSION")))
+                    .size(self.design_tokens.typography.body_small.size)
+                    .line_height(self.design_tokens.typography.body_small.line_height),
             ]
             .align_y(Center)
-            .spacing(12),
+            .spacing(self.design_tokens.spacing.md),
         )
         .width(Length::Fill)
-        .padding(iced::Padding::from([4.0, 16.0]))
+        .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.lg]))
         .style(panel_style(self.design_tokens.clone()))
         .into()
     }
