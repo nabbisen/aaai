@@ -146,7 +146,7 @@ Required fixture families:
 |---|---|
 | File links | absolute/relative, inside/outside, broken, Added/Removed/both |
 | Directory links | inside/outside, descendant canary, ignored, cycle/self-cycle |
-| Windows reparse | file symlink, directory symlink, junction, and mount-point or equivalent name-surrogate; every reparse attribute rejects through the production handle path. Non-name-surrogate/unknown is deferred — no constructible hosted fixture (RFC §9.1 platform constraint; WOF is client-only) — and is a named S2 exit obligation, not a waiver |
+| Windows reparse | file symlink, directory symlink, junction, mount-point or equivalent name-surrogate, and non-name-surrogate/unknown; every reparse attribute rejects through the production handle path. The non-name-surrogate case uses `FSCTL_SET_REPARSE_POINT` with a non-Microsoft tag from an external helper (WOF is client-only and unusable on hosted Server images) — discharged 2026-07-29, run `30456899630` |
 | Unix special | FIFO and socket; classification must not block/open |
 | Root | direct directory/anchor succeeds; final-component link rejects with no trailing-slash or `/.` bypass; terminal `..` rejects |
 | Mutation | barrier replaces file and directory after classification with outside link; Unix directory-to-FIFO replacement must fail without blocking before classification |

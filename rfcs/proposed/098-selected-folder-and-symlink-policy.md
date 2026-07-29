@@ -495,21 +495,36 @@ asynchronous job on every run and is not guaranteed on ephemeral system
 volumes; the stock Windows compatibility reparse points are junctions and
 therefore name surrogates.
 
-This case is therefore **deferred, not waived**, on the same
+This case was **deferred, not waived** in Part 1, on the same
 reviewed-platform-constraint basis as the macOS APFS invalid-byte case and the
-Windows name-collision case above. Until it is discharged, rejection of
-non-name-surrogate reparse points is evidenced only by the tag-agnostic
-construction of the production decision procedure, which reads the generic
-`FILE_ATTRIBUTE_REPARSE_POINT` bit at both call sites and never a reparse tag.
-That is an argument from source, not from execution, and it is explicitly not
-equivalent to a passing fixture.
+Windows name-collision case above. **It is now discharged by execution.**
 
-Discharging it requires a behavioural fixture constructing a real
-non-name-surrogate reparse point. The reviewed mechanism is
-`FSCTL_SET_REPARSE_POINT` with a non-Microsoft tag
-(`REPARSE_GUID_DATA_BUFFER`, name-surrogate bit clear) issued from an external
-helper process, adding no project `unsafe` or FFI, validated on the hosted
-Windows image. **S2 does not close until that fixture exists and passes.**
+`windows_non_name_surrogate_reparse_is_rejected` constructs a real
+non-name-surrogate reparse point through `FSCTL_SET_REPARSE_POINT` with a
+non-Microsoft tag — `0x00000042`, with both the Microsoft-owned bit 31 and the
+name-surrogate bit 29 clear — supplying a `REPARSE_GUID_DATA_BUFFER` from an
+external PowerShell helper. No `unsafe` or FFI enters any crate, no elevation
+or service is required, and the tag is deleted explicitly before the temporary
+file is removed.
+
+The fixture asserts `FILE_ATTRIBUTE_REPARSE_POINT` is set while
+`is_symlink()` is **false**, then asserts the production classifier rejects the
+entry with `AAAI-PATH-REPARSE`. It is the only fixture in the suite where those
+two conditions diverge: every other Windows reparse fixture uses a symlink,
+directory symlink, or junction, all of which are name surrogates. A change
+replacing the generic-attribute check at
+`crates/aaai/src/diff/path_boundary.rs` with `is_symlink()` would leave every
+other fixture passing and fail only here.
+
+Verified on GitHub-hosted `windows-2025-vs2026`, run `30456899630`, `headSha`
+`aa0e3aa5fb3f26248c6299468510208836d4b5f2`: Windows reported 132 tests passed,
+including this one by name, with Linux and macOS at 144 and `B0 / gate`
+successful. Evidence:
+`.git-exclude/evidence/098-selected-folder-and-symlink-policy/hosted-runs.md`.
+
+Rejection of non-name-surrogate reparse points is therefore evidenced by
+execution, not solely by the tag-agnostic construction of the decision
+procedure.
 
 Unix must exercise FIFO/socket classification without opening or blocking.
 Platform fixture creation failure is a failed required case, not an automatic
