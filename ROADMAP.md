@@ -15,7 +15,12 @@ this lifecycle transition passes B0; until then its completion claims are not
 operative and unrelated continuation remains blocked. Store/MSIX remains
 deferred from v1. No release activity is authorized.
 
-**Selected serial program window:** 2026-07-17 through 2027-04-23
+**Pacing model:** milestone **order and dependencies** are authoritative;
+**calendar windows are not.** Dates were removed on 2026-07-29 after two
+milestones completed weeks before their scheduled windows opened — M1C on
+2026-07-21 against an Aug 17–28 window, and M2's symlink contract on 2026-07-29
+against Aug 31 – Sep 11. The original schedule was expressed in person-weeks,
+which does not describe this project's actual constraints.
 
 **Release posture:** feature freeze; no v1.0 readiness, Store-submission, or
 release-candidate claim until Milestone 7 passes.
@@ -26,19 +31,23 @@ scope statements, and readiness claims do not control this program.
 
 ### Scheduling assumptions
 
-- The executable base schedule assumes one primary implementer. Design,
-  review, implementation, and evidence windows are serial and explicit.
-- No accelerated or parallel calendar is active. One may be published only
-  after independent owners are named for the overlapping work, review capacity
-  is confirmed, and changed-file ownership does not conflict.
+- Work is serial: one milestone at a time, in the dependency order below.
+  Design, review, implementation, and evidence remain distinct steps.
+- **Developer capacity is not the limiting resource.** Elapsed time is governed
+  by owner decisions, owner-embodied work that no other role can perform
+  (real-display verification), hosted CI round-trips serialized under RFC 097,
+  and the number of correction cycles a milestone needs. Estimating in
+  person-days misdescribes all four.
+- Parallel work may be introduced only after independent owners are named for
+  the overlapping milestones, review capacity is confirmed, and changed-file
+  ownership does not conflict.
 - All updates to `main` are serialized through one integration authority. A
   failed or missing B0 result on the latest pushed `main` SHA stops the next
   unrelated integration and downstream continuation. Required-check
   enforcement must be activated before another person, bot, merge queue, or
   mechanism gains independent update authority.
-- Each RFC is approved before its implementation begins. A proposed calendar
-  window is a planning target, not authorization to implement an unapproved
-  RFC.
+- Each RFC is approved before its implementation begins. A milestone's
+  position in the order is not authorization to implement an unapproved RFC.
 - Security, data-safety, and cross-platform correctness take priority over UI
   simplification and new features.
 - External dependency remediation and hosted CI availability may move dates.
@@ -71,23 +80,22 @@ The program is complete only when all of the following are true:
 
 ### Serial milestone schedule
 
-| Milestone | Target window | Outcome | Implementation entry dependency | Exit gate |
+| Milestone | Paced by | Outcome | Implementation entry dependency | Exit gate |
 |---|---|---|---|---|
-| **M0 — Program charter and v1 authority** | **Completed Jul 17:** decision design, independent review, and owner approval | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
-| **M1 — Safe tests and local-state boundary** | **Completed Jul 17:** design, implementation, synthetic evidence, and independent review | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved RFC 096 | **S1 passed:** isolated local full-suite pass plus synthetic no-resolution/non-disclosure/non-mutation evidence |
-| **M1C — Safe hosted-CI bootstrap** | **Completed Jul 21, conditional on exact lifecycle-transition SHA B0:** design, implementation, governance, hosted evidence, and lifecycle records | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; implemented RFC 097 | **B0 passed when the containing lifecycle SHA is green:** safe hosted platform matrix blocks serialized continuation or independently authorized integration under the applicable mode |
-| **M2 — Untrusted input/output boundary** | Aug 31–Sep 4: symlink-contract design/review; Sep 7–11: implementation/evidence; Sep 14–18: output-contract design/review; Sep 21–Oct 2: implementation/evidence | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
-| **M3 — Cross-platform persistence** | Oct 5–9: RFC design/review; Oct 12–23: implementation/evidence | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
-| **M4A — Supply-chain disposition** | Oct 26–30: RFC design/review; Nov 2–13: implementation/evidence | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
-| **MG1 — GUI visual foundation** | 4 weeks: 1 design/review, 2 implementation, 1 evidence | All GUI text, spacing, and colour derive from the existing `snora` tokens; line heights applied; NF-4 contrast verified by automated test | C0 complete; approved RFC 099 | **V1:** token adoption complete and the contrast gate is green on all four themes |
-| **MG2 — GUI module boundaries** | 2 weeks | `app.rs` split below the ELOC threshold; `views/mod.rs` removed per DEC-003; behaviour-neutral | V1 complete; approved RFC 100 | **V2:** boundaries corrected with every test count unchanged |
-| **M4B — Format, lint, and maintainability policy** | Nov 16–20: RFC design/review; Nov 23–Dec 4: implementation/evidence | One formatting policy, clean Clippy, module/file-boundary rules for touched oversized files | C0 complete | **C2:** format and lint gates pass under the approved policy |
-| **M4C — Release automation and operations** | Dec 7–11: RFC design/review; Dec 14–18: implementation/evidence | Version tooling, crate identity, package/publish workflow, release documentation, and approved direct-distribution automation repaired | C0 and C2 complete | **C1:** complete hosted CI, security, package, and release workflow is green |
-| **Year-end capacity buffer** | Dec 21–Jan 1 | No milestone implementation is scheduled | M4C complete | Work resumes Jan 4 without waiving a gate |
-| **M5 — Scalable diff architecture** | Jan 4–15: fixtures, budgets, RFC design/review; Jan 18–Feb 12: implementation/evidence | Staged bounded scan and lazy retention, or an owner-approved narrowed normative scale requirement with replacement budgets | D0, S2, P1, and C1 complete | **E1:** approved full-scale or replacement-scale budgets pass |
-| **M5G — Guided GUI convergence** | 8 weeks: 2 design/review, 4 implementation, 2 evidence (re-estimated 2026-07-28; the former 5-week window was insufficient) | Implement and test the simplified beginner path on the MG1 visual foundation while preserving the approved three-pane expert surface; the guided path must not reintroduce hardcoded sizes, spacing, or colours | V2, WS-05, and WS-10 complete; approved RFC 101 | **U1:** approved GUI, keyboard, and visual acceptance passes |
-| **M6 — Product and documentation convergence** | Mar 22–26: design/review; Mar 29–Apr 2: implementation/evidence | Test-backed compatibility acceptance plus README, mdBook, RFC lifecycle, roadmap history, and public distribution claims reconciled to D0 and E1 | M1–M5G complete | **D1:** supported docs toolchain builds and docs match executable behavior and normative scope |
-| **M7 — Release-candidate evidence** | Apr 5–9: plan review; Apr 12–23: evidence | Assemble—not redefine—cross-platform, package/publish, direct distribution, performance, real-display GUI/ABDD, and visual evidence | M1–M6 complete | **R1:** independent review has zero blocking findings |
+| **M0 — Program charter and v1 authority** | Complete | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
+| **M1 — Safe tests and local-state boundary** | Complete | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved RFC 096 | **S1 passed:** isolated local full-suite pass plus synthetic no-resolution/non-disclosure/non-mutation evidence |
+| **M1C — Safe hosted-CI bootstrap** | Complete | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; implemented RFC 097 | **B0 passed when the containing lifecycle SHA is green:** safe hosted platform matrix blocks serialized continuation or independently authorized integration under the applicable mode |
+| **M2 — Untrusted input/output boundary** | **Partially complete** — WS-04 done; WS-05 paced by dev cycles + CI, entered on owner decision | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
+| **M3 — Cross-platform persistence** | Dev cycles + CI; cross-platform persistence needs the three-OS matrix per attempt | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
+| **M4A — Supply-chain disposition** | Owner decision per advisory disposition; dev cycles for upgrades | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
+| **MG1 — GUI visual foundation** | **Owner display** — T1–T5 complete; T6/T7 are the only remaining work and no other role can perform them | All GUI text, spacing, and colour derive from the existing `snora` tokens; line heights applied; NF-4 contrast verified by automated test | C0 complete; approved RFC 099 | **V1:** token adoption complete and the contrast gate is green on all four themes |
+| **MG2 — GUI module boundaries** | Dev cycles + CI; mechanical, behaviour-neutral | `app.rs` split below the ELOC threshold; `views/mod.rs` removed per DEC-003; behaviour-neutral | V1 complete; approved RFC 100 | **V2:** boundaries corrected with every test count unchanged |
+| **M4B — Format, lint, and maintainability policy** | Owner decision on formatting policy, then dev cycles + CI | One formatting policy, clean Clippy, module/file-boundary rules for touched oversized files | C0 complete | **C2:** format and lint gates pass under the approved policy |
+| **M4C — Release automation and operations** | Owner — release credentials, package/publish dry runs, distribution decisions | Version tooling, crate identity, package/publish workflow, release documentation, and approved direct-distribution automation repaired | C0 and C2 complete | **C1:** complete hosted CI, security, package, and release workflow is green |
+| **M5 — Scalable diff architecture** | **Measurement-bound** — fixtures and benchmark hardware; does not compress with agent throughput | Staged bounded scan and lazy retention, or an owner-approved narrowed normative scale requirement with replacement budgets | D0, S2, P1, and C1 complete | **E1:** approved full-scale or replacement-scale budgets pass |
+| **M5G — Guided GUI convergence** | Dev cycles + **owner display** for visual, keyboard, and guided/expert acceptance; the largest remaining milestone | Implement and test the simplified beginner path on the MG1 visual foundation while preserving the approved three-pane expert surface; the guided path must not reintroduce hardcoded sizes, spacing, or colours | V2, WS-05, and WS-10 complete; approved RFC 101 | **U1:** approved GUI, keyboard, and visual acceptance passes |
+| **M6 — Product and documentation convergence** | Dev cycles + owner decision on the supported docs toolchain range | Test-backed compatibility acceptance plus README, mdBook, RFC lifecycle, roadmap history, and public distribution claims reconciled to D0 and E1 | M1–M5G complete | **D1:** supported docs toolchain builds and docs match executable behavior and normative scope |
+| **M7 — Release-candidate evidence** | Owner + verification operator; assembly of prior evidence, not new development | Assemble—not redefine—cross-platform, package/publish, direct distribution, performance, real-display GUI/ABDD, and visual evidence | M1–M6 complete | **R1:** independent review has zero blocking findings |
 
 No release is scheduled by this table. Passing M7 creates a review point at
 which the maintainer may authorize a release candidate; it does not authorize a
@@ -111,17 +119,24 @@ Architecture review
   --> M7/R1
 ```
 
-This is the one-primary-implementer critical path and contains no implementation
-overlap. D0 selected the guided redesign, so M5G is part of the required path
-and the serial program window ends on April 23, 2027.
+This is the one-primary-implementer critical path and contains no
+implementation overlap. D0 selected the guided redesign, so M5G is part of the
+required path. The path defines **order, not duration** — see the pacing model
+above.
 
-### Accelerated schedule policy
+### Parallel-work policy
 
-No accelerated schedule is currently approved. A parallel calendar may be
-added only when the roadmap records named independent implementers, maintainer
-review capacity, security/QA ownership, and non-conflicting changed-file
-boundaries for every overlap. Until then, the serial schedule is the only
-schedule used for commitments or risk reporting.
+No parallel work is currently approved. Milestones may overlap only when the
+roadmap records named independent implementers, maintainer review capacity,
+security/QA ownership, and non-conflicting changed-file boundaries for every
+overlap. Until then, the serial order above is the only order used for
+commitments or risk reporting.
+
+Note that parallelism is unlikely to be the useful lever here. Where a
+milestone is paced by owner decisions, owner-embodied verification, or
+measurement, adding implementer capacity does not shorten it. The levers that
+do work are batching owner decisions, reducing correction cycles, and removing
+avoidable hosted round-trips.
 
 ### B0 serialized-integration policy
 
