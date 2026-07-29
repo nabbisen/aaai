@@ -738,3 +738,219 @@ fn windows_junction_is_a_reparse_error() {
     );
     assert_windows_reparse(after.path(), "junction");
 }
+
+// RFC 098 §9.1 — the only behavioural control for the regression where
+// production's `windows_reparse` decision is based on the reparse attribute
+// (correct) rather than `is_symlink()` (which is blind to non-name-surrogate
+// tags). The tag (0x00000042) clears both the Microsoft-owned bit
+// (0x80000000) and the name-surrogate bit (0x20000000), so NTFS accepts it
+// from user mode via `REPARSE_GUID_DATA_BUFFER`, and Rust's `is_symlink()`
+// — which checks the tag, not just the attribute — must be false for it.
+//
+// The raw `DeviceIoControl`/`FSCTL_SET_REPARSE_POINT` call happens entirely
+// in an external PowerShell/C# helper process, never inside this crate: see
+// `rfcs/handoffs/098-selected-folder-and-symlink-policy/part2-behavioural-reparse-fixture.md`
+// §5 B1 — this is not project `unsafe` and not FFI in `crates/` (SEC-1,
+// DEC-012 unaffected).
+#[cfg(windows)]
+const AAAI_REPARSE_HELPER_SCRIPT: &str = r#"
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class Aaai098ReparseHelper {
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern IntPtr CreateFileW(
+        string lpFileName, uint dwDesiredAccess, uint dwShareMode,
+        IntPtr lpSecurityAttributes, uint dwCreationDisposition,
+        uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool DeviceIoControl(
+        IntPtr hDevice, uint dwIoControlCode,
+        byte[] lpInBuffer, uint nInBufferSize,
+        IntPtr lpOutBuffer, uint nOutBufferSize,
+        out uint lpBytesReturned, IntPtr lpOverlapped);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    const uint GENERIC_WRITE = 0x40000000;
+    const uint FILE_SHARE_READ = 0x1;
+    const uint FILE_SHARE_WRITE = 0x2;
+    const uint OPEN_EXISTING = 3;
+    const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
+    const uint FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000;
+    const uint FSCTL_SET_REPARSE_POINT = 0x000900A4;
+    const uint FSCTL_DELETE_REPARSE_POINT = 0x000900AC;
+    // Clears bit 31 (Microsoft-owned) and bit 29 (name surrogate).
+    const uint AAAI_REPARSE_TAG = 0x00000042;
+
+    // Fixed (not random) so Set and Delete always agree on the GUID NTFS
+    // stores alongside a non-Microsoft reparse tag.
+    static readonly byte[] ReparseGuid = new byte[16] {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
+    };
+
+    static IntPtr OpenForControl(string path) {
+        return CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+            IntPtr.Zero, OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, IntPtr.Zero);
+    }
+
+    public static int SetReparse(string path) {
+        IntPtr h = OpenForControl(path);
+        if (h == new IntPtr(-1)) return Marshal.GetLastWin32Error();
+        try {
+            byte[] payload = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD };
+            byte[] buffer = new byte[24 + payload.Length];
+            BitConverter.GetBytes(AAAI_REPARSE_TAG).CopyTo(buffer, 0);
+            BitConverter.GetBytes((ushort)payload.Length).CopyTo(buffer, 4);
+            BitConverter.GetBytes((ushort)0).CopyTo(buffer, 6);
+            ReparseGuid.CopyTo(buffer, 8);
+            payload.CopyTo(buffer, 24);
+
+            uint bytesReturned;
+            bool ok = DeviceIoControl(h, FSCTL_SET_REPARSE_POINT, buffer, (uint)buffer.Length,
+                IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
+            return ok ? 0 : Marshal.GetLastWin32Error();
+        } finally {
+            CloseHandle(h);
+        }
+    }
+
+    public static int DeleteReparse(string path) {
+        IntPtr h = OpenForControl(path);
+        if (h == new IntPtr(-1)) return Marshal.GetLastWin32Error();
+        try {
+            byte[] buffer = new byte[24];
+            BitConverter.GetBytes(AAAI_REPARSE_TAG).CopyTo(buffer, 0);
+            BitConverter.GetBytes((ushort)0).CopyTo(buffer, 4);
+            BitConverter.GetBytes((ushort)0).CopyTo(buffer, 6);
+            ReparseGuid.CopyTo(buffer, 8);
+
+            uint bytesReturned;
+            bool ok = DeviceIoControl(h, FSCTL_DELETE_REPARSE_POINT, buffer, (uint)buffer.Length,
+                IntPtr.Zero, 0, out bytesReturned, IntPtr.Zero);
+            return ok ? 0 : Marshal.GetLastWin32Error();
+        } finally {
+            CloseHandle(h);
+        }
+    }
+}
+'@
+
+$result = [Aaai098ReparseHelper]::__AAAI_OP__('__AAAI_PATH__')
+Write-Output "AAAI-RESULT:$result"
+"#;
+
+/// Runs the external PowerShell/C# helper that issues the raw
+/// `DeviceIoControl` call — the only place in this project's Windows test
+/// suite that touches `FSCTL_SET_REPARSE_POINT`/`FSCTL_DELETE_REPARSE_POINT`
+/// directly, and it runs outside the crate entirely (see the module comment
+/// above `AAAI_REPARSE_HELPER_SCRIPT`).
+///
+/// Returns `Ok(())` on success, `Err(win32_error_code)` if the underlying
+/// `DeviceIoControl` call failed. Panics (with the process's stdout/stderr)
+/// if the helper process itself could not run to completion, since a silent
+/// or generic failure here would cost a hosted CI cycle to diagnose.
+#[cfg(windows)]
+fn run_reparse_helper(path: &std::path::Path, op: &str) -> Result<(), u32> {
+    use std::process::Command;
+
+    let path_str = path.to_str().expect("temp path must be valid UTF-8");
+    let escaped_path = path_str.replace('\'', "''");
+    let script = AAAI_REPARSE_HELPER_SCRIPT
+        .replace("__AAAI_OP__", op)
+        .replace("__AAAI_PATH__", &escaped_path);
+
+    let output = Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            &script,
+        ])
+        .output()
+        .expect("hosted Windows PowerShell reparse helper must be invocable");
+
+    if !output.status.success() {
+        panic!(
+            "reparse helper PowerShell process failed (exit {:?}): stdout={} stderr={}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let result_line = stdout
+        .lines()
+        .find(|line| line.starts_with("AAAI-RESULT:"))
+        .unwrap_or_else(|| {
+            panic!(
+                "reparse helper produced no result line: stdout={stdout} stderr={}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        });
+    let code: u32 = result_line["AAAI-RESULT:".len()..]
+        .trim()
+        .parse()
+        .unwrap_or_else(|e| {
+            panic!("reparse helper result line not parseable ({e}): {result_line}")
+        });
+
+    if code == 0 { Ok(()) } else { Err(code) }
+}
+
+#[cfg(windows)]
+#[test]
+fn windows_non_name_surrogate_reparse_is_rejected() {
+    use std::os::windows::fs::{MetadataExt as _, OpenOptionsExt as _};
+    use windows_sys::Win32::Storage::FileSystem::{
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT,
+    };
+
+    let after = tmp_dir();
+    let target = after.path().join("non-name-surrogate");
+    // B1 — create the target as an empty file first.
+    fs::write(&target, b"").unwrap();
+
+    if let Err(code) = run_reparse_helper(&target, "SetReparse") {
+        panic!(
+            "FSCTL_SET_REPARSE_POINT failed with Win32 error {code} (0x{code:08X}) \
+             — capture this and escalate per RFC 098 Part 2 handoff §8; \
+             do not substitute a structural guard on your own initiative"
+        );
+    }
+
+    // B2 — the assertion this fixture uniquely enables, checked directly
+    // before reusing the accepted `assert_windows_reparse` helper below.
+    let file = fs::OpenOptions::new()
+        .access_mode(0)
+        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS)
+        .open(&target)
+        .unwrap();
+    let metadata = file.metadata().unwrap();
+    assert!(metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0);
+    assert!(
+        !metadata.file_type().is_symlink(),
+        "fixture must be a NON-name-surrogate reparse point"
+    );
+    drop(file);
+
+    assert_windows_reparse(after.path(), "non-name-surrogate");
+
+    // B3 — explicit cleanup rather than relying on `TempDir` drop; removal
+    // of a file carrying an unrecognized tag is an untested path, so a
+    // cleanup failure must surface as a test failure, not a leaked temp dir.
+    run_reparse_helper(&target, "DeleteReparse").unwrap_or_else(|code| {
+        panic!("cleanup: FSCTL_DELETE_REPARSE_POINT failed with Win32 error {code}")
+    });
+    fs::remove_file(&target)
+        .expect("cleanup: reparse point file must be removable after tag delete");
+}
