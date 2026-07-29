@@ -8,9 +8,16 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 ## Proposed — 実装待ち
 
-| ID | タイトル |
-|---|---|
-| [098](proposed/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy |
+| ID | タイトル | Tracks |
+|---|---|---|
+| [098](proposed/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | M2 / WS-04 / S2 |
+| [099](proposed/099-gui-visual-foundation.md) | GUI Visual Foundation | MG1 / WS-14 / V1 |
+| [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
+| [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
+
+RFCs 099–101 are the GUI remediation sequence and must be implemented in that
+order; each one's handoff states its entry conditions. See
+`.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
 
 ---
 
