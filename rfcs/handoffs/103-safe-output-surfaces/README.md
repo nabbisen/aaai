@@ -7,7 +7,7 @@ It must not override the RFC.
 ## 1. Authority and entry conditions
 
 **Owner decision of record:** approved for implementation by nabbisen on
-2026-07-29, in session, together with RFC 102. RFC 103 §9's open question
+2026-07-29, in session, together with RFC 102. RFC 103 §10's open question
 on whether `Masking::Disabled` should exist was left as specified — the
 variant stays, and every use must carry a written justification.
 
@@ -177,8 +177,12 @@ git diff --check
 grep -rE "\.size\([0-9]" crates/aaai-gui/src/          # must return nothing
 grep -rn "Color::from_rgb" crates/aaai-gui/src/          # nothing outside design_tokens.rs
 
-# masking must now actually be enabled somewhere
-grep -rn "Masking::Enabled" crates/aaai-cli/src/cmd/report.rs   # four sites
+# masking must now actually be enabled on the CLI report path
+grep -rn "Masking::Enabled" crates/aaai-cli/src/cmd/report.rs   # at least one
+# Presence, not a count: binding `Masking::Enabled(&masker)` once and reusing
+# it across the four call sites is preferred to inlining it four times, so a
+# count assertion would penalise the better shape. The four end-to-end tests
+# in crates/aaai-cli/tests/cli.rs are the real proof that each format masks.
 ```
 
 Counts grow only by the named new tests; report the new totals explicitly. No

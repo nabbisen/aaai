@@ -152,8 +152,11 @@ identical to today's `None`; what changes is that choosing it becomes explicit,
 named, and greppable, and that **no surface can omit the parameter**.
 
 This is a public API change to a re-exported type. Pre-v1 with no stability
-promise, so permitted — but it must be recorded in the RFC 095 compatibility
-matrix, and it is the only public change here.
+promise, so permitted. The compatibility impact is recorded in §9.1 below, per
+RFC 095 §8.3's requirement that *"every workstream changing public API must
+record compatibility impact"* — the record belongs to the changing workstream;
+RFC 095 itself is settled and is not edited. WS-12/D1 is the acceptance owner
+that consumes it.
 
 **No source-compatibility shim may be added.** Not a `Default` impl, not
 `From<Option<&MaskingEngine>>`, not an `Into`-based signature. Any of these
@@ -237,8 +240,8 @@ regress.
    new tests.
 6. Adversarial fixtures execute on all three platforms through B0.
 7. No persisted format, CLI flag, dependency, or workflow change.
-8. The `Masking` signature change is recorded for the RFC 095 compatibility
-   matrix.
+8. The `Masking` signature change is recorded as a compatibility impact in
+   §9.1, for WS-12/D1 to consume.
 
 ## 7. Risks and mitigations
 
@@ -261,7 +264,33 @@ regress.
 | Drop CSV/TSV export | Rejected: it is a D0-approved format |
 | Defer to the Aug 31 window | Owner decision recorded in finding 046 §4 |
 
-## 9. Review questions
+## 9. Compatibility impact record
+
+Recorded here per RFC 095 §8.3, "Public `aaai` engine API" row: the changing
+workstream records, WS-12/D1 accepts before R1.
+
+### 9.1 Public API change
+
+| | |
+|---|---|
+| **Surface** | `aaai::report::generator::ReportGenerator` — `write_markdown`, `write_html`, `write_json`, `write_sarif`; and the new `aaai::Masking` re-export |
+| **Change** | Final parameter `masker: Option<&MaskingEngine>` becomes `masking: Masking<'_>`. `write_sarif` gains the parameter, which it never had |
+| **Kind** | Breaking, source-level, for any external caller of these four functions |
+| **Migration** | `None` → `Masking::Disabled`; `Some(&engine)` → `Masking::Enabled(&engine)`. Mechanical and compiler-guided |
+| **Deliberately not softened** | No `From<Option<…>>`, `Default`, or `Into` shim. A shim would let `None` keep compiling, preserving the silent default that caused F3, F4, and F5. The break *is* the mechanism (§5.1) |
+| **Permitted because** | v0.x is pre-release; RFC 095 §8 states the contract starts at v1.0.0 and v0.x gains no retroactive promise |
+| **Behaviour change** | `aaai report` now masks its file output on all formats. Owner-approved 2026-07-29 (§5.1a). Not an API break, but a user-visible one |
+| **Known limitation carried** | GUI report export remains unmasked; `App` constructs no `MaskingEngine`. Follow-up, not resolved here |
+| **Downstream consumers** | None known. `aaai` is not published under this name, so no external caller can exist yet |
+
+### 9.2 Not changed
+
+Persisted formats, CLI command names, options, exit codes, the `audit.yaml`
+schema, config-file locations, and report *structure* are all untouched. The
+machine-format contracts (JSON, SARIF, CSV, TSV) gain masked values in existing
+fields; no field is added, removed, or renamed.
+
+## 10. Review questions
 
 1. Is the §4 untrusted field set complete for the current surfaces?
 2. Is `Masking::Disabled` the right escape hatch, or should masking be
@@ -273,7 +302,7 @@ regress.
 5. Does the public signature change need an owner decision under RFC 095's
    compatibility ownership, or is pre-v1 latitude sufficient?
 
-## 10. Sources
+## 11. Sources
 
 - `.git-exclude/reviewed/046-ws05-output-surface-security-findings-2026-07-29.md`
 - `crates/aaai/src/report/{generator,html,sarif}.rs`,
