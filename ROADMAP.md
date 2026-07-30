@@ -25,9 +25,63 @@ which does not describe this project's actual constraints.
 **Release posture:** feature freeze; no v1.0 readiness, Store-submission, or
 release-candidate claim until Milestone 7 passes.
 
+**The freeze does not suspend v0 development releases.** It prohibits v1.0
+readiness claims, Store submission, and release-candidate claims — not cutting
+`0.4x` releases. `.git-exclude/rules/project-instructions-rust-gui.md` requires
+regular releases at logical breaking points, delivered as tarballs, and that
+requirement remains in force throughout this programme. Between 2026-06-24 and
+2026-07-29 it was not met: four RFCs resolved and 25 commits landed with no
+release, because the freeze was misread as a release freeze. Recorded so the
+two documents are not read as conflicting again. See
+`.git-exclude/reviewed/050-release-cycle-audit-and-proposal-2026-07-29.md`.
+
 This program is the authoritative schedule for current work. The phase history
 below remains the record of shipped pre-v1 development, but its older v1 dates,
 scope statements, and readiness claims do not control this program.
+
+### Release units
+
+Releases are ordered and thematic. **Unit order is authoritative; version
+numbers are assigned when a unit is cut**, for the same reason milestone order
+is authoritative and dates are not — scope may merge or split, and a number
+promised in advance becomes a commitment the evidence has not earned.
+
+A unit is cut when its milestones reach their exit gates and `main` is green.
+Consecutive small units may batch; a unit is never split across releases.
+
+| # | Unit theme | Contains | Entry gate |
+|---:|---|---|---|
+| 1 | **Safety foundations** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces) | S1, B0 passed; S2's output half complete |
+| 2 | **Readable GUI** | RFC 099 (visual foundation), RFC 100 (module boundaries) | V1, V2 |
+| 3 | **Durable saves** | M3 — atomic definition persistence | P1 |
+| 4 | **Supply chain and code quality** | M4A (advisory disposition), M4B (format, lint, maintainability) | C0, C2 |
+| 5 | **Scale** | M5 — staged and bounded diff engine; M4C release automation folds in here | E1, C1 |
+| 6 | **Guided experience** | RFC 101 — guided review flow | U1 |
+| 7 | **Documentation truth** | M6 — product and documentation convergence | D1 |
+| — | *Release-candidate decision* | M7 assembles prior evidence; the owner alone decides whether and when v1.0 follows | R1 |
+
+Unit 1 is unusually large because it accumulated during the missed-cadence
+window; everything in it is already merged, so it cannot be retroactively
+split. Units 2 onward are sized to one nameable outcome each.
+
+**Per-release requirements** (org §6.6): objective; included and excluded
+scope; deliverables; quality criteria; major risks; completion criteria. Plus
+the tarball `project-instructions-rust-gui.md` requires — files at archive
+root, version-suffixed name, per DEC-008.
+
+**Entry criteria.** `main` green on hosted B0; the `CHANGELOG.md` section
+written; no open High security finding without recorded owner acceptance.
+
+**Exit criteria.** Tag pushed **as `RELEASING.md` specifies** — `v`-prefixed —
+and `release.yaml` observed to actually run; tarball produced and its layout
+verified by hand; `[Unreleased]` cleared. Every release states explicitly that
+v1 readiness remains gated on M7, so cadence never implies readiness.
+
+**Unit 1 additionally exercises the release pipeline for the first time.**
+`release.yaml` has never run — 53 historical tags omit the `v` prefix its
+trigger and `RELEASING.md:69` both require — so its build matrix, archive
+production, and upload steps are unverified. Treat that release as their first
+test, not as a routine cut.
 
 ### Scheduling assumptions
 
