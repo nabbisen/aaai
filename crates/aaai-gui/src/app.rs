@@ -1135,13 +1135,18 @@ impl App {
                         .map(|e| e.eq_ignore_ascii_case("json"))
                         .unwrap_or(false);
 
+                    // RFC 103 §5.1a — GUI report export is out of RFC 103
+                    // scope; carries the same gap `cmd/report.rs` had,
+                    // tracked as follow-up.
                     let res = if use_json {
                         aaai::report::generator::ReportGenerator::write_json(
-                            result, &before, &after, def_path.as_deref(), &out, None,
+                            result, &before, &after, def_path.as_deref(), &out,
+                            aaai::Masking::Disabled,
                         )
                     } else {
                         aaai::report::generator::ReportGenerator::write_markdown(
-                            result, &before, &after, def_path.as_deref(), &out, None,
+                            result, &before, &after, def_path.as_deref(), &out,
+                            aaai::Masking::Disabled,
                         )
                     };
 

@@ -11,8 +11,9 @@ use clap::Args;
 use colored::Colorize;
 
 use aaai::{
-    AuditEngine, DiffEngine,
+    AuditEngine, DiffEngine, MaskingEngine,
     config::io as config_io,
+    project::config::ProjectConfig,
 };
 
 const EXPORT_AFTER_HELP: &str = "\
@@ -49,6 +50,16 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
     let diffs      = DiffEngine::compare(&args.left, &args.right)?;
     let result     = AuditEngine::evaluate(&diffs, &definition);
 
+    // RFC 103 F4 — this file bypassed the report API entirely and never
+    // masked anything. A CSV/TSV export is opened in a spreadsheet for
+    // external review, the same untrusted-sink reasoning as `aaai report`
+    // (§5.1a); masking is always enabled here too.
+    let custom_patterns = ProjectConfig::discover(&args.left)
+        .unwrap_or(None)
+        .map(|(config, _)| config.custom_mask_patterns)
+        .unwrap_or_default();
+    let masker = MaskingEngine::with_custom(&custom_patterns);
+
     let mut lines: Vec<String> = Vec::new();
 
     // Header
@@ -64,30 +75,49 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
         if !args.all && r.diff.diff_type == DiffType::Unchanged { continue; }
 
         let entry = r.entry.as_ref();
-        let row = join(&[
-            &r.diff.path,
-            &r.diff.diff_type.to_string(),
-            &r.status.to_string(),
-            entry.map(|e| e.reason.as_str()).unwrap_or(""),
-            entry.map(|e| e.strategy.label()).unwrap_or(""),
-            entry.and_then(|e| e.ticket.as_deref()).unwrap_or(""),
-            entry.and_then(|e| e.approved_by.as_deref()).unwrap_or(""),
-            &entry.and_then(|e| e.approved_at)
-                .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-                .unwrap_or_default(),
-            &entry.and_then(|e| e.expires_at)
-                .map(|d| d.to_string())
-                .unwrap_or_default(),
-            &entry.map(|e| if e.enabled { "true" } else { "false" })
-                .unwrap_or(""),
-            entry.and_then(|e| e.note.as_deref()).unwrap_or(""),
-            &entry.and_then(|e| e.created_at)
-                .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-                .unwrap_or_default(),
-            &entry.and_then(|e| e.updated_at)
-                .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
-                .unwrap_or_default(),
-        ], sep);
+        // Masked (free text, §4): reason, ticket, note. `path` is never
+        // masked — it is the audit's identifier, not a secret carrier.
+        let reason = entry.map(|e| masker.mask(&e.reason)).unwrap_or_default();
+        let ticket = entry
+            .and_then(|e| e.ticket.as_deref())
+            .map(|t| masker.mask(t))
+            .unwrap_or_default();
+        let note = entry
+            .and_then(|e| e.note.as_deref())
+            .map(|n| masker.mask(n))
+            .unwrap_or_default();
+        let row = join(
+            &[
+                &r.diff.path,
+                &r.diff.diff_type.to_string(),
+                &r.status.to_string(),
+                &reason,
+                entry.map(|e| e.strategy.label()).unwrap_or(""),
+                &ticket,
+                entry.and_then(|e| e.approved_by.as_deref()).unwrap_or(""),
+                &entry
+                    .and_then(|e| e.approved_at)
+                    .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
+                    .unwrap_or_default(),
+                &entry
+                    .and_then(|e| e.expires_at)
+                    .map(|d| d.to_string())
+                    .unwrap_or_default(),
+                &entry
+                    .map(|e| if e.enabled { "true" } else { "false" })
+                    .unwrap_or(""),
+                &note,
+                &entry
+                    .and_then(|e| e.created_at)
+                    .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
+                    .unwrap_or_default(),
+                &entry
+                    .and_then(|e| e.updated_at)
+                    .map(|t| t.format("%Y-%m-%dT%H:%M:%SZ").to_string())
+                    .unwrap_or_default(),
+            ],
+            sep,
+        );
         lines.push(row);
     }
 
@@ -111,11 +141,36 @@ fn join(fields: &[&str], sep: char) -> String {
         .join(&sep.to_string())
 }
 
-/// Wrap field in quotes if it contains the separator, a quote, or a newline.
+/// Wrap field in quotes if it contains the separator, a quote, a newline, or
+/// a bare CR; neutralize a leading formula-trigger character.
+///
+/// RFC 103 F1 — RFC 4180 quoting alone does not stop spreadsheet formula
+/// injection: the CSV parser consumes the quotes before the spreadsheet
+/// evaluates the cell contents. A cell whose first character is `=`, `+`,
+/// `-`, `@`, tab, or CR is prefixed with a single apostrophe, applied
+/// *before* quoting so the apostrophe lands inside the quoted field.
 fn csv_escape(s: &str, sep: char) -> String {
-    if s.contains(sep) || s.contains('"') || s.contains('\n') {
-        format!("\"{}\"", s.replace('"', "\"\""))
+    let neutralized = if starts_with_formula_trigger(s) {
+        format!("'{s}")
     } else {
         s.to_string()
+    };
+    if neutralized.contains(sep)
+        || neutralized.contains('"')
+        || neutralized.contains('\n')
+        || neutralized.contains('\r')
+    {
+        format!("\"{}\"", neutralized.replace('"', "\"\""))
+    } else {
+        neutralized
     }
 }
+
+/// True if `s`'s first character would be interpreted by a spreadsheet as
+/// the start of a formula: `=`, `+`, `-`, `@`, a tab, or a carriage return.
+fn starts_with_formula_trigger(s: &str) -> bool {
+    matches!(s.chars().next(), Some('=' | '+' | '-' | '@' | '\t' | '\r'))
+}
+
+#[cfg(test)]
+mod tests;

@@ -5,8 +5,9 @@ use clap::{Args, ValueEnum};
 use colored::Colorize;
 
 use aaai::{
-    AuditEngine, DiffEngine,
+    AuditEngine, DiffEngine, Masking, MaskingEngine,
     config::io as config_io,
+    project::config::ProjectConfig,
     report::generator::ReportGenerator,
 };
 
@@ -50,32 +51,44 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
     let diffs = DiffEngine::compare(&args.left, &args.right)?;
     let result = AuditEngine::evaluate(&diffs, &definition);
 
+    // RFC 103 §5.1a — a report file is written to be reviewed and
+    // circulated; it is the paradigm untrusted sink, so masking is always
+    // enabled here (owner decision, 2026-07-29). Built the same way
+    // `cmd/audit.rs:98` builds its own engine, so project-level custom
+    // patterns are honoured.
+    let custom_patterns = ProjectConfig::discover(&args.left)
+        .unwrap_or(None)
+        .map(|(config, _)| config.custom_mask_patterns)
+        .unwrap_or_default();
+    let masker = MaskingEngine::with_custom(&custom_patterns);
+    let masking = Masking::Enabled(&masker);
+
     match args.format {
         ReportFormat::Sarif => {
             aaai::report::generator::ReportGenerator::write_sarif(
-                &result, &args.left, &args.right, &args.out,
+                &result, &args.left, &args.right, &args.out, masking,
             )?;
         }
         ReportFormat::Markdown => {
             if args.include_diff {
                 let md = aaai::report::generator::ReportGenerator::build_markdown_string(
-                    &result, &args.left, &args.right, Some(&args.config), None, true,
+                    &result, &args.left, &args.right, Some(&args.config), masking, true,
                 );
                 std::fs::write(&args.out, md.as_bytes())?;
             } else {
                 ReportGenerator::write_markdown(
-                    &result, &args.left, &args.right, Some(&args.config), &args.out, None,
+                    &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
                 )?;
             }
         }
         ReportFormat::Html => {
             aaai::report::generator::ReportGenerator::write_html(
-                &result, &args.left, &args.right, Some(&args.config), &args.out, None,
+                &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
             )?;
         }
         ReportFormat::Json => {
             ReportGenerator::write_json(
-                &result, &args.left, &args.right, Some(&args.config), &args.out, None,
+                &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
             )?;
         }
     }

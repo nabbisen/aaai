@@ -15,11 +15,13 @@ use std::path::Path;
 use serde_json::{json, Value};
 
 use crate::audit::result::{AuditResult, AuditStatus};
+use crate::masking::Masking;
 
 pub fn build_sarif(
     result: &AuditResult,
     before_root: &Path,
     after_root: &Path,
+    masking: Masking<'_>,
 ) -> Value {
     let rules: Vec<Value> = vec![
         sarif_rule("AAAI001", "AuditFailed",
@@ -42,14 +44,23 @@ pub fn build_sarif(
                 _                    => return None,
             };
 
-            let message = r.detail.as_deref()
+            let message_raw = r.detail.as_deref()
                 .or_else(|| r.entry.as_ref().and_then(|e|
                     if e.reason.is_empty() { None } else { Some(e.reason.as_str()) }
                 ))
-                .unwrap_or("Audit issue detected.")
-                .to_string();
+                .unwrap_or("Audit issue detected.");
+            // F3 — SARIF never had a masker at all; both `message` (which
+            // may carry `reason`) and `ticket` are §4 maskable fields.
+            let message = masking.mask(message_raw);
+            let ticket = r
+                .entry
+                .as_ref()
+                .and_then(|e| e.ticket.as_ref())
+                .map(|t| masking.mask(t));
 
-            // Use the after-root path for "current state" location.
+            // Use the after-root path for "current state" location. `path`
+            // is encode-only (serde_json escapes it correctly); it must
+            // never be masked, or the finding stops matching the real file.
             let uri = format!("{}/{}", after_root.display(), r.diff.path);
 
             Some(json!({
@@ -68,7 +79,7 @@ pub fn build_sarif(
                     "diffType":   r.diff.diff_type.to_string(),
                     "status":     r.status.to_string(),
                     "isBinary":   r.diff.is_binary,
-                    "ticket":     r.entry.as_ref().and_then(|e| e.ticket.as_ref()),
+                    "ticket":     ticket,
                     "approvedBy": r.entry.as_ref().and_then(|e| e.approved_by.as_ref()),
                 }
             }))
@@ -91,9 +102,14 @@ pub fn build_sarif(
                 "%SRCROOT%": { "uri": format!("{}/", after_root.display()) }
             },
             "results": results,
+            // §4 root paths: masked here, unlike `originalUriBaseIds` and
+            // each result's `artifactLocation.uri` above — those are
+            // functional navigation targets a SARIF consumer resolves back
+            // to a real file, the same reason `path` itself is never
+            // masked; these two are purely informational summary fields.
             "properties": {
-                "before": before_root.display().to_string(),
-                "after":  after_root.display().to_string(),
+                "before": masking.mask(&before_root.display().to_string()),
+                "after":  masking.mask(&after_root.display().to_string()),
                 "passed": result.summary.is_passing(),
             }
         }]

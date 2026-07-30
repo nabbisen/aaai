@@ -5,21 +5,21 @@ use std::path::Path;
 use chrono::Local;
 
 use crate::audit::result::{AuditResult, AuditStatus};
+use crate::masking::Masking;
 
 pub struct ReportGenerator;
 
 impl ReportGenerator {
     /// Generate a Markdown report and write to `output_path`.
-    /// Pass `Some(masker)` to redact secrets from reason / content fields.
     pub fn write_markdown(
         result: &AuditResult,
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
         output_path: &Path,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) -> anyhow::Result<()> {
-        let md = Self::build_markdown(result, before_root, after_root, definition_path, masker);
+        let md = Self::build_markdown(result, before_root, after_root, definition_path, masking);
         // (include_diff variant available via build_markdown_string)
         std::fs::write(output_path, md.as_bytes())?;
         log::info!("Markdown report written to {}", output_path.display());
@@ -32,8 +32,9 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         output_path: &Path,
+        masking: Masking<'_>,
     ) -> anyhow::Result<()> {
-        let sarif = crate::report::sarif::build_sarif(result, before_root, after_root);
+        let sarif = crate::report::sarif::build_sarif(result, before_root, after_root, masking);
         let json = serde_json::to_string_pretty(&sarif)?;
         std::fs::write(output_path, json.as_bytes())?;
         log::info!("SARIF report written to {}", output_path.display());
@@ -47,9 +48,9 @@ impl ReportGenerator {
         after_root: &Path,
         definition_path: Option<&Path>,
         output_path: &Path,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) -> anyhow::Result<()> {
-        let json = Self::build_json(result, before_root, after_root, definition_path, masker)?;
+        let json = Self::build_json(result, before_root, after_root, definition_path, masking)?;
         std::fs::write(output_path, json.as_bytes())?;
         log::info!("JSON report written to {}", output_path.display());
         Ok(())
@@ -62,10 +63,10 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
         include_diff: bool,
     ) -> String {
-        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masker); // masker is used below
+        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masking);
         if include_diff {
             md.push_str("
 ## Diff Details
@@ -90,13 +91,8 @@ impl ReportGenerator {
                         ChangeTag::Equal  => " ",
                     };
                     let line = change.value().trim_end_matches('\n');
-                    if let Some(m) = masker {
-                        md.push_str(&format!("{prefix}{}
-", m.mask(line)));
-                    } else {
-                        md.push_str(&format!("{prefix}{line}
-"));
-                    }
+                    md.push_str(&format!("{prefix}{}
+", masking.mask(line)));
                 }
                 md.push_str("```
 
@@ -111,7 +107,7 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) -> String {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
         let s = &result.summary;
@@ -135,12 +131,13 @@ impl ReportGenerator {
         md.push('\n');
 
         // ── Zone 3: Execution Details ────────────────────────────────
+        // §4 root paths — masked, matching every other free-text field.
         md.push_str("## Execution Details\n\n");
         md.push_str(&format!("- **Run at:** {now}\n"));
-        md.push_str(&format!("- **Before:** `{}`\n", before_root.display()));
-        md.push_str(&format!("- **After:** `{}`\n", after_root.display()));
+        md.push_str(&format!("- **Before:** `{}`\n", masking.mask(&before_root.display().to_string())));
+        md.push_str(&format!("- **After:** `{}`\n", masking.mask(&after_root.display().to_string())));
         if let Some(dp) = definition_path {
-            md.push_str(&format!("- **Definition:** `{}`\n", dp.display()));
+            md.push_str(&format!("- **Definition:** `{}`\n", masking.mask(&dp.display().to_string())));
         }
         md.push('\n');
 
@@ -154,7 +151,7 @@ impl ReportGenerator {
                 s.failed, s.pending, s.error);
             md.push_str(&format!("## ⚠ Action Required ({counts})\n\n"));
             for r in &attention {
-                Self::md_entry(&mut md, r, masker);
+                Self::md_entry(&mut md, r, masking);
             }
         }
 
@@ -165,7 +162,7 @@ impl ReportGenerator {
         if !ok_entries.is_empty() {
             md.push_str(&format!("## ✓ Passed Entries ({})\n\n", ok_entries.len()));
             for r in &ok_entries {
-                Self::md_entry(&mut md, r, masker);
+                Self::md_entry(&mut md, r, masking);
             }
         }
 
@@ -176,7 +173,7 @@ impl ReportGenerator {
         if !ignored.is_empty() {
             md.push_str(&format!("## — Ignored Entries ({})\n\n", ignored.len()));
             for r in &ignored {
-                Self::md_entry(&mut md, r, masker);
+                Self::md_entry(&mut md, r, masking);
             }
         }
 
@@ -186,7 +183,7 @@ impl ReportGenerator {
     fn md_entry(
         md: &mut String,
         r: &crate::audit::result::FileAuditResult,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) {
         let sym = match r.status {
             AuditStatus::Ok      => "✓",
@@ -203,12 +200,11 @@ impl ReportGenerator {
             let reason = if raw_reason.is_empty() {
                 "*(no reason provided)*".to_string()
             } else {
-                masker.map(|m| m.mask(raw_reason))
-                    .unwrap_or_else(|| raw_reason.to_string())
+                masking.mask(raw_reason)
             };
             md.push_str(&format!("- **Reason:** {}\n", reason));
             md.push_str(&format!("- **Strategy:** {}\n", entry.strategy.label()));
-            if let Some(t)  = &entry.ticket      { md.push_str(&format!("- **Ticket:** {t}\n")); }
+            if let Some(t)  = &entry.ticket      { md.push_str(&format!("- **Ticket:** {}\n", masking.mask(t))); }
             if let Some(ab) = &entry.approved_by { md.push_str(&format!("- **Approved by:** {ab}\n")); }
             if let Some(at) = &entry.approved_at {
                 md.push_str(&format!("- **Approved at:** {}\n", at.format("%Y-%m-%d %H:%M UTC")));
@@ -224,9 +220,12 @@ impl ReportGenerator {
             md.push_str(&format!("- **Lines:** +{} −{}\n",
                 stats.lines_added, stats.lines_removed));
         }
-        // Audit check detail — shown as blockquote for visibility
+        // Audit check detail — shown as blockquote for visibility. Masked:
+        // engine-generated free text that is rendered the same way `reason`
+        // is, and is not held to a lower bar just because it is not §4's
+        // own named field.
         if let Some(detail) = &r.detail {
-            md.push_str(&format!("\n> {sym} {detail}\n"));
+            md.push_str(&format!("\n> {sym} {}\n", masking.mask(detail)));
         }
         md.push('\n');
     }
@@ -238,9 +237,9 @@ impl ReportGenerator {
         after_root: &Path,
         definition_path: Option<&Path>,
         output_path: &Path,
-        masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) -> anyhow::Result<()> {
-        let html = build_html(result, before_root, after_root, definition_path, masker);
+        let html = build_html(result, before_root, after_root, definition_path, masking);
         std::fs::write(output_path, html.as_bytes())?;
         log::info!("HTML report written to {}", output_path.display());
         Ok(())
@@ -251,7 +250,7 @@ impl ReportGenerator {
         before_root: &Path,
         after_root: &Path,
         definition_path: Option<&Path>,
-        _masker: Option<&crate::masking::engine::MaskingEngine>,
+        masking: Masking<'_>,
     ) -> anyhow::Result<String> {
         use serde_json::{json, Value};
         let now = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
@@ -262,18 +261,19 @@ impl ReportGenerator {
                 "path": r.diff.path,
                 "diff_type": r.diff.diff_type.to_string(),
                 "status": r.status.to_string(),
-                "reason": r.entry.as_ref().map(|e| &e.reason),
+                // F5 — this used to ignore its masker entirely.
+                "reason": r.entry.as_ref().map(|e| masking.mask(&e.reason)),
                 "strategy": r.entry.as_ref().map(|e| e.strategy.label()),
-                "detail": r.detail,
+                "detail": r.detail.as_ref().map(|d| masking.mask(d)),
             })
         }).collect();
 
         let doc = json!({
             "app": "aaai",
             "run_at": now,
-            "before": before_root.display().to_string(),
-            "after": after_root.display().to_string(),
-            "definition": definition_path.map(|p| p.display().to_string()),
+            "before": masking.mask(&before_root.display().to_string()),
+            "after": masking.mask(&after_root.display().to_string()),
+            "definition": definition_path.map(|p| masking.mask(&p.display().to_string())),
             "result": if s.is_passing() { "PASSED" } else { "FAILED" },
             "summary": {
                 "total": s.total,
@@ -289,3 +289,6 @@ impl ReportGenerator {
         Ok(serde_json::to_string_pretty(&doc)?)
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -32,10 +32,13 @@ fn sarif_output_is_valid_json_with_schema() {
         },
     ];
     let audit_result = AuditResult::new(results);
+    // Disabled: this test verifies SARIF's structural shape and
+    // status-to-level mapping, not masking behaviour.
     let sarif = build_sarif(
         &audit_result,
         Path::new("/before"),
         Path::new("/after"),
+        crate::masking::Masking::Disabled,
     );
 
     assert_eq!(sarif["version"], "2.1.0");
@@ -53,9 +56,11 @@ fn pending_maps_to_warning() {
         detail: Some("no rule".into()),
         warnings: Vec::new(),
     }];
+    // Disabled: this test verifies status-to-level mapping, not masking.
     let sarif = build_sarif(
         &AuditResult::new(results),
         Path::new("/b"), Path::new("/a"),
+        crate::masking::Masking::Disabled,
     );
     assert_eq!(sarif["runs"][0]["results"][0]["level"], "warning");
 }

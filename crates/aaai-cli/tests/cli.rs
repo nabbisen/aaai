@@ -685,6 +685,86 @@ fn export_tsv_uses_tab_separator() {
     );
 }
 
+// RFC 103 F1 — a real file whose name starts with a formula-trigger
+// character (legal on Linux/macOS: no `/`, no NUL) must have its `path`
+// cell in the CSV output neutralized with a leading apostrophe.
+#[test]
+fn export_neutralizes_a_real_formula_injection_filename() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&a, "=SUM(1,2)", "new content\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(&yaml, "version: \"1\"\n");
+    let out_csv = tmp.path().join("out.csv");
+
+    let status = aaai()
+        .args([
+            "export",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--out",
+            out_csv.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out_csv).unwrap();
+    assert!(
+        !content.contains("\n=SUM") && !content.contains(",=SUM"),
+        "a path cell starting with '=' must never appear un-neutralized: {content}"
+    );
+    assert!(
+        content.contains("'=SUM(1,2)"),
+        "the path must still be present, just neutralized with a leading apostrophe: {content}"
+    );
+}
+
+// RFC 103 F4 — export.rs bypassed the report API entirely and never
+// masked anything; this is the same secret-pattern canary the report
+// masking tests use.
+#[test]
+fn export_masks_secret_in_written_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old\n");
+    write(&a, "f.txt", "new\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_audit(
+        &yaml,
+        "version: \"1\"\nentries:\n  - path: f.txt\n    diff_type: Modified\n    reason: \"legitimate-looking review note AKIAAAAAAAAAAAAAAAAA\"\n    ticket: \"TICKET-AKIAAAAAAAAAAAAAAAAA\"\n    strategy:\n      type: None\n    enabled: true\n",
+    );
+    let out_csv = tmp.path().join("out.csv");
+
+    let status = aaai()
+        .args([
+            "export",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--out",
+            out_csv.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out_csv).unwrap();
+    assert!(
+        !content.contains("AKIAAAAAAAAAAAAAAAAA"),
+        "aaai export must mask a secret-pattern match in reason/ticket, not just be capable of it:\n{content}"
+    );
+}
+
 #[test]
 fn merge_detect_conflicts() {
     let tmp = tempfile::tempdir().unwrap();
@@ -1332,6 +1412,109 @@ fn report_json_format_creates_valid_file() {
         v.get("result").is_some(),
         "JSON report must have 'result' field"
     );
+}
+
+// ── RFC 103 §5.4, layer 2 — call-site level ───────────────────────────────
+//
+// Layer 1 (crates/aaai/src/report/generator/tests.rs) proves each surface
+// *can* mask and encode correctly, given a masker. It cannot prove `aaai
+// report` actually *enables* one — that is exactly what F3/F4/F5 got wrong:
+// masking existed and was never wired to any real call site. These tests
+// run the actual binary and inspect the written file, so they fail unless
+// the wiring genuinely enables masking, not merely the capability to.
+
+/// A value matching the built-in "AWS access key" pattern
+/// (`crates/aaai/src/masking/patterns.rs`), used the same way in the
+/// function-level guard.
+const REPORT_MASK_CANARY: &str = "AKIAAAAAAAAAAAAAAAAA";
+
+fn write_secret_definition(yaml: &Path) {
+    // A deliberately wrong `expected_sha256` forces AuditStatus::Failed, so
+    // the entry appears in SARIF's `results` array (which only includes
+    // Failed/Pending/Error) — `type: None` would score OK and the SARIF
+    // filter would hide the leak regardless of masking, proving nothing.
+    //
+    // The canary is embedded in both `reason` and `ticket`: the audit
+    // engine always sets a non-empty `detail` alongside Failed/Pending/
+    // Error (`crates/aaai/src/audit/engine.rs`), so SARIF's message prefers
+    // `detail` and never reaches `reason` in practice — but SARIF's
+    // `properties.ticket` serializes the raw ticket unconditionally, so
+    // `ticket` is this format's actually-reachable leak vector. Markdown/
+    // HTML/JSON all expose `reason`. Carrying the canary in both fields
+    // means every format's test exercises whichever field it really
+    // surfaces, without four different fixtures.
+    write_audit(
+        yaml,
+        &format!(
+            r#"version: "1"
+entries:
+  - path: f.txt
+    diff_type: Modified
+    reason: "legitimate-looking review note {REPORT_MASK_CANARY}"
+    ticket: "TICKET-{REPORT_MASK_CANARY}"
+    strategy:
+      type: Checksum
+      expected_sha256: "0000000000000000000000000000000000000000000000000000000000000000"
+    enabled: true
+"#
+        ),
+    );
+}
+
+fn assert_report_masks_secret(format: &str, out_name: &str) {
+    let tmp = tempfile::tempdir().unwrap();
+    let b = tmp.path().join("before");
+    let a = tmp.path().join("after");
+    setup_dirs(&b, &a);
+    write(&b, "f.txt", "old\n");
+    write(&a, "f.txt", "new\n");
+    let yaml = tmp.path().join("audit.yaml");
+    write_secret_definition(&yaml);
+    let out = tmp.path().join(out_name);
+
+    let status = aaai()
+        .args([
+            "report",
+            "--left",
+            b.to_str().unwrap(),
+            "--right",
+            a.to_str().unwrap(),
+            "--config",
+            yaml.to_str().unwrap(),
+            "--format",
+            format,
+            "--out",
+            out.to_str().unwrap(),
+        ])
+        .run_status()
+        .unwrap();
+    assert_eq!(status.code(), Some(0));
+    let content = fs::read_to_string(&out).unwrap();
+    assert!(
+        !content.contains(REPORT_MASK_CANARY),
+        "aaai report -f {format} must mask a secret-pattern match in the \
+         written file, not just be capable of masking it:\n{content}"
+    );
+}
+
+#[test]
+fn report_markdown_masks_secret_in_written_file() {
+    assert_report_masks_secret("markdown", "report.md");
+}
+
+#[test]
+fn report_html_masks_secret_in_written_file() {
+    assert_report_masks_secret("html", "report.html");
+}
+
+#[test]
+fn report_json_masks_secret_in_written_file() {
+    assert_report_masks_secret("json", "report.json");
+}
+
+#[test]
+fn report_sarif_masks_secret_in_written_file() {
+    assert_report_masks_secret("sarif", "report.sarif");
 }
 
 #[test]
