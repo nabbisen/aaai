@@ -6,6 +6,15 @@ It must not override the RFC.
 
 ## 1. Authority and entry conditions
 
+**Owner decision of record:** approved for implementation by nabbisen on
+2026-07-29, in session, together with RFC 102. RFC 103 §9's open question
+on whether `Masking::Disabled` should exist was left as specified — the
+variant stays, and every use must carry a written justification.
+
+**Design review of record:**
+`.git-exclude/reviewed/047-rfc102-rfc103-design-review-2026-07-29.md`
+— accepted as corrected; two defects found and fixed before implementation.
+
 Begin only after design review accepts RFC 103 **and** the owner explicitly
 approves implementation. `main` green, working tree clean.
 

@@ -81,17 +81,27 @@ than a missing call.
 
 ## 4. The untrusted field set
 
-Normative. These carry attacker- or third-party-influenced content and must be
-masked and encoded on every surface:
+Normative. These carry attacker- or third-party-influenced content.
 
-| Field | Source | Why untrusted |
-|---|---|---|
-| `path` | audited tree | filenames are attacker-controlled — the premise of RFC 098 |
-| `reason` | definition | human-written; may paste secrets |
-| `ticket` | definition | free-form `Option<String>`, unvalidated |
-| `error_detail` | engine | may embed a path |
-| strategy rule content | definition | user-supplied patterns |
-| root paths | invocation | may embed usernames or hostnames |
+**Encoding and masking are different obligations and must not be conflated.**
+*Encoding* makes a value inert in its destination syntax; every untrusted field
+needs it on every surface. *Masking* redacts secrets; it applies only to
+free-text fields. **Masking a path would corrupt it** — the path is the audit's
+primary identifier, and a redacted path makes the finding unusable and breaks
+re-audit matching.
+
+| Field | Source | Why untrusted | Encode | Mask |
+|---|---|---|:--:|:--:|
+| `path` | audited tree | filenames are attacker-controlled — the premise of RFC 098 | ✅ | ❌ identifier; redaction destroys it |
+| `reason` | definition | human-written; may paste secrets | ✅ | ✅ |
+| `ticket` | definition | free-form `Option<String>`, unvalidated | ✅ | ✅ |
+| `error_detail` | engine | may embed a path | ✅ | ✅ |
+| strategy rule content | definition | user-supplied patterns | ✅ | ✅ |
+| root paths | invocation | may embed usernames or hostnames | ✅ | ✅ |
+
+An earlier draft of this section required every field to be "masked and
+encoded", which would have directed the implementer to redact paths. That is
+wrong and is corrected here.
 
 ## 5. Selected design
 
@@ -142,10 +152,15 @@ One test that renders a single `AuditResult` — populated with an adversarial
 value in **every** §4 field — through **every** surface, then asserts per
 surface:
 
-- no canary secret appears anywhere in the output;
+- no canary secret appears anywhere in the output — asserted for the maskable
+  fields in §4, **not** for `path`, which must appear verbatim once encoded;
 - HTML contains no unescaped `<`, `>`, or `"` from field content;
 - no CSV/TSV cell begins with a formula character;
 - Markdown table cells contain no unescaped `|`.
+
+The encode/mask split in §4 means the guard has two assertion families, not
+one. Applying the masking assertion to `path` would make the test unimplementable
+against a correct implementation.
 
 Structured as field × surface so that adding a surface, or adding a field to
 §4, fails the test until handled. This is the same shape as RFC 099's contrast

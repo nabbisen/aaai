@@ -134,12 +134,18 @@ outside the inert set and exposes it as an output. `b0-platform` runs only when
 it did. `b0-gate` keeps `if: always()` and succeeds when **either**:
 
 - the platform matrix result is `success`; or
-- the platform matrix was `skipped` **and** the `changes` job reported no
-  relevant change.
+- **all three** of: `needs.changes.result == 'success'`, the changes output is
+  `false`, and the platform matrix result is `skipped`.
 
-It must continue to fail for `failure`, `cancelled`, and for `skipped` arising
-from any other cause. The distinction matters: a matrix skipped because a
-dependency failed must not be read as a pass.
+The first condition of that triple is load-bearing and was missing from an
+earlier draft of this section. If the `changes` job itself **fails**, its output
+is empty — which is not `'true'`, so `b0-platform` would skip, and a gate that
+tested only "output is not true" would then report **success on an untested
+SHA**. Requiring `changes` to have succeeded closes that path.
+
+The gate must continue to fail for `failure`, `cancelled`, and for `skipped`
+arising from any other cause. A matrix skipped because a dependency failed must
+never be read as a pass.
 
 Every `main` SHA therefore still carries a `B0 / gate` conclusion, and RFC 097's
 invariant holds without amendment.

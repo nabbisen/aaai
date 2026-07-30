@@ -6,6 +6,13 @@ verify it. It must not override the RFC.
 
 ## 1. Authority and entry conditions
 
+**Owner decision of record:** approved for implementation by nabbisen on
+2026-07-29, in session, together with RFC 103.
+
+**Design review of record:**
+`.git-exclude/reviewed/047-rfc102-rfc103-design-review-2026-07-29.md`
+— accepted as corrected; two defects found and fixed before implementation.
+
 Begin only after design review accepts RFC 102 **and** the owner explicitly
 approves implementation. `main` green, working tree clean.
 
@@ -71,12 +78,20 @@ fails for any reason. **An unresolvable diff must never produce a skip.**
 Gate `b0-platform` on `needs.changes.outputs.code == 'true'`.
 
 `b0-gate` keeps `if: ${{ always() }}` and `needs: [changes, b0-platform]`. Its
-check becomes: succeed when the platform result is `success`, **or** when it is
-`skipped` **and** `changes.outputs.code == 'false'`. Fail otherwise.
+check succeeds when **either**:
 
-It must still fail for `failure`, for `cancelled`, and for `skipped` arising
-from any other cause — a matrix skipped because a dependency failed is not a
-pass. Log which branch was taken so the run is self-explaining.
+- `needs.b0-platform.result == 'success'`; or
+- **all three** of `needs.changes.result == 'success'`,
+  `needs.changes.outputs.code == 'false'`, and
+  `needs.b0-platform.result == 'skipped'`.
+
+**Do not omit the `needs.changes.result == 'success'` term.** If the `changes`
+job fails, its output is empty — not `'true'` — so `b0-platform` skips, and a
+gate testing only `code != 'true'` would report **success on a completely
+untested SHA**. That is the exact failure this design exists to prevent.
+
+Fail otherwise: for `failure`, for `cancelled`, and for `skipped` arising from
+any other cause. Log which branch was taken so the run is self-explaining.
 
 Keep the job name exactly **`B0 / gate`**. It is the required-check candidate
 and RFC 097 §5.3 requires a stable status context.
