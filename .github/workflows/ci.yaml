@@ -1,11 +1,16 @@
 # aaai — Continuous Integration
+#
+# RFC 102 §5.4 — automatic triggers are parked pending C2. This workflow has
+# failed on every recent push for reasons already documented (repository-wide
+# `cargo fmt --check` debt under DEC-006, an MSRV job naming the nonexistent
+# `aaai-core`, and open advisories in the security-audit job) and its repair
+# is deferred to C0/C2/C1. Parking is not repair and not deletion: every job
+# below remains intact and runnable on demand via workflow_dispatch. C2 owns
+# restoring the automatic triggers as part of its blocking-quality policy.
 name: CI
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always

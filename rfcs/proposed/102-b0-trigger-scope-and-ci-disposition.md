@@ -121,9 +121,23 @@ packaging/**
 ```
 
 Everything else — notably `crates/**`, `Cargo.toml`, `Cargo.lock`, and
-`.github/workflows/b0.yaml` itself — forces a run. `crates/**` must never be
-added to the ignore list; `crates/aaai-gui/locales/*.yaml` feed a compile-time
-macro and are build inputs despite being data.
+`.github/workflows/b0.yaml` itself — forces a run.
+`crates/aaai-gui/locales/*.yaml` feed a compile-time macro and are build inputs
+despite being data.
+
+**`crates/**` is checked first and is categorically non-ignorable, ahead of the
+ignore list.** An earlier draft of this section stated that requirement in prose
+but left it unenforced against the `**/*.md` term, which would have classified
+`crates/aaai/README.md` as inert. That is harmless while no markdown feeds the
+build — verified: no `include_str!` or `include_bytes!` exists in `crates/`, and
+`readme =` keys are packaging metadata only — but
+`#![doc = include_str!("../README.md")]` is a routine idiom, and adding it would
+have made a README edit change the doctest surface while B0 silently skipped.
+
+A path-classification rule of this kind must be enforced by a precedence check,
+not by prose. See
+`.git-exclude/reviewed/048-rfc102-b0-trigger-scope-implementation-review-2026-07-29.md`
+§3.
 
 ### 5.2 Keep the gate always reporting
 

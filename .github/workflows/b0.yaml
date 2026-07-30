@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # RFC 102 §5.3 — hosted-image drift is a function of elapsed time, not
+  # commits; a weekly run targets that risk directly instead of re-running
+  # the full matrix on every unchanged-code push.
+  schedule:
+    - cron: "17 4 * * 1"
 
 permissions:
   contents: read
@@ -16,8 +21,95 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # RFC 102 §5.1 — scopes the platform matrix to pushes that can change its
+  # result. This is a denylist, not an allowlist: anything not recognised as
+  # inert must yield code=true, because failing open (skipping on an
+  # unrecognised new build input) is the wrong bias for a gate whose absence
+  # is a stop-work condition under RFC 097.
+  changes:
+    name: B0 / changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.detect.outputs.code }}
+    steps:
+      - name: Check out with full history for diff
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect whether this push touched anything outside the inert set
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          fail_safe() {
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "$1"
+            exit 0
+          }
+
+          # Anything other than an ordinary push (workflow_dispatch, schedule,
+          # pull_request, ...) always runs the full matrix.
+          if [ "$EVENT_NAME" != "push" ]; then
+            fail_safe "Non-push event (${EVENT_NAME}) — running full matrix."
+          fi
+
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            fail_safe "No usable 'before' SHA (new branch or unavailable) — running full matrix."
+          fi
+
+          if ! git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            fail_safe "Before-commit ${BEFORE_SHA} not found locally — running full matrix."
+          fi
+
+          if ! git merge-base --is-ancestor "$BEFORE_SHA" "$HEAD_SHA"; then
+            fail_safe "Before-commit ${BEFORE_SHA} is not an ancestor of ${HEAD_SHA} — running full matrix."
+          fi
+
+          if ! CHANGED_FILES=$(git diff --name-only "${BEFORE_SHA}" "${HEAD_SHA}"); then
+            fail_safe "git diff failed — running full matrix."
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            fail_safe "Empty diff — running full matrix (fail-safe default)."
+          fi
+
+          # crates/** must never be ignorable, even a *.md under it (e.g. a
+          # crate README pulled in via `#![doc = include_str!(...)]`, which
+          # would change the doctest surface silently). Check this before the
+          # denylist below, since the denylist's `**/*.md` term would
+          # otherwise wrongly classify it as inert.
+          if printf '%s\n' "$CHANGED_FILES" | grep -Eq '^crates/'; then
+            fail_safe "Change under crates/ — running full matrix."
+          fi
+
+          # Denylist of inert paths (RFC 102 §5.1). Direction is load-bearing:
+          # anything NOT matched here forces a run, including any new file at
+          # any new path. crates/**, Cargo.toml, Cargo.lock, and this workflow
+          # file itself must never be ignorable, and are deliberately absent.
+          INERT_REGEX='^(.*\.md|rfcs/.*|docs/.*|ROADMAP\.md|README\.md|CHANGELOG\.md|LICENSE|NOTICE|TERMS_OF_USE\.md|packaging/.*|\.github/workflows/ci\.yaml|\.github/workflows/release\.yaml|\.github/workflows/windows-msix\.yaml)$'
+
+          NON_INERT=$(printf '%s\n' "$CHANGED_FILES" | grep -Ev "$INERT_REGEX" || true)
+
+          if [ -n "$NON_INERT" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "Non-inert files changed:"
+            printf '%s\n' "$NON_INERT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "All changed files are inert:"
+            printf '%s\n' "$CHANGED_FILES"
+          fi
+
   b0-platform:
     name: B0 / Rust 1.91 / ${{ matrix.label }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.code == 'true' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     strategy:
@@ -58,13 +150,40 @@ jobs:
   b0-gate:
     name: B0 / gate
     if: ${{ always() }}
-    needs: [b0-platform]
+    needs: [changes, b0-platform]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require successful platform matrix
+      # RFC 102 §5.2 — the gate must keep reporting on every push, even when
+      # the platform matrix was skipped. It succeeds when either the matrix
+      # itself succeeded, or all three of: the `changes` job succeeded, it
+      # found no relevant change, and the matrix was (therefore, correctly)
+      # skipped. The `changes.result == success` term is load-bearing: if
+      # `changes` fails, its output is empty (not 'true'), so the matrix
+      # would skip anyway, and a check that only tested "output != true"
+      # would report success on a completely untested SHA. Any other
+      # `skipped` (e.g. a skip caused by a failed dependency) must still fail.
+      - name: Require a successful matrix, or a verified no-op skip
         env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CHANGES_CODE: ${{ needs.changes.outputs.code }}
           MATRIX_RESULT: ${{ needs.b0-platform.result }}
         run: |
-          echo "B0 platform matrix result: ${MATRIX_RESULT}"
-          test "${MATRIX_RESULT}" = "success"
+          echo "changes job result:  ${CHANGES_RESULT}"
+          echo "changes output code: ${CHANGES_CODE}"
+          echo "platform matrix result: ${MATRIX_RESULT}"
+
+          if [ "${MATRIX_RESULT}" = "success" ]; then
+            echo "Pass: platform matrix succeeded."
+            exit 0
+          fi
+
+          if [ "${CHANGES_RESULT}" = "success" ] \
+            && [ "${CHANGES_CODE}" = "false" ] \
+            && [ "${MATRIX_RESULT}" = "skipped" ]; then
+            echo "Pass: changes job succeeded, found no relevant change, and the matrix was correctly skipped."
+            exit 0
+          fi
+
+          echo "Fail: no successful matrix, and not a verified no-op skip."
+          exit 1
