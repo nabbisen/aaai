@@ -39,3 +39,4 @@ dist/
 
 # Custom
 /.git-exclude/
+*.local.json
