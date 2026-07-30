@@ -40,7 +40,7 @@ requirement.
 | S1 | Cross-surface guard (RFC §5.4) — **expected red** | 1 |
 | S2 | F2 — escape `ticket` in HTML | 2 |
 | S3 | F1 — CSV/TSV formula neutralisation | 3 |
-| S4 | `Masking` type + thread through all four `write_*` (fixes F3) | 4 |
+| S4 | `Masking` type + thread through all four `write_*`; enable at CLI report call sites (fixes F3 **and F5**) | 4 |
 | S5 | F4 — masking in `export.rs` | 5 |
 | S6 | Evidence and revert-demonstration | — |
 
@@ -117,12 +117,28 @@ Replace `masker: Option<&MaskingEngine>` on `write_markdown`, `write_json`,
 `write_sarif`**, which never had one, and thread it into `build_sarif` — that
 is F3.
 
-Update call sites in `crates/aaai-cli/src/cmd/report.rs`. Every `Disabled` must
-carry a comment justifying why that sink is trusted; if you cannot write the
-justification, the answer is `Enabled`.
+**No source-compatibility shim.** No `Default` impl, no
+`From<Option<&MaskingEngine>>`, no `Into`-based signature. Any of those would
+let existing `None` call sites keep compiling, preserving the silent default
+that caused F3, F4, and F5. Breaking them is the mechanism.
 
-`Disabled` behaves exactly as today's `None`. This slice changes *who must
-decide*, not what masking does.
+**F5 — `build_json` ignores its masker.** Its parameter is `_masker` and
+`"reason"` is emitted raw. Use it, exactly as `md_entry` does.
+
+**Call-site decisions are already made. Do not re-derive them.**
+
+| Call site | Value |
+|---|---|
+| `cmd/report.rs` — all four formats (`:55`, `:67`, `:73`, `:78`) | **`Enabled`** — build the engine as `cmd/audit.rs:98` does, so custom patterns are honoured |
+| `aaai-gui/src/app.rs` `:1139`, `:1143` | **`Disabled`**, justified as "GUI report export is out of RFC 103 scope; carries the same gap, tracked as follow-up" |
+
+The `report.rs` conversion is a **behaviour change approved by the owner on
+2026-07-29**: `aaai report` will now redact where a secret pattern matches. It
+has never masked any file output, on any format. See RFC 103 §5.1a.
+
+The GUI justification is honest because it states a limitation rather than
+asserting the sink is trusted — `App` constructs no `MaskingEngine`, so
+enabling it there is more than a mechanical change and is deliberately deferred.
 
 ## 8. S5 — F4, export masking
 
@@ -156,6 +172,13 @@ cargo +1.91 fmt --check -p aaai -p aaai-cli
 cargo +1.91 clippy -p aaai -p aaai-cli --all-targets -- -D warnings
 python3 scripts/check-i18n-keys.py
 git diff --check
+
+# RFC 099 V1 must not regress — app.rs is touched
+grep -rE "\.size\([0-9]" crates/aaai-gui/src/          # must return nothing
+grep -rn "Color::from_rgb" crates/aaai-gui/src/          # nothing outside design_tokens.rs
+
+# masking must now actually be enabled somewhere
+grep -rn "Masking::Enabled" crates/aaai-cli/src/cmd/report.rs   # four sites
 ```
 
 Counts grow only by the named new tests; report the new totals explicitly. No
@@ -168,8 +191,12 @@ i18n key delta. No diff outside the files in RFC 103's Touches line.
 - Mask inside the engine before surfaces see the data; that corrupts the audit
   result and breaks diffing.
 - Add a dependency, CLI flag, or persisted-format change.
-- Touch `crates/aaai-gui/` — RFC 099 and 101 own it, and reintroducing a
-  `.size(N)` literal or `Color::from_rgb` would regress V1.
+- Touch `crates/aaai-gui/` **beyond the two masker arguments at `app.rs:1139`
+  and `:1143`**. That narrow exception exists only because the §5.1 signature
+  change makes those lines non-compiling; it was added on 2026-07-29 after the
+  implementer correctly flagged the conflict. Nothing else in the file may
+  change, and RFC 099's V1 greps must still pass — run them and include the
+  output.
 - Change report content or layout beyond the required escaping.
 
 ## 12. Stop and escalate

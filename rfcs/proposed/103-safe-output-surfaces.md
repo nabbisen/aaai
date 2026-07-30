@@ -15,29 +15,63 @@
 **Evidence location.** `.git-exclude/evidence/103-safe-output-surfaces/`
 
 **Touches.** `crates/aaai/src/report/{generator,html,sarif}.rs`,
-`crates/aaai/src/masking/`, `crates/aaai-cli/src/cmd/export.rs`, and their
-tests. One public signature changes (§5.1). No persisted format, no dependency,
-no workflow change.
+`crates/aaai/src/masking/`, `crates/aaai-cli/src/cmd/{export,report}.rs`, and
+their tests. Additionally **two lines** in `crates/aaai-gui/src/app.rs` — the
+masker arguments at `:1139` and `:1143` only, which the §5.1 signature change
+makes non-compiling. Nothing else in that file may change; RFC 099's V1 greps
+must still pass. One public signature changes (§5.1). No persisted format, no
+dependency, no workflow change.
 
 **Handoff.** Required:
 [`rfcs/handoffs/103-safe-output-surfaces/README.md`](../handoffs/103-safe-output-surfaces/README.md)
 
 ## 1. Summary
 
-Four defects across the output surfaces, two of them High, and two of them
-falsifying the documented masking guarantee. Findings and reachability are
-recorded in
-`.git-exclude/reviewed/046-ws05-output-surface-security-findings-2026-07-29.md`
-and are not restated here.
+Five defects across the output surfaces. Two are High, and **four of the five
+mean the documented masking guarantee has never held for any report file.**
+Findings F1-F4 and their reachability are recorded in
+`.git-exclude/reviewed/046-ws05-output-surface-security-findings-2026-07-29.md`;
+F5 and the corrected root cause in
+`.git-exclude/reviewed/051-rfc103-scope-clarification-and-f5-2026-07-29.md`.
+Neither is restated here.
 
 This RFC fixes them and adds the cross-surface guard that prevents the class
 from recurring. The point fixes are small; the guard is the durable part.
 
 ## 2. Root cause
 
-The four defects are not four unrelated mistakes. Three of them share one
-cause: **each surface independently decides whether to mask and how to encode,
-and the API lets it decide "not at all."**
+> **Revised 2026-07-29** after the implementer's escalation
+> (`.git-exclude/reviewed/051-rfc103-scope-clarification-and-f5-2026-07-29.md`).
+> An earlier version described four defects with three causes. The true position
+> is **one cause with five symptoms**, and it is worse than finding 046
+> recorded.
+
+**Masking is opt-in, and no caller opts in.** `MaskingEngine` is constructed in
+exactly two places in the workspace — `benches/diff_bench.rs:47` and
+`cmd/audit.rs:98` — and **no `write_*` call site anywhere passes
+`Some(masker)`**. `cmd/report.rs` passes literal `None` at `:67`, `:73`, and
+`:78`; `crates/aaai-gui/src/app.rs` passes `None` at `:1139` and `:1143`.
+
+So **no report file produced by `aaai report` or by the GUI has ever been
+masked, in any format.** Masking executes only on `audit.rs`'s console path.
+NF-14, SEC-3, and `docs/src/overview.md:45` advertise it without
+qualification; that claim is false for every file the tool writes.
+
+The five symptoms:
+
+| | Defect | Shape |
+|---|---|---|
+| F1 | CSV/TSV formula injection | missing transform |
+| F2 | HTML `ticket` unescaped | one missed call site |
+| F3 | SARIF never masked | `write_sarif` has no masker parameter |
+| F4 | CSV/TSV never masked | `export.rs` bypasses the report API |
+| **F5** | **JSON never masked** | `build_json` takes `_masker` and ignores it |
+
+F3, F4, and F5 are the same defect three times. F2 is a genuine one-off;
+`html_escape` exists, is correct, and is applied everywhere else. F1 is a
+missing transform rather than a missing call.
+
+The API shape that permitted all of it:
 
 ```rust
 pub fn write_markdown(…, masker: Option<&MaskingEngine>) -> …
@@ -50,10 +84,6 @@ pub fn write_sarif   (…)                                 -> …   // no masker
 oversight inside `sarif.rs`. And `Option<&MaskingEngine>` makes masking opt-in:
 `None` is a legal, silent, unmarked choice to emit unmasked output. `export.rs`
 bypasses the API entirely and builds its own rows, which is F4.
-
-F2 (the unescaped `ticket`) is a genuine one-off: `html_escape` exists, is
-correct, and is applied to every other field. F1 is a missing transform rather
-than a missing call.
 
 **A fix that only patches four call sites leaves the shape that produced them.**
 
@@ -125,6 +155,30 @@ This is a public API change to a re-exported type. Pre-v1 with no stability
 promise, so permitted — but it must be recorded in the RFC 095 compatibility
 matrix, and it is the only public change here.
 
+**No source-compatibility shim may be added.** Not a `Default` impl, not
+`From<Option<&MaskingEngine>>`, not an `Into`-based signature. Any of these
+would let existing `None` call sites keep compiling, preserving exactly the
+silent default that produced F3, F4, and F5. Breaking those call sites is the
+mechanism, not a side effect.
+
+### 5.1a Callers must enable masking, not merely declare a choice
+
+Owner decision, 2026-07-29: **`aaai report` begins masking its file output.**
+
+Changing the signature forces a decision at each call site; it does not by
+itself fix anything. The decisions are:
+
+| Call site | Value | Reason |
+|---|---|---|
+| `cmd/report.rs` — all four formats | **`Enabled`** | A report file is written to be reviewed and circulated. It is the paradigm untrusted sink, and no honest justification for `Disabled` exists. Build the engine as `cmd/audit.rs:98` does, so custom patterns are honoured |
+| `aaai-gui/src/app.rs` — two sites | `Disabled`, with a limitation note | `App` constructs no `MaskingEngine`, so enabling it is more than a mechanical change. Out of scope here; recorded as follow-up, not as a resolved case |
+
+This is a **behaviour change**: reports will now redact where a secret pattern
+matches. It is the behaviour NF-14, SEC-3, and the published documentation
+already describe, and it is the change that makes those claims true for the
+first time. §3.2's non-goal against changing report content targets layout and
+format selection, not applying a documented security control.
+
 ### 5.2 Per-surface encoding obligations
 
 Normative table. Each surface must satisfy its row for every §4 field:
@@ -170,7 +224,12 @@ regress.
 ## 6. Acceptance contract
 
 1. `Masking` is non-optional on all four `write_*` functions.
-2. `grep -rn "Option<&.*MaskingEngine>" crates/` returns nothing.
+2. `grep -rn "Option<&.*MaskingEngine>" crates/` returns nothing, and no
+   source-compatibility shim exists (§5.1).
+2a. Every `write_*` call site passes an explicit `Masking` value; each
+   `Disabled` carries a written justification. `cmd/report.rs` passes
+   `Enabled` at all four sites (§5.1a).
+2b. F5 closed: `build_json` uses its masker rather than ignoring it.
 3. The §5.4 guard passes; it must **fail** if any single fix is reverted —
    demonstrated by reverting each in turn during development.
 4. F1–F4 each have a dedicated regression test naming the finding.
