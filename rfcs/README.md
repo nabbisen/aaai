@@ -14,6 +14,7 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [099](proposed/099-gui-visual-foundation.md) | GUI Visual Foundation | MG1 / WS-14 / V1 |
 | [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
+| [102](proposed/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | CI operating cost |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; each one's handoff states its entry conditions. See
