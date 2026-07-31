@@ -8,6 +8,109 @@ Format: `## [version] — description`
 
 ---
 
+## [0.41.0] — Safety foundations: links are never followed, reports are always masked (2026-07-31)
+
+A security-focused release. Two long-standing gaps between what the
+documentation promised and what the code did are now closed, and both change
+observable behaviour.
+
+### Symbolic links and reparse points are never followed
+
+Previously a symbolic link inside a compared folder could be followed, so
+content from **outside** the selected folder could appear in a diff or a report.
+
+Now every link-like entry is metadata-only and never traversed, on every
+platform:
+
+| Platform | Covered |
+|---|---|
+| Linux, macOS | Symbolic links, including directory links, cycles, and broken links |
+| Windows | All `FILE_ATTRIBUTE_REPARSE_POINT` entries — symlinks, junctions, and non-name-surrogate reparse points |
+
+Such entries are reported as `Incomparable` with a stable issue code rather
+than being read:
+
+| Code | Meaning |
+|---|---|
+| `AAAI-PATH-LINK` | Link-like entry; not followed |
+| `AAAI-PATH-REPARSE` | Windows reparse point; not followed |
+| `AAAI-PATH-XDEV` | Target is on another filesystem; not descended |
+| `AAAI-PATH-SPECIAL` | Special node (FIFO, socket, device) |
+| `AAAI-PATH-RACE` | Entry changed between classification and open |
+| `AAAI-PATH-READ` | Entry could not be read |
+| `AAAI-PATH-METADATA` | Entry metadata could not be obtained |
+
+Selecting a folder whose own final path component is a link is now rejected
+outright. There is no option to follow links; that is deliberate for v1.
+
+**If you relied on links being followed**, replace them with real copies, or
+select the link target as the compared folder directly.
+
+### Reports and exports are always masked and correctly encoded
+
+`aaai report` **never masked any file output, in any format** — masking ran only
+on `aaai audit`'s console output. It now redacts secret-pattern matches in
+Markdown, HTML, JSON, and SARIF.
+
+Note that this is unconditional: `mask_secrets` in project config does not
+disable it. A report is written to a path you choose in order to be reviewed
+and shared, which is a different situation from console output you are already
+looking at. Custom patterns from project config are still honoured.
+
+Four encoding defects are fixed at the same time:
+
+| Surface | Fix |
+|---|---|
+| CSV, TSV | Cells beginning `=`, `+`, `-`, `@`, tab, or CR are prefixed with an apostrophe, so a crafted filename or reason cannot execute as a formula when the export is opened in a spreadsheet |
+| HTML | The `ticket` field is now escaped; it was the only interpolation in the report template that was not |
+| JSON | `reason` is masked; the masker was previously accepted and ignored |
+| SARIF | Masking is applied at all; the function never accepted a masker |
+
+SARIF `artifactLocation.uri` and `originalUriBaseIds` are deliberately **not**
+masked — they are the navigation targets a SARIF consumer resolves back to a
+real file, and masking them would break annotation placement without improving
+safety.
+
+**Known limitation:** exporting a report from the GUI is still unmasked. The
+CLI and GUI therefore differ on this point in this release. Tracked as RFC 104.
+
+### GUI typography and spacing
+
+The GUI now draws its colours, text sizes, and spacing from the snora design
+system rather than from hardcoded values. Text is larger and more widely
+spaced, and an automated test enforces a 4.5:1 contrast ratio for normal text
+across all four themes, and 7:1 for both high-contrast presets.
+
+### Public API
+
+For users of the `aaai` crate as a library, this is a **breaking change**:
+
+```rust
+// before
+ReportGenerator::write_markdown(…, masker: Option<&MaskingEngine>)
+// after
+ReportGenerator::write_markdown(…, masking: Masking<'_>)
+```
+
+`write_markdown`, `write_json`, `write_html`, and `write_sarif` now take
+`Masking::Enabled(&engine)` or `Masking::Disabled` instead of an `Option`.
+`write_sarif` gained the parameter, which it never had. There is deliberately no
+`From<Option<…>>` conversion: the point of the change is that every call site
+must state its choice, because a silent `None` default is what caused these
+defects.
+
+### Internal
+
+- Hosted CI runs the three-OS matrix only for changes that can affect its
+  result; documentation-only pushes still produce a gate result. The legacy
+  `ci.yaml` workflow is parked pending repair and remains dispatchable.
+- `release.yaml`'s release-notes extraction is fixed; it could not previously
+  produce notes for any version, and now fails the release rather than
+  publishing an empty one.
+- CLI tests no longer read the operator's real user state.
+
+---
+
 ## [0.40.0] — Config directory moved to OS standard location (2026-06-24)
 
 All persistent files now live in the OS-standard config directory instead of
