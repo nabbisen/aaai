@@ -128,11 +128,36 @@ jobs:
 
       - name: Extract changelog entry
         run: |
+          set -euo pipefail
           VERSION=${GITHUB_REF_NAME#v}
-          NOTES=$(awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | head -n -1)
-          echo "NOTES<<EOF" >> $GITHUB_ENV
-          echo "$NOTES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+
+          # An awk range `/## \[$VERSION\]/,/## \[/` cannot work here: the
+          # heading line matches the end pattern as well as the start one, so
+          # awk closes the range on that same line and the range is one line
+          # long. The previous `| head -n -1` then removed it, making NOTES
+          # unconditionally empty. Match the heading explicitly, skip it, and
+          # stop at the next heading instead.
+          NOTES=$(awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 { found = 1; next }
+            found && index($0, "## [") == 1 { exit }
+            found { print }
+          ' CHANGELOG.md)
+
+          # A release whose notes are empty is a release nobody can read.
+          # Fail here rather than publish a blank GitHub Release.
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]-')" ]; then
+            echo "::error::CHANGELOG.md has no content under '## [${VERSION}]'."
+            exit 1
+          fi
+
+          # Random delimiter: a fixed 'EOF' would break on a NOTES line that is
+          # itself 'EOF', which is a heredoc-injection vector into GITHUB_ENV.
+          DELIM="NOTES_$(openssl rand -hex 16)"
+          {
+            echo "NOTES<<${DELIM}"
+            echo "$NOTES"
+            echo "${DELIM}"
+          } >> "$GITHUB_ENV"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
