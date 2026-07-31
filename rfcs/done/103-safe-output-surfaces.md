@@ -1,6 +1,11 @@
 # RFC 103 — Safe Reports, Exports, and Masking
 
-**Status.** Proposed
+**Status.** Implemented (2026-07-31). Shipped in
+`4d4996a7517e5cbd8f09ee645c9086c9899b2e33`; hosted evidence in run
+`30551474446`. All eight §6 acceptance items discharged — see §12. Completes
+S2's **output half**; S2 itself remains open on RFC 098's symlink half. Ships in
+release unit 1. Two residuals, both deliberate and both recorded in §12.3: GUI
+report export stays unmasked, and SARIF navigation targets stay unmasked.
 
 **Tracks.** `ROADMAP.md` M2 / WS-05 / gate S2
 
@@ -309,3 +314,73 @@ fields; no field is added, removed, or renamed.
   `crates/aaai-cli/src/cmd/export.rs`
 - `ROADMAP.md` WS-05 and the S2 gate contract
 - NF-14 / SEC-3 and `docs/src/overview.md:45`
+
+## 12. Implementation record
+
+Added at the 2026-07-31 disposition checkpoint
+(`.git-exclude/reviewed/055-rfc102-rfc103-disposition-checkpoint-2026-07-31.md`).
+
+Implemented as **one** commit rather than the six slices the handoff
+anticipated: S3 and S5 are interleaved in `export.rs`, and S1, S3, and S5 all
+touch `crates/aaai-cli/tests/cli.rs`, so a split would have meant reconstructing
+working states that never existed. The owner chose one commit. The per-slice
+progression the split was meant to demonstrate is preserved in
+`guard-progression.md` and `revert-demo.md`, which is where it carries more
+weight anyway.
+
+Review of record:
+`.git-exclude/reviewed/053-rfc103-safe-output-surfaces-implementation-review-2026-07-29.md`
+(Approved). Escalation and scope resolution:
+`.git-exclude/reviewed/052-rfc103-clarification-review-result-2026-07-29.md`.
+
+### 12.1 Acceptance contract disposition
+
+| § 6 item | State | Evidence |
+|---|---|---|
+| 1. `Masking` non-optional on all four `write_*` | **Met** | signatures in `crates/aaai/src/report/generator.rs` |
+| 2. No `Option<&MaskingEngine>`, no shim | **Met** | grep returns only two doc-comment mentions in `crates/aaai/src/masking.rs`, no signature and no `From`/`Default`/`Into` impl |
+| 2a. Explicit value at every call site; `report.rs` all `Enabled` | **Met** | `cmd/report.rs` binds `Masking::Enabled(&masker)` once; the four `Disabled` sites each carry a written justification |
+| 2b. F5 closed — `build_json` uses its masker | **Met** | `_masker` removed |
+| 3. Guard passes, and fails if any single fix is reverted | **Met** | `revert-demo.md`, five reversions, each turning at least one test red |
+| 4. F1–F4 each have a dedicated regression test naming the finding | **Met** | `findings-map.md` |
+| 5. Workspace green; counts grow only by named new tests | **Met** | 145 / 13 / 97 / 27 / 3 |
+| 6. Adversarial fixtures execute on all three platforms through B0 | **Met** | run `30551474446`; eight named guards confirmed `ok` on Linux, macOS, **and** Windows individually, not inferred from totals |
+| 7. No persisted format, CLI flag, dependency, or workflow change | **Met** | `scope.diffstat` |
+| 8. Signature change recorded as compatibility impact | **Met** | §9.1 |
+
+Item 6 and item 8 were the two outstanding at review 053; both closed after
+integration.
+
+### 12.2 The behaviour change, restated where it will be found
+
+`aaai report` now redacts secret-pattern matches in every format. Before this
+RFC it never masked any file output, on any format — masking ran only on
+`audit.rs`'s console path. Owner-approved 2026-07-29; see §5.1a. This is the
+behaviour NF-14, SEC-3, and `docs/src/overview.md:45` already described, so the
+change closes a gap between documentation and code rather than opening one.
+
+### 12.3 Residuals — deliberate, not deferred defects
+
+1. **GUI report export remains unmasked.** `crates/aaai-gui/src/app.rs` passes
+   `Masking::Disabled` at both sites. `App` constructs no `MaskingEngine`, so
+   enabling it is more than a mechanical change. Declared a non-goal in §3.2 and
+   confirmed as a known limitation in review 052 §5. It is the one place where a
+   user-visible surface still contradicts NF-14. **Owned by
+   [RFC 104](../proposed/104-gui-report-export-masking.md)**, opened
+   2026-07-31 and scheduled after RFC 100.
+2. **SARIF `originalUriBaseIds` and `artifactLocation.uri` remain unmasked.**
+   Accepted in review 053 §4 Q2: these are functional navigation targets a SARIF
+   consumer resolves back to a real file, the same reason §4 exempts `path`
+   itself. Masking them would break navigation without improving security,
+   since a filesystem path matches no built-in pattern unless it literally
+   embeds a secret-shaped string.
+
+### 12.4 Open questions from §10, resolved
+
+| §10 question | Resolution |
+|---|---|
+| 1 — field set complete? | Yes as specified; `error_detail` and strategy rule content are in the guard fixture but rendered by no current surface, so no surface was added (that would be new report content, prohibited by §3.2) |
+| 2 — should `Masking::Disabled` exist? | Yes, retained; every use carries a written justification, and the four current uses do |
+| 3 — apostrophe prefix vs. rejecting or stripping? | Apostrophe prefix, applied before RFC 4180 quoting; quoting retained, since a CSV parser consumes quotes before the spreadsheet evaluates the cell |
+| 4 — where does the guard live? | **Both crates.** Layer 1 in the engine proves each surface *can* behave; layer 2 in the CLI spawns the real binary and proves the wiring *does*. Layer 1 alone would have passed even if `report.rs` reverted to `Disabled` — which is exactly how F3, F4, and F5 survived |
+| 5 — does the signature change need an owner decision? | Recorded in §9.1 under RFC 095's compatibility ownership; pre-v1 latitude applies, so no separate decision was required |

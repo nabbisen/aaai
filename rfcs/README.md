@@ -14,12 +14,15 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [099](proposed/099-gui-visual-foundation.md) | GUI Visual Foundation | MG1 / WS-14 / V1 |
 | [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
-| [102](proposed/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | CI operating cost |
-| [103](proposed/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | M2 / WS-05 / S2 |
+| [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; each one's handoff states its entry conditions. See
 `.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
+
+RFC 104 slots into that sequence between 100 and 101 — it rewires
+`crates/aaai-gui/`, so it must follow RFC 100's module restructure rather than
+be undone by it. Order: **099 → 100 → 104 → 101**. See RFC 104 §7.
 
 ---
 
@@ -114,6 +117,8 @@ order; each one's handoff states its entry conditions. See
 | [095](done/095-v1-authority-scope-and-distribution.md) | v1 Authority, Scope, GUI, Compatibility, and Distribution | D0 decision (2026-07-17) |
 | [096](done/096-test-environment-and-user-state-isolation.md) | Test Environment and User-State Isolation | S1 local Linux (2026-07-17) |
 | [097](done/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | B0 hosted bootstrap (2026-07-21) |
+| [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | 2026-07-31（リリースユニット 1） |
+| [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | 2026-07-31（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |

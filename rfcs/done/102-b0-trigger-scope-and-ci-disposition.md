@@ -1,6 +1,11 @@
 # RFC 102 — B0 Trigger Scope and Legacy CI Disposition
 
-**Status.** Proposed
+**Status.** Implemented (2026-07-31). Shipped in
+`3c514715e0d37be43d1ff769b1189df861f07791`; verified by V1
+(`30510808044`, docs-only) and V2 (`30551474446`, code). Acceptance items 4, 5,
+and 6 are discharged by construction rather than by hosted execution — see §11.
+Ships in release unit 1. Two follow-ups are logged in §11.4 and belong to C2,
+not to this RFC.
 
 **Tracks.** Operating cost of the B0 gate; interim disposition of `ci.yaml` pending C2
 
@@ -40,10 +45,20 @@ Windows 2×, macOS 10×):
 
 | Workflow | Jobs | Billable-equivalent | Conclusion |
 |---|---:|---:|---|
-| B0 Hosted Bootstrap (`30460833149`) | 4 | ~15 min | success |
-| CI (`30460838652`) | 9 | ~12 min | **failure** |
+| B0 Hosted Bootstrap (`30460833149`) | 4 | 16 min | success |
+| CI (`30460838652`) | 9 | 29 min | **failure** |
 
-≈27 billable minutes to verify a Markdown change.
+**45 billable-equivalent minutes to verify a Markdown change.**
+
+> **Corrected 2026-07-31.** This table originally read ~15 min (B0) + ~12 min
+> (CI) ≈ 27. The B0 figure was close; the CI figure was understated by more
+> than a factor of two, consistent with a 13-second macOS job having been
+> counted near its wall-clock value rather than its billed value — GitHub bills
+> each job rounded **up** to the next whole minute *before* applying the runner
+> multiplier, so that job alone bills 1 min × 10 = 10. Re-measured per job in
+> `.git-exclude/evidence/102-b0-trigger-scope/cost-comparison.md`. The error was
+> in this RFC's favour: the real saving is larger than the RFC claimed, so the
+> decision was correct for a better reason than it stated.
 
 `ci.yaml` has failed on five consecutive pushes — `9fdd1bc2`, `4ed8acfb`,
 `ee6af7cd`, `aa0e3aa5`, `0df13236`. Each failure is already known and
@@ -240,3 +255,72 @@ with its own review.
 - RFC 097 §5.1, §5.4, §11, and the serialized-integration policy in `ROADMAP.md`
 - Runs `30460833149` and `30460838652`, and the five consecutive CI failures
   listed in §2
+
+## 11. Implementation record
+
+Added at the 2026-07-31 disposition checkpoint
+(`.git-exclude/reviewed/055-rfc102-rfc103-disposition-checkpoint-2026-07-31.md`).
+
+Implementation shipped in `3c514715e0d37be43d1ff769b1189df861f07791`, reviewed
+in `.git-exclude/reviewed/048-...md` and re-reviewed after the `crates/` guard
+correction in `.git-exclude/reviewed/049-...md`.
+
+### 11.1 Acceptance contract disposition
+
+| § 6 item | State | Evidence |
+|---|---|---|
+| 1. Inert-only push → skip, gate success | **Verified hosted** | V1, run `30510808044` |
+| 2. `crates/**` push → full matrix, gate reflects it | **Verified hosted** | V2, run `30551474446` |
+| 3. Mixed push runs the full matrix | **Verified hosted** | V2's push range `a48d4d39…4d4996a7` contained `.gitignore`, `rfcs/**`, and `crates/**` |
+| 4. A genuine platform failure still fails the gate | **By construction** | §11.2 |
+| 5. A matrix skipped for any other reason fails the gate | **By construction** | §11.2 |
+| 6. `workflow_dispatch` always runs the full matrix | **By construction** | §11.2 |
+| 7. `ci.yaml` no longer auto-triggers, remains dispatchable | **Verified hosted (trigger half)** | Three pushes since `c3ca2723…` produced no CI run; `on: workflow_dispatch:` is the workflow's only trigger |
+| 8. No change to B0 command, matrix, toolchain, permissions, timeouts | **Verified** | `workflow-diff.md` |
+
+### 11.2 What "by construction" means here, and its limit
+
+Items 4, 5, and 6 were not exercised on hosted runners. Each would require
+deliberately pushing a broken or unusual state to `main`, which
+serialized-integration forbids and which would cost more than the property is
+worth re-proving.
+
+They rest instead on reading `.github/workflows/b0.yaml`:
+
+- **Item 4.** A platform failure yields `MATRIX_RESULT=failure`. The first gate
+  term requires `success`; the second requires `skipped`. Neither matches, so
+  control reaches `exit 1`.
+- **Item 5.** A matrix skipped for any reason other than no-relevant-change
+  implies either `CHANGES_RESULT != success` or `CHANGES_CODE != false`. The
+  second gate term is a three-way conjunction over exactly those, so it fails
+  and control reaches `exit 1`. This is the D1 correction from
+  `.git-exclude/reviewed/047-...md`; without its third term the gate would have
+  reported success on an untested SHA.
+- **Item 6.** The `detect` step's first branch is
+  `if [ "$EVENT_NAME" != "push" ]; then fail_safe`, so every non-push event
+  emits `code=true` before any diff is attempted.
+
+**State the limit plainly:** this is a reading of a shell script, not an
+observation of the system. The gate's failing paths have never executed on a
+hosted runner. That is an accepted residual, not a discharged obligation. The
+weekly scheduled run (§5.3) exercises item 6's path incidentally every Monday,
+so item 6 will convert to hosted-verified without further action — items 4 and
+5 will not.
+
+### 11.3 Cost outcome
+
+Measured in `.git-exclude/evidence/102-b0-trigger-scope/cost-comparison.md`:
+45 → **2** billable-equivalent minutes on a documentation-only push, and
+45 → **27** on a code push. See the §2 correction for why the "before" figure
+differs from this RFC's original text.
+
+### 11.4 Follow-ups, owned by C2 and not by this RFC
+
+1. **`ci.yaml` remains parked.** Its automatic triggers are removed, not
+   repaired. The three documented causes — repository-wide `cargo fmt --check`
+   debt under DEC-006, the MSRV job naming the nonexistent `aaai-core`, and open
+   advisories in the security job — are all still present. C2 owns restoration.
+2. **macOS is 20 of the 27 minutes** on a code push, the single dominant cost.
+   §8 rejected dropping it, correctly, since B0 exists for three-OS evidence.
+   Recorded so that any future cost discussion starts from the right lever
+   rather than re-deriving it.
