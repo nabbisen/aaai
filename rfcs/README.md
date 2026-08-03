@@ -15,6 +15,7 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
+| [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; each one's handoff states its entry conditions. See
