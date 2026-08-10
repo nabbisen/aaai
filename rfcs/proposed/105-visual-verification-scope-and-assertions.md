@@ -157,16 +157,39 @@ overflows at 800×550 is a gate.
 
 ### 5.1 Scope the obligation
 
-A `## Visual Verification` card is required only from an RFC that **changes a
-visual surface** — one whose Touches line includes `crates/aaai-gui/`.
+A `## Visual Verification` card is required from an RFC that meets **both**
+conditions:
 
-Every other RFC is **out of scope**, not unverified. `list-unverified-rfcs.sh`
-reports only in-scope RFCs, so the count can reach zero.
+1. its Touches line includes `crates/aaai-gui/` — it changes a visual surface;
+   **and**
+2. its number is **≥ 106** — it was accepted after this policy.
 
-The 99 are not retroactively in scope. RFCs that shipped before this RFC and
-have no card are marked out of scope by omission; if a future reader needs one,
-they open a verification RFC for it. Retroactive verification of shipped work
-was RFC 017 §2.4's P3 tier, which it also declined to require.
+Everything else is **out of scope**, not unverified.
+
+> **Corrected 2026-08-10, before this RFC landed.** §5.1 originally had only
+> condition 1, and §6 item 2 required the rescoped count to be "zero or a small
+> number the owner recognises" or the rule was wrong. **Measured, it was 63 of
+> 101** — down from 99, and nowhere near zero.
+>
+> The reason is structural: the GUI has been the subject of ~64 RFCs across the
+> project's life and almost none carry a card, so scoping *by visual surface*
+> does not shrink the problem, because the GUI RFCs **are** the problem. The
+> count still could not reach zero, which is the exact defect this RFC exists
+> to fix — I would have reproduced RFC 017's failure while claiming to correct
+> it.
+>
+> There was also a contradiction between the rule as written and as
+> implementable: the prose said RFCs "that shipped before this RFC" are out of
+> scope, but a Touches-line check cannot know when something shipped. Condition
+> 2 makes that testable instead of aspirational.
+>
+> Measured with both conditions: **0 today**, and RFC 106 — whose Touches line
+> names `crates/aaai-gui/src/app.rs` — will be caught the moment it moves to
+> `done/`. That is the behaviour §6 item 2 asks for.
+
+Retroactive verification of the 63 is **not** required, matching RFC 017 §2.4's
+own P3 tier, which also declined it. If a future reader needs a card for a
+shipped RFC, they open a verification RFC for it.
 
 ### 5.2 One evidence location
 
@@ -227,6 +250,12 @@ about.
 2. Run against today's tree, its count is **zero or a small number the owner
    recognises** — not 99. If it is not, the scope rule in §5.1 is wrong and must
    be corrected before this RFC lands.
+   > **Exercised 2026-08-10, before landing.** The first §5.1 rule produced
+   > **63**; the item fired, and §5.1 was corrected rather than the threshold
+   > relaxed. The corrected rule measures **0**. This item has now done the job
+   > it was written for, which is the strongest evidence available that it is
+   > load-bearing rather than decorative — the same standard §4 demands of the
+   > assertions this RFC introduces.
 3. A minimum-window-size overflow assertion exists under
    `crates/aaai-gui/src/`, follows the `contrast_check` shape, and **fails on
    the current Opening screen at 800×550** — see §7.
