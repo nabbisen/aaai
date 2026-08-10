@@ -64,7 +64,8 @@ Consecutive small units may batch; a unit is never split across releases.
 | # | Unit theme | Contains | Entry gate |
 |---:|---|---|---|
 | 1 | **Safety foundations** — **SHIPPED as `v0.41.0`, 2026-08-10** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces), **plus RFC 099 T1–T8** — `main` already carried the visual work, so it shipped with the unit rather than waiting for unit 2 | Gate met 2026-07-31 (S1, B0, S2's output half). Held by owner decision for RFC 099 T8, which fixed a diff control unreachable at 800 × 550 (RFC 099 §6a) rather than shipping it as a known limitation. Cut at `354fb2a2ef64a2f6c54dae4957cf03f039c98165` |
-| 2 | **Readable GUI** | RFC 099 (visual foundation), RFC 100 (module boundaries) | V1, V2 |
+| 2 | **Readable GUI** | RFC 100 (module boundaries). *RFC 099 was this unit's other half and shipped early in unit 1 — see the note above.* | V2 |
+| 2a | **Close the output boundary** | RFC 104 (GUI report export masking) — the last surface where NF-14 does not hold, and the last thing S2 waits on; **RFC 106** (keyboard operability) rides with it, both landing after RFC 100 | S2 |
 | 3 | **Durable saves** | M3 — atomic definition persistence | P1 |
 | 4 | **Supply chain and code quality** | M4A (advisory disposition), M4B (format, lint, maintainability) | C0, C2 |
 | 5 | **Scale** | M5 — staged and bounded diff engine; M4C release automation folds in here | E1, C1 |
@@ -75,6 +76,12 @@ Consecutive small units may batch; a unit is never split across releases.
 Unit 1 is unusually large because it accumulated during the missed-cadence
 window; everything in it is already merged, so it cannot be retroactively
 split. Units 2 onward are sized to one nameable outcome each.
+
+**Not in any unit, deliberately:** RFC 105 (visual verification scope) is a
+process RFC — it changes how evidence is produced and where it lives, ships no
+user-visible behaviour, and rides whichever release it happens to land in.
+RFC 098 shipped in `v0.41.0` with unit 1 but is still in `rfcs/proposed/`
+pending a disposition audit of its §9.1 adversarial matrix.
 
 **Per-release requirements** (org §6.6): objective; included and excluded
 scope; deliverables; quality criteria; major risks; completion criteria. Plus
@@ -174,9 +181,12 @@ Architecture review
   --> M0/D0
   --> M1/S1
   --> M1C/B0
-  --> M2/S2
-  --> M3/P1
+  --> M2/S2 ....................... (output half done; GUI half waits on MG2 — see below)
   --> M4A/C0
+  --> MG1/V1 ...................... shipped v0.41.0
+  --> MG2/V2
+  --> RFC 104 .................... closes S2's remaining GUI half
+  --> M3/P1
   --> M4B/C2
   --> M4C/C1
   --> M5/E1
@@ -184,6 +194,22 @@ Architecture review
   --> M6/D1
   --> M7/R1
 ```
+
+> **Corrected 2026-08-10.** MG1 and MG2 were absent from this graph even though
+> MG2's gate V2 is an entry dependency of M5G. They are now shown.
+>
+> The order also changed, and not by choice. **RFC 104 tracks M2 / WS-05 / S2
+> but is scheduled after RFC 100 (V2)** — its acceptance test must drive the GUI
+> export path and read the written file, and the GUI's tests are non-hermetic
+> until MG2 fixes them. So S2's remaining half now sits *after* MG2, and
+> everything whose entry names S2 moved with it.
+>
+> **M3 is the case that matters.** Its entry reads "B0 and S2 complete", which
+> would park atomic file persistence behind GUI work it has no bearing on.
+> Whether to narrow that entry is an owner decision, recorded as F1 in
+> `.git-exclude/reviewed/064-roadmap-consistency-audit-2026-08-10.md`. **Until
+> it is decided, the order above is what the stated gates actually imply** —
+> shown honestly rather than left as the older, no-longer-true sequence.
 
 This is the one-primary-implementer critical path and contains no
 implementation overlap. D0 selected the guided redesign, so M5G is part of the
