@@ -1,6 +1,6 @@
 # RFC 099 — GUI visual foundation: developer handoff
 
-Companion to [`RFC 099`](../../proposed/099-gui-visual-foundation.md). The RFC
+Companion to [`RFC 099`](../../done/099-gui-visual-foundation.md). The RFC
 records what was decided and why; this records how to implement and verify it
 safely. It must not override the RFC — if execution uncovers a design conflict,
 stop and amend the RFC first.
@@ -24,8 +24,13 @@ Implementation may begin only after **all** of:
 > re-runs green for the workspace screen in all four themes.
 >
 > This is the only outstanding item between here and V1. T1–T7 are otherwise
-> complete, subject to the `contrast-results.md` gap in §6, which blocks
-> RFC 099's move to `done/` but not the release.
+> complete.
+>
+> **Closed 2026-08-10.** T8 landed, `v0.41.0` shipped, and RFC 099 moved to
+> `rfcs/done/`. The `contrast-results.md` gap this note previously cited as a
+> blocker was disposed in §6 — the contrast test already proves the property
+> continuously. This handoff is now historical; it records how the work was
+> done, not work outstanding.
 
 ## 2. Role split
 
@@ -243,14 +248,36 @@ hosted-runs.md        the B0 run for the integrated SHA
 `contrast-results.md` must show the four known failures failing beforehand and
 passing afterwards — that is what proves the test is load-bearing.
 
-> **Gap recorded 2026-08-10.** Four of these are **absent** from the evidence
-> directory: `scans.log`, `contrast-results.md`, `local-results.md`, and
-> `scope.diffstat`. They belong to the T1–T5 implementation, which predates the
-> T6/T7 addendum, and the T6/T7 implementer correctly flagged rather than
-> backfilled them. **`contrast-results.md` is the one that matters**: without
-> the before/after ratios, nothing demonstrates the contrast test is
-> load-bearing rather than merely green, and acceptance item 4 rests on it.
-> This blocks RFC 099's move to `done/`; it does not block T8 or T6 re-run.
+> **Gap recorded 2026-08-10, disposed 2026-08-10.** Four of these are absent:
+> `scans.log`, `contrast-results.md`, `local-results.md`, and `scope.diffstat`.
+> They belong to the T1–T5 implementation and the T6/T7 implementer correctly
+> flagged rather than backfilled them.
+>
+> **`contrast-results.md` is no longer required.** I recorded it as the one
+> that mattered, on the grounds that without before/after ratios nothing
+> demonstrates the contrast test is load-bearing. That was wrong: reading
+> `crates/aaai-gui/src/contrast_check/tests.rs` shows the test **already
+> proves it, continuously and more strongly than a document could.** It
+> reproduces all four RFC 099 §2.4 pairs from the literal pre-migration RGB
+> values, fails if any of them stops failing AA, fails if a recomputed old
+> ratio drifts from the recorded figure by ≥ 0.02 (naming the historical record
+> as the suspect, not the fix), and fails if the token replacement does not
+> clear 4.5:1 on the original background. A static markdown table asserts this
+> once, by its author; the test asserts it on every run. Verified passing
+> 2026-08-10.
+>
+> Transcribing those numbers into a file would create a second source of truth
+> that drifts from the first. **The test is the evidence.** This is RFC 105 §4's
+> rule applied to the case that motivated it.
+>
+> **The other three are accepted as gaps, not blockers.** `scope.diffstat` is
+> reconstructible from git; `local-results.md` and `scans.log` record one-off
+> runs of checks that CI and acceptance items 1–2 now cover continuously.
+> Backfilling them would mean re-running against today's tree and presenting
+> the result as though it were the original — worse than an honest absence.
+>
+> **Consequence: acceptance item 4 is discharged, and RFC 099's evidence
+> package no longer blocks its move to `done/`.**
 
 ### T8 — fix the diff pane's horizontal overflow (added 2026-08-10)
 

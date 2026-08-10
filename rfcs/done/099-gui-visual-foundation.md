@@ -1,10 +1,24 @@
 # RFC 099 — GUI Visual Foundation
 
-**Status.** Proposed — T1–T8 complete; **T8 closed 2026-08-10**
-(`.git-exclude/reviewed/063-rfc099-t8-light-scale-diagnosed-review-2026-08-10.md`),
-verified in all four themes at 800 × 550. Release unit 1's hold is lifted.
-Remaining before `done/`: the `contrast-results.md` evidence gap (handoff §6),
-without which acceptance item 4 rests on an unevidenced claim.
+**Status.** Implemented — **released in `v0.41.0`** (2026-08-10, release
+unit 1). T1–T8 complete and verified in all four themes at 800 × 550; T8 closed
+in `.git-exclude/reviewed/063-rfc099-t8-light-scale-diagnosed-review-2026-08-10.md`.
+
+**Partial on acceptance item 7.** Item 7 requires screenshots showing no
+clipped content at 800 × 550. Overlap and scroll-trapping are clear, and T8
+fixed the diff pane's tab and legend clipping — but the **diff body still clips
+characters** at that size (`fairly` renders as `fairl`, carried to no
+subsequent row). Deferred to **RFC 101 §7a**, with the constraint that any
+horizontal-scroll remedy must not make the content container `Length::Shrink`;
+§6a records why, and what it cost to learn.
+
+Acceptance item 4 is discharged by `contrast_check::tests`, which proves the
+before/after property continuously rather than by a transcribed table — see the
+handoff §6 disposition. Remaining evidence-package gaps are accepted there.
+
+**NF-4 keyboard inoperability** is a separate, pre-existing finding, not part of
+this RFC:
+`.git-exclude/reviewed/060-nf4-keyboard-inoperability-finding-2026-08-10.md`.
 
 **Tracks.** `ROADMAP.md` MG1 / WS-14 / gate V1
 

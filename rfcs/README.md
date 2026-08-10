@@ -11,14 +11,14 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | ID | タイトル | Tracks |
 |---|---|---|
 | [098](proposed/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | M2 / WS-04 / S2 |
-| [099](proposed/099-gui-visual-foundation.md) | GUI Visual Foundation | MG1 / WS-14 / V1 |
 | [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
-order; each one's handoff states its entry conditions. See
+order; **RFC 099 shipped in v0.41.0**, so the remaining order is 100 → 104 → 101.
+Each one's handoff states its entry conditions. See
 `.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
 
 RFC 104 slots into that sequence between 100 and 101 — it rewires
@@ -118,6 +118,7 @@ be undone by it. Order: **099 → 100 → 104 → 101**. See RFC 104 §7.
 | [095](done/095-v1-authority-scope-and-distribution.md) | v1 Authority, Scope, GUI, Compatibility, and Distribution | D0 decision (2026-07-17) |
 | [096](done/096-test-environment-and-user-state-isolation.md) | Test Environment and User-State Isolation | S1 local Linux (2026-07-17) |
 | [097](done/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | B0 hosted bootstrap (2026-07-21) |
+| [099](done/099-gui-visual-foundation.md) | GUI Visual Foundation — *partial*, acceptance item 7 deferred to RFC 101 | v0.41.0（リリースユニット 1） |
 | [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | v0.41.0（リリースユニット 1） |
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
