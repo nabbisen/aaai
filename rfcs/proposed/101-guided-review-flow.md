@@ -159,12 +159,49 @@ both `en` and `ja`.
 | Risk | Mitigation |
 |---|---|
 | **Two implementations diverge** — the classic failure for guided/expert splits, and a direct DEC-001 violation | One state, one `Message` set; a guided control and its expert equivalent dispatch the identical message. Reviewed explicitly at implementation review. |
-| 800 × 550 fails, now with more chrome | Same blocking check as RFC 099; progressive disclosure is the primary lever. If it fails, stop and amend — do not shrink type. |
+| 800 × 550 fails, now with more chrome | Same blocking check as RFC 099; progressive disclosure is the primary lever. If it fails, stop and amend — do not shrink type. **Inherited from RFC 099 — read §7a before designing the expert surface's minimum-size behaviour.** |
 | Round trip loses unsaved work | Acceptance item 3; the existing nav-guard (RFC 041) is reused, not re-implemented. |
 | i18n drift — new strings land in `en` only | The i18n audit is already a blocking CI job; acceptance item 5. |
 | WS-10's progress API is not final when Checking is built | Checking is the **last** screen implemented; if WS-10 has not landed, stop rather than build against a provisional API. |
 | WS-05's report contract shifts under Save report | Same treatment: Save report follows WS-05, not the reverse. |
 | Scope creep into new features | RFC 095 §11 defers UI expansion; any new capability stops the work. |
+
+## 7a. Inherited from RFC 099 — the expert surface at 800 × 550
+
+Two findings from RFC 099's T6/T8 work are **layout-architecture problems, not
+typography ones**, so they were deliberately not solved there. They land here,
+because this RFC is the one that revisits how much surface is shown at once.
+
+Both are recorded, neither is decided.
+
+### 7a.1 Three simultaneous panes is too many at 800 × 550
+
+The expert workspace renders a file tree, a diff pane, and an inspector in one
+`PaneGrid`. At 800 logical width each gets roughly 265 px. RFC 099 fixed the
+symptoms it could reach without changing behaviour — the diff mode tabs and the
+legend are now horizontally scrollable — but the underlying crowding is
+untouched, because reducing the pane count is a behaviour change RFC 099's §3
+forbade.
+
+### 7a.2 The diff body loses characters at 800 × 550
+
+With a long line, each wrapped row is cut at the column edge — `fairly` renders
+as `fairl`, and the missing characters appear on no subsequent row. There is no
+horizontal scroll in the diff body, deliberately: RFC 099's first T8 attempt
+added one and **collapsed the body entirely**, because the inner column had to
+become `Length::Shrink` while each line is a `Length::Fill` container.
+
+So the constraint carried forward is specific: **a remedy that gives the diff
+body horizontal scrolling must not make its content container `Shrink`.** The
+likelier answers are architectural — fewer panes at small widths, or a
+different diff presentation below a threshold — which is why they belong here.
+
+Evidence and reasoning:
+`.git-exclude/reviewed/063-rfc099-t8-light-scale-diagnosed-review-2026-08-10.md` §5,
+and RFC 099 §6a's qualified cause table.
+
+**This does not expand U1.** It informs the design; whether either is fixed is
+this RFC's decision to make when it is written up properly.
 
 ## 8. Implementation sequence
 

@@ -1,6 +1,10 @@
 # RFC 099 — GUI Visual Foundation
 
-**Status.** Proposed
+**Status.** Proposed — T1–T8 complete; **T8 closed 2026-08-10**
+(`.git-exclude/reviewed/063-rfc099-t8-light-scale-diagnosed-review-2026-08-10.md`),
+verified in all four themes at 800 × 550. Release unit 1's hold is lifted.
+Remaining before `done/`: the `contrast-results.md` evidence gap (handoff §6),
+without which acceptance item 4 rests on an unevidenced claim.
 
 **Tracks.** `ROADMAP.md` MG1 / WS-14 / gate V1
 
@@ -254,7 +258,25 @@ reasoning again.
 |---|---|---|
 | `Changes only` tab absent | Genuine horizontal overflow — `build_tab_bar` (`:52`) composes `row(tab_items)` in a `Length::Fill` container with no scroll | **Horizontal scroll** |
 | `Added` legend absent | Same — `diff_legend` (`:356`) | **Horizontal scroll** |
-| Diff body text "truncated mid-word" | **Not clipping. The body already wraps** — a long line renders across many wrapped rows and is fully readable | **None. Do not touch `side_by_side`** |
+| Diff body text "truncated mid-word" | **The body wraps** — a long line renders across many rows. **It also clips**: see the qualification below | **None here. Do not touch `side_by_side`** |
+
+> **Qualified 2026-08-10.** The row above originally read "not clipping … fully
+> readable". The wrapping half is correct; the "fully readable" half was
+> established at 1280 × 800 and does **not** hold at 800 × 550. With a
+> long-line fixture, each wrapped row is itself cut at the column edge —
+> `fairly` renders as `fairl`, and the missing characters appear on no
+> subsequent row. At 800 × 550 the three-pane grid leaves each diff column
+> roughly 88 px.
+>
+> **The decision not to touch `side_by_side` stands** — the first T8 attempt
+> demonstrated that making it horizontally scrollable collapses the body
+> entirely. But the reason is "the available remedy costs more than the
+> defect", not "there is no defect".
+>
+> The residual is logged against **RFC 101**, with the related observation that
+> three simultaneous panes is too many at 800 × 550. Both are
+> layout-architecture questions rather than typography ones. Evidence:
+> `.git-exclude/reviewed/063-rfc099-t8-light-scale-diagnosed-review-2026-08-10.md` §5.
 
 At 800 logical width the three-pane grid gives each pane roughly 265 px, which
 the three tab labels exceed. The diff body has no such problem: it wraps.
