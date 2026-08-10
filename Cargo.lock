@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "aaai"
-version = "0.40.0"
+version = "0.41.0"
 dependencies = [
  "anyhow",
  "cap-fs-ext",
@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-cli"
-version = "0.40.0"
+version = "0.41.0"
 dependencies = [
  "aaai",
  "anyhow",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "aaai-gui"
-version = "0.40.0"
+version = "0.41.0"
 dependencies = [
  "aaai",
  "anyhow",
