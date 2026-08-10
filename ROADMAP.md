@@ -153,17 +153,59 @@ The program is complete only when all of the following are true:
 
 ### Serial milestone schedule
 
+> **On the "Implementation entry dependency" column, reviewed 2026-08-10.**
+> This table was written for one implementer working strictly in order, so
+> "X comes after Y" and "X depends on Y" were recorded identically. They are
+> not the same thing, and once work moves out of order the difference matters:
+> a sequencing note read as a dependency produces a false constraint.
+>
+> Three cells were corrected on owner approval:
+>
+> - **M3** — dropped its dependency on RFC 104's GUI export masking, which has
+>   no bearing on atomic file replacement (F1);
+> - **MG1** — dropped the dependency-audit gate, which typography never needed,
+>   and which had in fact been unmet all the way through release (F3);
+> - **M4B** — dropped the same dependency-audit gate; a formatting policy and a
+>   `cargo audit` result are unrelated in both directions (F10).
+>
+> **M5**'s "P1 and C1 complete" is flagged but unchanged, pending decision. See
+> `.git-exclude/reviewed/064-roadmap-consistency-audit-2026-08-10.md`.
+>
+> The remaining entries were reviewed and are substantive. When adding a
+> milestone, state which kind each dependency is: *needs* or *follows*.
+
+**Gate codes in one line each.** The entry-dependency column below refers to
+gates by code; full evidence contracts are in *Gate evidence contracts* further
+down.
+
+| Code | Means |
+|---|---|
+| **D0** | v1 scope and authority decided |
+| **S1** | tests never touch the operator's real config |
+| **B0** | the three-OS hosted matrix is green |
+| **S2** | untrusted input and output are safe — symlinks, encoding, masking |
+| **P1** | saving files is crash- and race-safe |
+| **C0** | dependency security audit is clean, or exceptions are formally accepted |
+| **C2** | formatting and lint policy is settled and passing |
+| **C1** | the whole CI, security, package, and release workflow is green |
+| **V1** | GUI draws from design tokens; contrast verified |
+| **V2** | GUI files split below the size limit, behaviour unchanged |
+| **E1** | the diff engine meets its performance budget |
+| **U1** | the guided GUI workflow is accepted |
+| **D1** | documentation matches actual behaviour |
+| **R1** | independent review finds nothing blocking |
+
 | Milestone | Paced by | Outcome | Implementation entry dependency | Exit gate |
 |---|---|---|---|---|
 | **M0 — Program charter and v1 authority** | Complete | Owner-approved source precedence, v1 scope, feature and distribution disposition, and guided-vs-3-pane GUI decision | Architecture review accepted as planning input | **D0 passed:** RFC 095 establishes the normative baseline, feature scope, guided/expert GUI, compatibility boundary, direct distribution set, and Store/MSIX deferral |
 | **M1 — Safe tests and local-state boundary** | Complete | Every CLI subprocess test uses isolated home/config directories with deny/canary regression protection | D0 complete; approved RFC 096 | **S1 passed:** isolated local full-suite pass plus synthetic no-resolution/non-disclosure/non-mutation evidence |
 | **M1C — Safe hosted-CI bootstrap** | Complete | Correct crate names, isolated tests, MSRV build, and usable Linux/macOS/Windows test matrix, without waiting for later format/release cleanup | S1 complete; implemented RFC 097 | **B0 passed when the containing lifecycle SHA is green:** safe hosted platform matrix blocks serialized continuation or independently authorized integration under the applicable mode |
 | **M2 — Untrusted input/output boundary** | **Partially complete** — WS-04 done; WS-05 paced by dev cycles + CI, entered on owner decision | Symlink classification and containment followed by contextual encoding, spreadsheet neutralization, and consistent masking across approved formats/surfaces | D0, S1, and B0 complete; output contract depends on symlink reporting contract | **S2:** threat model and adversarial platform-matrix tests pass |
-| **M3 — Cross-platform persistence** | Dev cycles + CI; cross-platform persistence needs the three-OS matrix per attempt | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 and S2 complete; approved persistence RFC | **P1:** Linux/macOS/Windows persistence matrix passes |
+| **M3 — Cross-platform persistence** | Dev cycles + CI; cross-platform persistence needs the three-OS matrix per attempt | Windows-safe atomic replacement, atomic lock acquisition, recovery, collision, and concurrency behavior | B0 complete; **S2's symlink and engine/CLI output halves** complete; approved persistence RFC — *narrowed 2026-08-10, owner-approved (audit F1): the former "S2 complete" would park persistence behind RFC 104's GUI export masking, which has no bearing on atomic file replacement. WS-06's own row records this dependency as "for serial sequencing"* | **P1:** Linux/macOS/Windows persistence matrix passes |
 | **M4A — Supply-chain disposition** | Owner decision per advisory disposition; dev cycles for upgrades | Vulnerabilities and warnings updated, mitigated, or accepted through an owner-approved exception with expiry | B0 complete; dependency feasibility checked | **C0:** dependency audit has no unapproved finding |
-| **MG1 — GUI visual foundation** | **Owner display** — T1–T5 complete; T6/T7 are the only remaining work and no other role can perform them | All GUI text, spacing, and colour derive from the existing `snora` tokens; line heights applied; NF-4 contrast verified by automated test | C0 complete; approved RFC 099 | **V1:** token adoption complete and the contrast gate is green on all four themes |
+| **MG1 — GUI visual foundation** | **Owner display** — T1–T5 complete; T6/T7 are the only remaining work and no other role can perform them | All GUI text, spacing, and colour derive from the existing `snora` tokens; line heights applied; NF-4 contrast verified by automated test | Approved RFC 099 — *corrected 2026-08-10, owner-approved (audit F3): this read "C0 complete; approved RFC 099". C0 is supply-chain disposition and has no bearing on typography or colour tokens. MG1 was designed, implemented, reviewed eight times, and released in `v0.41.0` with C0 unmet, and no review caught it — the dependency was wrong, not skipped* | **V1:** token adoption complete and the contrast gate is green on all four themes |
 | **MG2 — GUI module boundaries** | Dev cycles + CI; mechanical, behaviour-neutral | `app.rs` split below the ELOC threshold; `views/mod.rs` removed per DEC-003; behaviour-neutral | V1 complete; approved RFC 100 | **V2:** boundaries corrected with every test count unchanged |
-| **M4B — Format, lint, and maintainability policy** | Owner decision on formatting policy, then dev cycles + CI | One formatting policy, clean Clippy, module/file-boundary rules for touched oversized files | C0 complete | **C2:** format and lint gates pass under the approved policy |
+| **M4B — Format, lint, and maintainability policy** | Owner decision on formatting policy, then dev cycles + CI | One formatting policy, clean Clippy, module/file-boundary rules for touched oversized files | Owner decision on the formatting policy — *narrowed 2026-08-10, owner-approved (audit F10): this read "C0 complete". A formatting and lint policy does not depend on the dependency security audit, in either direction. **M4B may begin now**, and doing so would clear the repository-wide `cargo fmt --check` failure that has been noise in every implementation report* | **C2:** format and lint gates pass under the approved policy |
 | **M4C — Release automation and operations** | Owner — release credentials, package/publish dry runs, distribution decisions | Version tooling, crate identity, package/publish workflow, release documentation, and approved direct-distribution automation repaired | C0 and C2 complete | **C1:** complete hosted CI, security, package, and release workflow is green |
 | **M5 — Scalable diff architecture** | **Measurement-bound** — fixtures and benchmark hardware; does not compress with agent throughput | Staged bounded scan and lazy retention, or an owner-approved narrowed normative scale requirement with replacement budgets | D0, S2, P1, and C1 complete | **E1:** approved full-scale or replacement-scale budgets pass |
 | **M5G — Guided GUI convergence** | Dev cycles + **owner display** for visual, keyboard, and guided/expert acceptance; the largest remaining milestone | Implement and test the simplified beginner path on the MG1 visual foundation while preserving the approved three-pane expert surface; the guided path must not reintroduce hardcoded sizes, spacing, or colours | V2, WS-05, and WS-10 complete; approved RFC 101 | **U1:** approved GUI, keyboard, and visual acceptance passes |
