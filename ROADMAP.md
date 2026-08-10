@@ -51,7 +51,7 @@ Consecutive small units may batch; a unit is never split across releases.
 
 | # | Unit theme | Contains | Entry gate |
 |---:|---|---|---|
-| 1 | **Safety foundations** — **entry gate met 2026-07-31** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces) | S1, B0 passed; S2's output half complete — all three met; RFC 103 completed the last of them |
+| 1 | **Safety foundations** — entry gate met 2026-07-31; **held for RFC 099 T8** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces) | S1, B0 passed; S2's output half complete — all three met. **Held by owner decision 2026-08-10:** `main` already carries RFC 099 T1–T5, whose diff pane loses a control at 800 × 550 (RFC 099 §6a). Owner chose to fix rather than ship it as a known limitation, so the tag waits on T8 |
 | 2 | **Readable GUI** | RFC 099 (visual foundation), RFC 100 (module boundaries) | V1, V2 |
 | 3 | **Durable saves** | M3 — atomic definition persistence | P1 |
 | 4 | **Supply chain and code quality** | M4A (advisory disposition), M4B (format, lint, maintainability) | C0, C2 |

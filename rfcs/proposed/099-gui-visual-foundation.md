@@ -205,12 +205,110 @@ into a gate that cannot silently regress.
    typical working size, showing no clipped, overlapped, or scroll-trapped
    content.
 8. No diff outside `crates/aaai-gui/src/`.
+9. **T8 (added 2026-08-10):** the diff pane's mode tabs, legend, and line
+   columns are horizontally reachable at 800 × 550 in all four themes. See §6a.
+
+## 6a. T8 — horizontal overflow in the diff pane (added 2026-08-10)
+
+The principal risk in §7 materialised, but not where it was expected. T6
+cleared the Opening screen and found the inspector's vertical overflow to be
+scroll-accessible — remedy 3 operating as intended. The failure is **horizontal
+overflow in the diff pane**, which §7's risk row did not anticipate.
+
+**Finding of record:**
+`.git-exclude/reviewed/057-rfc099-t6-t7-addendum-completion-review-2026-08-10.md`
+§4 (D1), confirmed in
+`.git-exclude/reviewed/058-rfc099-d1-d2-followup-review-2026-08-10.md` §2.
+Evidence: `.git-exclude/evidence/099-gui-visual-foundation/layout-800x550.md`.
+
+### What fails
+
+At 800 × 550, in **all four themes**, comparing each theme's capture against
+its own 1280 × 800 capture:
+
+| Element | 1280 × 800 | 800 × 550 |
+|---|---|---|
+| Diff mode tabs | `Side by side` · `Unified` · `Changes only` | third tab **not rendered** |
+| Legend | `Removed` · `Added` | `Added` **not rendered** |
+| Diff body text | `removed` | clipped mid-word |
+
+### Why acceptance item 7 did not already cover it
+
+Item 7 says "no clipped, overlapped, or scroll-trapped content", which does
+cover this. It was nearly missed because a reader checking a *vertically*
+scrollable panel naturally reads "scrollable" as "satisfied". **The distinction
+that matters is reachability, not the presence of a scrollbar**: the inspector's
+hidden content is reachable, and `Changes only` is not rendered at all. Item 9
+states the diff pane case explicitly so it cannot be folded into the inspector's
+reasoning again.
+
+### Cause — corrected 2026-08-10
+
+> **This section was wrong on first writing and is corrected in place before it
+> misleads a second implementation.** It named three sites and attributed all
+> three symptoms to horizontal overflow. **Only two are.** The correction was
+> established by running the pre-fix build:
+> `.git-exclude/reviewed/059-rfc099-t8-implementation-review-2026-08-10.md` §5.
+
+| D1 symptom | Cause | Remedy |
+|---|---|---|
+| `Changes only` tab absent | Genuine horizontal overflow — `build_tab_bar` (`:52`) composes `row(tab_items)` in a `Length::Fill` container with no scroll | **Horizontal scroll** |
+| `Added` legend absent | Same — `diff_legend` (`:356`) | **Horizontal scroll** |
+| Diff body text "truncated mid-word" | **Not clipping. The body already wraps** — a long line renders across many wrapped rows and is fully readable | **None. Do not touch `side_by_side`** |
+
+At 800 logical width the three-pane grid gives each pane roughly 265 px, which
+the three tab labels exceed. The diff body has no such problem: it wraps.
+
+**`side_by_side` (`:303`, `:310`) must not be changed.** Making its
+`scrollable` `Direction::Both` requires the inner `column` to become
+`Length::Shrink` for overflow detection to work, and each `diff_line` returns a
+`Length::Fill` container — `Fill` inside `Shrink` collapses, and **the diff
+body renders nothing at all**. Verified by A/B against the pre-fix build on
+identical data. This is not a hypothetical: it was implemented, and it broke the
+view.
+
+### Remedy — decided, do not re-derive
+
+**Apply §7 remedy 3 (allow region scrolling) to the two overflowing sites** —
+`build_tab_bar` and `diff_legend`. Give each a horizontal scroll direction.
+`scrollable` is already used in this file, so this adds no widget type, no
+dependency, no i18n key, and no message.
+
+**Do not change `side_by_side`.** See the corrected cause table above.
+
+Rejected alternatives, with reasons, so they are not revisited:
+
+| Option | Rejected because |
+|---|---|
+| Shorten the tab labels | An i18n value change to work around a layout defect; the labels are plain-language by RFC 083 |
+| Wrap the tab row onto two lines | iced's `row` has no wrapping; emulating it is more code than a scrollable |
+| Fall back to `Unified` automatically at narrow widths | Responsive **behaviour**, which handoff §3 forbids in this RFC. A real option, but it needs its own RFC — see below |
+| Reduce the pane count at 800 × 550 | Same objection, larger |
+
+### Recorded honestly: this satisfies the requirement without making it good
+
+A horizontally scrolling side-by-side diff in a 265 px pane is *usable* in the
+sense RFC 095 §7.1 item 7 requires, and genuinely poor to use. The underlying
+problem is that **three simultaneous panes is too many at 800 × 550**, which is
+a layout-architecture question, not a typography one.
+
+That question belongs to **RFC 101** (guided review flow), whose whole premise
+is a simplified path alongside the expert three-pane surface. It is logged
+there rather than solved here, because solving it inside RFC 099 would mean
+behaviour changes in an RFC scoped to the visual layer — and scope discipline
+is what has kept this RFC reviewable.
+
+### Verification
+
+Re-run T6 for the workspace screen in all four themes after the fix. Required:
+each of the three regions reachable by horizontal scroll, `Changes only`
+activatable, and no regression in acceptance items 1–4.
 
 ## 7. Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
-| **Layout breaks at 800 × 550.** Body text moves 11–12 px → 16 px and spacing 1–4 px → 4–12 px. RFC 095 §7.1 item 7 requires usability at that size. This is the principal risk. | Acceptance item 7 makes it a blocking check. Remedies, in order: reduce nesting depth; move secondary content behind progressive disclosure; allow region scrolling. **Not** permitted: reintroducing ad-hoc small sizes. |
+| **Layout breaks at 800 × 550.** Body text moves 11–12 px → 16 px and spacing 1–4 px → 4–12 px. RFC 095 §7.1 item 7 requires usability at that size. This is the principal risk. | Acceptance item 7 makes it a blocking check. Remedies, in order: reduce nesting depth; move secondary content behind progressive disclosure; allow region scrolling. **Not** permitted: reintroducing ad-hoc small sizes. **Materialised 2026-08-10 as horizontal overflow in the diff pane — see §6a.** The risk was framed vertically; the failure was horizontal, and a scrollbar in an adjacent panel nearly disguised it. |
 | **No compact density is available.** `Density::Compact` exists in snora but is documented "reserved; not resolved in v0.20"; only `Spacing::comfortable()` is provided, and every preset uses `Comfortable`. | If 800 × 550 cannot be met at comfortable spacing, stop and amend this RFC. The sanctioned routes are an upstream snora request for a resolved compact scale, or an owner-approved documented local override — not per-site shrinking. |
 | Role mapping is judgement-heavy and could drift per file | The handoff carries a per-file mapping table; ambiguity escalates rather than being resolved locally. |
 | A later change reintroduces literals | Acceptance items 1–2 become a repository scan the guided-flow work must also pass; recorded in the U1 gate. |

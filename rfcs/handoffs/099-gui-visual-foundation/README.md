@@ -17,6 +17,16 @@ Implementation may begin only after **all** of:
   than blocking T1–T6;
 - `main` is green on hosted B0 and the working tree is clean.
 
+> **Owner decision of record, 2026-08-10 — T8 is approved and blocks the
+> release.** nabbisen chose to fix D1 (RFC 099 §6a) before tagging v0.41.0,
+> rather than shipping it as a known limitation. **T8 is therefore authorised
+> to begin now**, and release unit 1 does not cut until T8 lands and T6
+> re-runs green for the workspace screen in all four themes.
+>
+> This is the only outstanding item between here and V1. T1–T7 are otherwise
+> complete, subject to the `contrast-results.md` gap in §6, which blocks
+> RFC 099's move to `done/` but not the release.
+
 ## 2. Role split
 
 | Role | Party | Scope |
@@ -145,6 +155,76 @@ Screenshots for **all four themes** at 800 × 550 and at a typical working size,
 covering the opening screen, the three-pane workspace, the inspector, and the
 diff view. Xvfb output is not acceptable.
 
+> **Clarified 2026-08-10.** Those four are **surfaces, not screens.** The
+> application has exactly two screens — `Screen::Opening` and `Screen::Main`
+> (`crates/aaai-gui/src/app.rs`) — and the workspace, inspector, and diff view
+> are three panes of one `PaneGrid` rendered simultaneously within `Main`
+> (`views/main_view.rs`). **One `Main` capture with a file selected covers all
+> three.** The matrix is therefore 4 themes × **2 screens** × 2 sizes = **16**,
+> not 32. A file must be selected, or the inspector and diff panes render their
+> empty states and the capture proves nothing about either. Established in
+> `.git-exclude/reviewed/057-rfc099-t6-t7-addendum-completion-review-2026-08-10.md` §3.
+
+### T6 / T7 addendum — tooling (added 2026-08-04)
+
+Added by the architect after the T6 pass stalled. See
+`.git-exclude/rules/gui-automation-niri-xdotool.md` for the general reference
+and `.git-exclude/reviewed/056-rfc099-t6-t7-tooling-addendum-2026-08-04.md`
+for the full procedure and reasoning.
+
+**Two facts recorded in `layout-800x550.md` are wrong and must not be carried
+forward.**
+
+1. **"Synthetic mouse input failed to reach the app at all."** It does reach it.
+   Verified 2026-08-04: a synthetic click on *Pick folder* opened the
+   `org.gnome.Nautilus` chooser. The earlier attempt used `xdotool` against a
+   **Wayland-native** window, which cannot work; launched under XWayland
+   (`env -u WAYLAND_DISPLAY DISPLAY=:1`), mouse input works normally.
+2. **"Tab moved focus but Return/space did not activate."** Not reproducible —
+   five `Tab` presses produced five byte-identical screenshots. This was almost
+   certainly `xdotool key --window`, which uses `XSendEvent` and is discarded by
+   most toolkits. **Treat it as withdrawn, not as a suspected NF-4 defect**, and
+   correct `layout-800x550.md` accordingly.
+
+**The stated blocker is also gone.** The remaining three screens do not require
+the folder dialog: the Opening screen already lists a saved profile under *Or
+open a recent project* whose **Open** button (`Message::LoadProfile`) loads both
+paths in one click. Note that the folder cards themselves have **no** text
+input — the `text_input` in `views/opening.rs` belongs to the definition-file
+row, not to folder selection.
+
+**Working tooling split — use each tool only for what it is good at:**
+
+| Job | Tool |
+|---|---|
+| Run the app so input can reach it | `env -u WAYLAND_DISPLAY DISPLAY=:1` |
+| Window geometry | `niri msg action set-window-width/height --id` — **logical** units |
+| Make geometry stick | `niri msg action move-window-to-floating --id` — required; tiling overrides size otherwise |
+| Mouse input | `xdotool mousemove … click 1` |
+| Capture | `niri msg action screenshot-window --id --path <absolute>` |
+
+**Never size with `xdotool windowsize`** — it takes physical pixels, so on a
+scaled output the app lays out at the wrong size while the PNG still measures
+what you asked for. At scale 1.2, `xdotool windowsize 800 550` gives the
+application a **667 × 459** window. A correct 800 × 550 logical window yields a
+960 × 660 PNG; judge size from `niri msg windows`, never from the image.
+
+**Prove the input channel before recording any finding.** These tools fail
+silently, and a no-op is indistinguishable from a passing check. Record in the
+evidence which channel was proven and how.
+
+**T7's keyboard question is not settled by this tooling and remains open.**
+`xdotool` keyboard (XTEST) does not reach the focused surface on this
+compositor — confirmed by `Escape` failing to close a Wayland-native dialog. It
+needs either real key presses or `wtype`, which is not installed. Do not report
+a keyboard result obtained with `xdotool`.
+
+**Role note.** §2 assigns T7 to the verification operator with a real display.
+A `niri` screenshot of a physical output is a real display and satisfies the
+"not Xvfb" intent, so the implementer may capture T7 screenshots. **The keyboard
+portion still requires the operator.** This reading is the architect's; the
+owner may overrule it.
+
 ## 6. Evidence package
 
 Create `.git-exclude/evidence/099-gui-visual-foundation/`:
@@ -163,12 +243,66 @@ hosted-runs.md        the B0 run for the integrated SHA
 `contrast-results.md` must show the four known failures failing beforehand and
 passing afterwards — that is what proves the test is load-bearing.
 
+> **Gap recorded 2026-08-10.** Four of these are **absent** from the evidence
+> directory: `scans.log`, `contrast-results.md`, `local-results.md`, and
+> `scope.diffstat`. They belong to the T1–T5 implementation, which predates the
+> T6/T7 addendum, and the T6/T7 implementer correctly flagged rather than
+> backfilled them. **`contrast-results.md` is the one that matters**: without
+> the before/after ratios, nothing demonstrates the contrast test is
+> load-bearing rather than merely green, and acceptance item 4 rests on it.
+> This blocks RFC 099's move to `done/`; it does not block T8 or T6 re-run.
+
+### T8 — fix the diff pane's horizontal overflow (added 2026-08-10)
+
+Required by RFC 099 §6a and acceptance item 9. **The remedy is decided — apply
+it, do not re-derive it.** §6a records the rejected alternatives and why.
+
+> **Corrected 2026-08-10 after a first attempt broke the diff view.** This
+> section originally named **three** sites. The third was wrong and the
+> instruction to change it destroyed the diff body's rendering. See
+> `.git-exclude/reviewed/059-rfc099-t8-implementation-review-2026-08-10.md`.
+> If you have already implemented against the earlier wording, keep the tab bar
+> and legend changes and revert `side_by_side` only.
+
+Give a horizontal scroll direction to **two** sites in
+`crates/aaai-gui/src/views/diff_view.rs`:
+
+| Site | Currently |
+|---|---|
+| `build_tab_bar` (`:52`) | `row(tab_items)` in a `Length::Fill` container, no scroll |
+| `diff_legend` (`:356`) | `legend_row` in a `Length::Fill` container, no scroll |
+
+**Do not touch `side_by_side` (`:303`, `:310`).** Its body is not clipped — it
+**wraps**, and a long line renders across many rows fully readable. Making its
+`scrollable` `Direction::Both` requires the inner `column` to become
+`Length::Shrink`, and each `diff_line` returns a `Length::Fill` container;
+`Fill` inside `Shrink` collapses and **the diff body renders nothing at all**.
+Verified by A/B against the pre-fix build.
+
+`scrollable` is already imported and used in this file. **Do not** change tab
+labels, add a widget type or dependency, introduce responsive mode-switching, or
+alter the pane count — the first is an i18n workaround for a layout defect and
+the rest are behaviour changes this RFC's §3 forbids.
+
+RFC 069's scroll synchronisation (`DIFF_BEFORE_ID` / `DIFF_AFTER_ID`,
+`Message::DiffBeforeScrolled` / `DiffAfterScrolled`) is untouched by the two
+remaining sites, so the earlier escalation clause no longer applies.
+
+Then re-run T6 for the workspace screen in all four themes and confirm **three**
+things: `Changes only` reachable, `Added` reachable, and **the diff body still
+renders** — that last one is the regression guard this round produced, and it is
+the check that would have caught the first attempt. Acceptance items 1–4
+unregressed. Update `layout-800x550.md` with the after state alongside the
+recorded before state.
+
 ## 7. Required assertions
 
 1. Zero `.size(N)` literals; zero `Color::from_rgb` outside `design_tokens.rs`.
 2. Every text role application carries its `line_height`.
 3. Contrast test green for all four presets at the correct thresholds.
-4. Test counts: 144 / 8 / 91 / **27** / 3.
+4. Test counts: **145 / 13 / 97 / 27 / 3** — corrected 2026-08-10; the previous
+   144 / 8 / 91 / 27 / 3 predates RFC 103, which moved three of them. **27** is
+   the GUI figure and the only one this RFC can affect.
 5. i18n key audit clean, zero key delta.
 6. No diff outside `crates/aaai-gui/src/`.
 7. Real-display screenshots exist for four themes × two sizes.
