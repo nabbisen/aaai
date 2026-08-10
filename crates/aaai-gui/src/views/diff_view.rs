@@ -100,10 +100,16 @@ fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora
     ];
     let tab_bar_border = crate::style::to_iced(tokens.palette.border);
     let tab_bar_bg = crate::style::to_iced(tokens.palette.surface);
+    // T8 (RFC 099 §6a) — at 800 logical width the three-pane grid gives this
+    // bar roughly 265 px, which the three tab labels exceed. Horizontal
+    // scroll makes `Changes only` reachable instead of unrendered.
     iced::widget::container(
-        iced::widget::row(tab_items)
-        .spacing(0)
-        .align_y(iced::Alignment::Center)
+        scrollable(
+            iced::widget::row(tab_items)
+            .spacing(0)
+            .align_y(iced::Alignment::Center)
+        )
+        .direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::default()))
     )
     .width(Length::Fill)
     .style(move |_| iced::widget::container::Style {
@@ -399,7 +405,12 @@ fn diff_legend(tokens: &snora::design::Tokens) -> Element<'static, Message> {
             .color(muted).into(),
     ]).spacing(tokens.spacing.sm).align_y(iced::Alignment::Center);
 
-    iced::widget::container(legend_row)
+    // T8 (RFC 099 §6a) — same overflow as the tab bar: at 800 logical width
+    // `Added` does not fit and was not rendered at all.
+    iced::widget::container(
+        scrollable(legend_row)
+            .direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::default()))
+    )
         .padding(Padding::from([tokens.spacing.xs, tokens.spacing.md]))
         .width(Length::Fill)
         .into()
