@@ -49,9 +49,21 @@ promised in advance becomes a commitment the evidence has not earned.
 A unit is cut when its milestones reach their exit gates and `main` is green.
 Consecutive small units may batch; a unit is never split across releases.
 
+**Shipped:**
+
+| Release | Unit | Date | SHA |
+|---|---|---|---|
+| [`v0.41.0`](https://github.com/nabbisen/aaai/releases/tag/v0.41.0) | 1 — Safety foundations | 2026-08-10 | `354fb2a2ef64a2f6c54dae4957cf03f039c98165` |
+
+> **A unit ships whatever `main` carries, not only its own themes.** RFC 099
+> T1–T5 belonged to unit 2 but was already merged when unit 1 was cut, so it
+> shipped in `v0.41.0` — and its T8 defect became a release blocker for a unit
+> that did not nominally contain it. Plan the next cut on what is *in `main`*,
+> not on the unit's own contents.
+
 | # | Unit theme | Contains | Entry gate |
 |---:|---|---|---|
-| 1 | **Safety foundations** — entry gate met 2026-07-31; **held for RFC 099 T8** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces) | S1, B0 passed; S2's output half complete — all three met. **Held by owner decision 2026-08-10:** `main` already carries RFC 099 T1–T5, whose diff pane loses a control at 800 × 550 (RFC 099 §6a). Owner chose to fix rather than ship it as a known limitation, so the tag waits on T8 |
+| 1 | **Safety foundations** — **SHIPPED as `v0.41.0`, 2026-08-10** | RFC 095 (v1 authority), 096 (test-state isolation), 097 (hosted CI), 098 (selected-folder and symlink policy), 102 (B0 trigger scope), 103 (safe output surfaces), **plus RFC 099 T1–T8** — `main` already carried the visual work, so it shipped with the unit rather than waiting for unit 2 | Gate met 2026-07-31 (S1, B0, S2's output half). Held by owner decision for RFC 099 T8, which fixed a diff control unreachable at 800 × 550 (RFC 099 §6a) rather than shipping it as a known limitation. Cut at `354fb2a2ef64a2f6c54dae4957cf03f039c98165` |
 | 2 | **Readable GUI** | RFC 099 (visual foundation), RFC 100 (module boundaries) | V1, V2 |
 | 3 | **Durable saves** | M3 — atomic definition persistence | P1 |
 | 4 | **Supply chain and code quality** | M4A (advisory disposition), M4B (format, lint, maintainability) | C0, C2 |

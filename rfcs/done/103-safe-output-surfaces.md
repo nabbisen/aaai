@@ -1,10 +1,10 @@
 # RFC 103 — Safe Reports, Exports, and Masking
 
-**Status.** Implemented (2026-07-31). Shipped in
+**Status.** Implemented — **released in `v0.41.0`** (2026-08-10, release
+unit 1). Landed 2026-07-31 in
 `4d4996a7517e5cbd8f09ee645c9086c9899b2e33`; hosted evidence in run
 `30551474446`. All eight §6 acceptance items discharged — see §12. Completes
-S2's **output half**; S2 itself remains open on RFC 098's symlink half. Ships in
-release unit 1. Two residuals, both deliberate and both recorded in §12.3: GUI
+S2's **output half**; S2 itself remains open on RFC 098's symlink half. Two residuals, both deliberate and both recorded in §12.3: GUI
 report export stays unmasked, and SARIF navigation targets stay unmasked.
 
 **Tracks.** `ROADMAP.md` M2 / WS-05 / gate S2

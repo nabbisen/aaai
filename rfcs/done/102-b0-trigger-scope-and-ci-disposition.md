@@ -1,6 +1,7 @@
 # RFC 102 — B0 Trigger Scope and Legacy CI Disposition
 
-**Status.** Implemented (2026-07-31). Shipped in
+**Status.** Implemented — **released in `v0.41.0`** (2026-08-10, release
+unit 1). Landed 2026-07-31 in
 `3c514715e0d37be43d1ff769b1189df861f07791`; verified by V1
 (`30510808044`, docs-only) and V2 (`30551474446`, code). Acceptance items 4, 5,
 and 6 are discharged by construction rather than by hosted execution — see §11.
