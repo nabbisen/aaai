@@ -250,3 +250,84 @@ Stop and request an RFC amendment when:
 Rollback before integration is the focused patch reversal by the owner. After
 integration, a deterministic failure is corrected at a new SHA and re-reviewed;
 do not rerun an unchanged deterministic failure as acceptance evidence.
+
+---
+
+## 10. Windows twin of the cross-root-link test (added 2026-08-10)
+
+**Status of this handoff otherwise: historical.** RFC 098 is in `rfcs/done/`
+and shipped in `v0.41.0`. This is the one item still outstanding, and it is the
+only part of this document that describes work not yet done.
+
+**Why.** §9.1 requires each adversarial case on **every hosted OS**. The
+cross-root-link case — a link in one selected root whose target lies inside the
+*other* selected root — was added on 2026-08-10 as
+`cross_root_links_are_not_followed_into_the_other_selected_root` in
+`crates/aaai/src/diff/tests.rs`, gated `#[cfg(unix)]`. Windows has no twin, so
+its `aaai` count stayed at 133 while Linux and macOS moved to 146 in run
+`31445222640`.
+
+**Substantively this closes no gap.** The Windows reparse decision is
+tag-agnostic — `path_boundary.rs:464-467` tests only
+`FILE_ATTRIBUTE_REPARSE_POINT` and never inspects the link target, so it cannot
+distinguish a cross-root link from any other reparse point. The twin exists for
+§9.1 symmetry and as the same regression guard: "reject every reparse point" is
+what a future inside-root-follow optimisation would relax.
+
+### Specification
+
+Add one `#[cfg(windows)]` test to `crates/aaai/src/diff/tests.rs`, placed with
+the other Windows tests. Model it on
+`windows_link_matrix_remains_metadata_only`, which is the established pattern in
+this file.
+
+**Fixture** — two selected roots, `before` and `after`, with links pointing
+from one into the other:
+
+| Entry in `after/` | Created with | Target |
+|---|---|---|
+| `to-other-file` | `symlink_file` | `before/secret.txt` |
+| `to-other-dir` | `symlink_dir` | `before/folder` |
+
+`before/` additionally holds `secret.txt` containing a unique canary string and
+`folder/nested.txt` containing a second unique canary.
+
+**Assertions**, for each of the two entries:
+
+1. `diff_type == DiffType::Incomparable`;
+2. `error_detail` starts with `[AAAI-PATH-REPARSE]` — **not** `AAAI-PATH-LINK`;
+   Windows classifies by reparse point, and the Unix twin's code does not apply;
+3. `before_sha256` and `after_sha256` are both `None`;
+4. no entry's path starts with `to-other-dir/` — the directory link's
+   descendants were never enumerated;
+5. neither canary, and not `before`'s absolute path, appears anywhere in the
+   entries derived from the two links.
+
+Assertion 2 is the one that differs from the Unix version. Do not copy
+`AAAI-PATH-LINK` across.
+
+**Expected effect on counts:** Windows `aaai` **133 → 134**. Linux and macOS
+unchanged at 146. Any other movement means something unintended was touched.
+
+### Verification
+
+You cannot run this locally on Linux — hosted B0 is its first execution, and
+that is expected. Before requesting review:
+
+```sh
+cargo +1.91 check --target x86_64-pc-windows-gnu -p aaai --tests --locked
+cargo +1.91 test --workspace --locked      # Linux counts must be unchanged
+git diff --stat                            # exactly one file
+```
+
+State plainly in the review request that the test is **unverified locally** and
+that B0 is its first run. If B0 fails, report the failure rather than iterating
+blind — a cross-root reparse point behaving differently from other reparse
+points would be a genuine finding, not a test bug, and needs escalation.
+
+### Boundary
+
+One test in one file. **No production code changes** — if the test does not
+pass without touching `crates/aaai/src/diff/path_boundary.rs`, stop and
+escalate. Sources:
+`.git-exclude/reviewed/065-rfc098-disposition-audit-2026-08-10.md` §4 and §6.
