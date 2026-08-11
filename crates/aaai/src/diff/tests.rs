@@ -567,6 +567,79 @@ fn link_audit_preserves_namespace_content_and_stable_metadata() {
     assert_eq!(after_entries, before_entries);
 }
 
+/// RFC 098 §9.1 — the **cross-root** link: a link in one selected root whose
+/// target lies inside the *other* selected root.
+///
+/// Distinct from every other outside-root case, which links to an unrelated
+/// third directory. Containment asks "is this inside the selected root?", and a
+/// cross-root link resolves outside *its own* root while landing inside a
+/// directory the engine is legitimately reading — so a containment rule phrased
+/// as "inside either root", or a future inside-root-follow optimisation, would
+/// treat it as safe when it is not.
+///
+/// Today the engine rejects every link unconditionally, so this passes without
+/// any change to production code. It is a regression guard, not a fix:
+/// "reject every link" is exactly the property such an optimisation would relax,
+/// and nothing else in the suite would notice.
+///
+/// Assigned by `.git-exclude/reviewed/064-roadmap-consistency-audit-2026-08-10.md`
+/// F8, after review 045 reassigned the case class from RFC 098 to WS-05 and
+/// RFC 103 did not pick it up, leaving it unowned while gate S2 waited on it.
+#[cfg(unix)]
+#[test]
+fn cross_root_links_are_not_followed_into_the_other_selected_root() {
+    use std::os::unix::fs::symlink;
+
+    let before = tmp_dir();
+    let after = tmp_dir();
+
+    // A canary that exists ONLY in `before`, reachable from `after` solely
+    // through the cross-root link under test.
+    write(before.path(), "secret.txt", "cross-root-secret-canary");
+    fs::create_dir(before.path().join("folder")).unwrap();
+    write(before.path(), "folder/nested.txt", "cross-root-nested-canary");
+
+    // after/ -> before/  (file and directory, absolute and relative)
+    symlink(before.path().join("secret.txt"), after.path().join("to-other-file")).unwrap();
+    symlink(before.path().join("folder"), after.path().join("to-other-dir")).unwrap();
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+
+    for name in ["to-other-file", "to-other-dir"] {
+        let entry = find(&diffs, name);
+        assert_eq!(
+            entry.diff_type,
+            DiffType::Incomparable,
+            "{name}: a cross-root link must be Incomparable, not followed"
+        );
+        assert_eq!(
+            entry.error_detail.as_deref(),
+            Some("[AAAI-PATH-LINK] Link-like entries are not followed."),
+            "{name}: must report the ordinary link code, not a containment-specific one"
+        );
+        assert!(entry.before_sha256.is_none() && entry.after_sha256.is_none());
+    }
+
+    // The directory link must not have been enumerated: nothing under it.
+    assert!(
+        !diffs.iter().any(|entry| entry.path.starts_with("to-other-dir/")),
+        "descendants of a cross-root directory link must never be enumerated"
+    );
+
+    // `before`'s content legitimately appears as a Removed entry for
+    // `secret.txt` itself — that is the comparison working. What must not
+    // appear is that content reached through the link, or the other root's
+    // absolute path.
+    let via_link = diffs
+        .iter()
+        .filter(|entry| entry.path.starts_with("to-other-"))
+        .map(|entry| format!("{}{:?}{:?}{:?}", entry.path, entry.before_text, entry.after_text, entry.error_detail))
+        .collect::<String>();
+    assert!(!via_link.contains("cross-root-secret-canary"));
+    assert!(!via_link.contains("cross-root-nested-canary"));
+    assert!(!via_link.contains(&before.path().display().to_string()));
+}
+
 #[cfg(windows)]
 fn assert_windows_reparse(after: &std::path::Path, name: &str) {
     use std::os::windows::fs::{MetadataExt as _, OpenOptionsExt as _};

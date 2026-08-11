@@ -1,6 +1,6 @@
 # RFC 098 Part 2 — behavioural non-name-surrogate reparse fixture: developer handoff
 
-Companion to [`RFC 098`](../../proposed/098-selected-folder-and-symlink-policy.md)
+Companion to [`RFC 098`](../../done/098-selected-folder-and-symlink-policy.md)
 §9.1, which specifies the mechanism. This handoff translates it into
 implementation-ready work. It must not override the RFC — if execution
 uncovers a design conflict, stop and escalate (§8).

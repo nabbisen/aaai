@@ -3,7 +3,7 @@
 ## 1. Purpose and authority
 
 This is the required WS-04 execution companion to
-[`RFC 098`](../../proposed/098-selected-folder-and-symlink-policy.md). The RFC
+[`RFC 098`](../../done/098-selected-folder-and-symlink-policy.md). The RFC
 decides what the selected-folder boundary means; this handoff defines how a
 developer and platform QA operator implement and prove it.
 

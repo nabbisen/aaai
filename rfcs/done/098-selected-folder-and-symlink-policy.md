@@ -1,6 +1,26 @@
 # RFC 098 — Selected-folder and symlink policy
 
-**Status.** Proposed
+**Status.** Implemented — **released in `v0.41.0`** (2026-08-10, release
+unit 1). §9.1's adversarial matrix is discharged on all three hosted platforms,
+audited case by case in
+`.git-exclude/reviewed/065-rfc098-disposition-audit-2026-08-10.md`. The
+**cross-root-link case** — unowned since review 045 reassigned it from this RFC
+to WS-05, where RFC 103 did not pick it up — closed 2026-08-10 and is proven
+load-bearing.
+
+**§14's ten confirmations** were satisfied by design re-review 025 ("Accept with
+notes; Go for owner-authorized implementation") plus owner authorization and
+release, not by enumerated sign-off. Item 3 — *no v1 follow-links option,
+including for inside-root targets* — is a **live constraint**, not settled
+history: it is what the cross-root test guards, and what RFC 101 would collide
+with if it revisits the workspace.
+
+**Outstanding, non-blocking:** a Windows twin of the cross-root test, for §9.1's
+"every hosted OS" symmetry. No substantive gap — the Windows reparse decision is
+tag-agnostic and never consults the link target — assigned to the dev team.
+
+**Gate S2 does not close with this RFC.** Its threat-model half and RFC 104's
+GUI export masking remain.
 
 **Tracks.** `ROADMAP.md` M2 / WS-04 / gate S2
 
