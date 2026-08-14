@@ -38,7 +38,10 @@ pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
 
     if let Some(max) = args.prune {
         let removed = aaai::history::store::prune(max)?;
-        println!("{} History pruned: kept up to {max} entries, removed {removed}.", "✓".green());
+        println!(
+            "{} History pruned: kept up to {max} entries, removed {removed}.",
+            "✓".green()
+        );
         return Ok(());
     }
 
@@ -68,8 +71,10 @@ pub fn run(args: HistoryArgs) -> anyhow::Result<()> {
         if let Some(def) = &r.definition {
             println!("  Config: {def}");
         }
-        println!("  OK: {}  Pending: {}  Failed: {}  Error: {}  Total: {}",
-            r.ok, r.pending, r.failed, r.error, r.total);
+        println!(
+            "  OK: {}  Pending: {}  Failed: {}  Error: {}  Total: {}",
+            r.ok, r.pending, r.failed, r.error, r.total
+        );
         println!();
     }
     Ok(())
@@ -94,8 +99,7 @@ fn show_stats() -> anyhow::Result<()> {
     println!("{}", "Audit History Analytics".bold());
     println!();
     println!("  Total runs   : {total}");
-    println!("  Pass rate    : {:.1}%  ({passed}/{total})",
-        pass_rate);
+    println!("  Pass rate    : {:.1}%  ({passed}/{total})", pass_rate);
     println!("  Avg OK/run   : {avg_ok:.1}");
     println!("  Avg Pending  : {avg_pending:.1}");
     println!("  Avg Failed   : {avg_failed:.1}");
@@ -103,18 +107,26 @@ fn show_stats() -> anyhow::Result<()> {
     // Recent trend (last 5 vs previous 5)
     if total >= 10 {
         let recent_pass = all[..5].iter().filter(|r| r.result == "PASSED").count();
-        let older_pass  = all[5..10].iter().filter(|r| r.result == "PASSED").count();
-        let trend = if recent_pass > older_pass { "↑ Improving".green() }
-                    else if recent_pass < older_pass { "↓ Declining".red() }
-                    else { "→ Stable".yellow() };
+        let older_pass = all[5..10].iter().filter(|r| r.result == "PASSED").count();
+        let trend = if recent_pass > older_pass {
+            "↑ Improving".green()
+        } else if recent_pass < older_pass {
+            "↓ Declining".red()
+        } else {
+            "→ Stable".yellow()
+        };
         println!("  Recent trend : {trend}  (last 5 vs prior 5)");
     }
 
     println!();
     println!("  Most recent runs:");
     for r in all.iter().take(5) {
-        let res = if r.result == "PASSED" { r.result.green() } else { r.result.red() };
-        let ts  = r.run_at.format("%Y-%m-%d %H:%M").to_string();
+        let res = if r.result == "PASSED" {
+            r.result.green()
+        } else {
+            r.result.red()
+        };
+        let ts = r.run_at.format("%Y-%m-%d %H:%M").to_string();
         println!("    [{ts}] {res}  OK:{} Fail:{}", r.ok, r.failed);
     }
 

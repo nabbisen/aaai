@@ -17,12 +17,12 @@ pub enum DiffType {
 impl std::fmt::Display for DiffType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            DiffType::Added        => "Added",
-            DiffType::Removed      => "Removed",
-            DiffType::Modified     => "Modified",
-            DiffType::Unchanged    => "Unchanged",
-            DiffType::TypeChanged  => "TypeChanged",
-            DiffType::Unreadable   => "Unreadable",
+            DiffType::Added => "Added",
+            DiffType::Removed => "Removed",
+            DiffType::Modified => "Modified",
+            DiffType::Unchanged => "Unchanged",
+            DiffType::TypeChanged => "TypeChanged",
+            DiffType::Unreadable => "Unreadable",
             DiffType::Incomparable => "Incomparable",
         };
         write!(f, "{s}")
@@ -41,8 +41,8 @@ impl DiffType {
 /// Line-level diff statistics for text files.
 #[derive(Debug, Clone, Default)]
 pub struct DiffStats {
-    pub lines_added:     usize,
-    pub lines_removed:   usize,
+    pub lines_added: usize,
+    pub lines_removed: usize,
     pub lines_unchanged: usize,
 }
 
@@ -58,9 +58,9 @@ impl DiffStats {
         let mut stats = DiffStats::default();
         for change in td.iter_all_changes() {
             match change.tag() {
-                ChangeTag::Insert => stats.lines_added     += 1,
-                ChangeTag::Delete => stats.lines_removed   += 1,
-                ChangeTag::Equal  => stats.lines_unchanged += 1,
+                ChangeTag::Insert => stats.lines_added += 1,
+                ChangeTag::Delete => stats.lines_removed += 1,
+                ChangeTag::Equal => stats.lines_unchanged += 1,
             }
         }
         stats
@@ -77,7 +77,7 @@ pub struct DiffEntry {
 
     // ── Text content (None for binary or missing files) ───────────────
     pub before_text: Option<String>,
-    pub after_text:  Option<String>,
+    pub after_text: Option<String>,
 
     // ── Binary / size tracking (Phase 4) ─────────────────────────────
     /// True when the file cannot be decoded as UTF-8.
@@ -109,9 +109,9 @@ impl DiffEntry {
     pub fn size_change_label(&self) -> Option<String> {
         match (self.before_size, self.after_size) {
             (Some(b), Some(a)) => Some(format!("{} → {}", fmt_size(b), fmt_size(a))),
-            (None,    Some(a)) => Some(format!("(new) {}", fmt_size(a))),
-            (Some(b), None)    => Some(format!("{} (removed)", fmt_size(b))),
-            (None, None)       => None,
+            (None, Some(a)) => Some(format!("(new) {}", fmt_size(a))),
+            (Some(b), None) => Some(format!("{} (removed)", fmt_size(b))),
+            (None, None) => None,
         }
     }
 }

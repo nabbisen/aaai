@@ -10,7 +10,7 @@
 
 use iced::{Background, Border, Color, widget::container};
 use snora::design::Tokens;
-use snora::design::style::button  as snora_btn;
+use snora::design::style::button as snora_btn;
 use snora::design::style::container as snora_container;
 
 // ── Container styles ──────────────────────────────────────────────────────
@@ -32,7 +32,11 @@ pub fn panel_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> container::Style 
     let bg = to_iced(tokens.palette.surface);
     move |_theme| container::Style {
         background: Some(Background::Color(bg)),
-        border: Border { color: border_color, width: 1.0, radius: 0.0.into() },
+        border: Border {
+            color: border_color,
+            width: 1.0,
+            radius: 0.0.into(),
+        },
         ..Default::default()
     }
 }
@@ -44,7 +48,11 @@ pub fn empty_state_panel_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> conta
     let border_color = to_iced(tokens.palette.border);
     move |_theme| container::Style {
         background: None,
-        border: Border { color: border_color, width: 1.0, radius: 8.0.into() },
+        border: Border {
+            color: border_color,
+            width: 1.0,
+            radius: 8.0.into(),
+        },
         ..Default::default()
     }
 }
@@ -60,23 +68,32 @@ pub fn empty_state_panel_style(tokens: Tokens) -> impl Fn(&iced::Theme) -> conta
 //       .style(move |_theme, s| btn_primary(&t, s))
 
 /// Filled accent button — primary call to action.
-pub fn btn_primary(t: &Tokens, s: iced::widget::button::Status)
-    -> iced::widget::button::Style { snora_btn::primary(t, s) }
+pub fn btn_primary(t: &Tokens, s: iced::widget::button::Status) -> iced::widget::button::Style {
+    snora_btn::primary(t, s)
+}
 
 /// Outlined accent button — secondary action.
-pub fn btn_secondary(t: &Tokens, s: iced::widget::button::Status)
-    -> iced::widget::button::Style { snora_btn::secondary(t, s) }
+pub fn btn_secondary(t: &Tokens, s: iced::widget::button::Status) -> iced::widget::button::Style {
+    snora_btn::secondary(t, s)
+}
 
 /// No-fill button — low-emphasis tertiary action.
-pub fn btn_ghost(t: &Tokens, s: iced::widget::button::Status)
-    -> iced::widget::button::Style { snora_btn::ghost(t, s) }
+pub fn btn_ghost(t: &Tokens, s: iced::widget::button::Status) -> iced::widget::button::Style {
+    snora_btn::ghost(t, s)
+}
 
 /// Filled danger button — destructive action.
-pub fn btn_danger(t: &Tokens, s: iced::widget::button::Status)
-    -> iced::widget::button::Style { snora_btn::danger(t, s) }
+pub fn btn_danger(t: &Tokens, s: iced::widget::button::Status) -> iced::widget::button::Style {
+    snora_btn::danger(t, s)
+}
 
 // ── Utility ───────────────────────────────────────────────────────────────
 
 pub(crate) fn to_iced(c: snora::design::Color) -> Color {
-    Color { r: c.r, g: c.g, b: c.b, a: c.a }
+    Color {
+        r: c.r,
+        g: c.g,
+        b: c.b,
+        a: c.a,
+    }
 }

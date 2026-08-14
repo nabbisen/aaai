@@ -10,57 +10,63 @@
 use std::path::PathBuf;
 use std::time::Instant;
 
-use iced::{Element, Subscription, Task};
 use iced::widget::pane_grid;
-use snora::{
-    AppLayout, Sheet, SheetEdge, SheetSize,
-    Toast, ToastIntent, ToastPosition, render,
-};
+use iced::{Element, Subscription, Task};
+use snora::{AppLayout, Sheet, SheetEdge, SheetSize, Toast, ToastIntent, ToastPosition, render};
 
-use regex::Regex as RegexCheck;
 use aaai::{
-    AuditDefinition, AuditEngine, AuditResult, DiffEngine, FileAuditResult,
-    AuditStatus, DiffType, IgnoreRules,
-    history::{record::HistoryRecord, store as history_store},
-    profile::store::{AuditProfile, ProfileStore},
-    profile::prefs::{Theme as AppTheme, UserPrefs},
+    AuditDefinition, AuditEngine, AuditResult, AuditStatus, DiffEngine, DiffType, FileAuditResult,
+    IgnoreRules,
     config::{
         definition::{AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget},
         io as config_io,
     },
+    history::{record::HistoryRecord, store as history_store},
+    profile::prefs::{Theme as AppTheme, UserPrefs},
+    profile::store::{AuditProfile, ProfileStore},
 };
+use regex::Regex as RegexCheck;
 
 use crate::style::panel_style;
-use crate::views::{opening, main_view};
 use crate::util::StrategyKind;
+use crate::views::{main_view, opening};
 use rust_i18n::t;
 
 // ── Pane identifiers ──────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PaneKind { FileTree, Diff, Inspector }
+pub enum PaneKind {
+    FileTree,
+    Diff,
+    Inspector,
+}
 
 // ── Diff view mode (RFC 011) ─────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum DiffViewMode {
     #[default]
-    SideBySide,   // 左右差分
-    Unified,      // 統合
-    ChangedOnly,  // 変更のみ
+    SideBySide, // 左右差分
+    Unified,     // 統合
+    ChangedOnly, // 変更のみ
 }
 
 // ── Keyboard focus (RFC 005) ──────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum FocusTarget { #[default] FileTree, Search, Inspector }
+pub enum FocusTarget {
+    #[default]
+    FileTree,
+    Search,
+    Inspector,
+}
 
 // ── Opening screen validation ─────────────────────────────────────────────
 
 #[derive(Debug, Clone, Default)]
 pub struct OpeningValidation {
     pub before_error: Option<String>,
-    pub after_error:  Option<String>,
+    pub after_error: Option<String>,
 }
 
 impl OpeningValidation {
@@ -72,7 +78,10 @@ impl OpeningValidation {
 // ── Screens ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Screen { Opening, Main }
+pub enum Screen {
+    Opening,
+    Main,
+}
 
 // ── File-tree filter ─────────────────────────────────────────────────────
 
@@ -88,12 +97,11 @@ impl FilterMode {
     pub fn passes(self, far: &FileAuditResult) -> bool {
         match self {
             FilterMode::All => true,
-            FilterMode::ChangedOnly =>
-                far.diff.diff_type != DiffType::Unchanged,
-            FilterMode::PendingOnly =>
-                far.status == AuditStatus::Pending,
-            FilterMode::FailedAndError =>
-                matches!(far.status, AuditStatus::Failed | AuditStatus::Error),
+            FilterMode::ChangedOnly => far.diff.diff_type != DiffType::Unchanged,
+            FilterMode::PendingOnly => far.status == AuditStatus::Pending,
+            FilterMode::FailedAndError => {
+                matches!(far.status, AuditStatus::Failed | AuditStatus::Error)
+            }
         }
     }
 }
@@ -115,22 +123,22 @@ pub struct FieldError {
     /// Which inspector field triggered the error. Currently stored for
     /// future use in field-level focus/highlight; not yet read by view code.
     #[allow(dead_code)]
-    pub field:   String,
+    pub field: String,
     pub message: String,
     /// RFC 028 — optional next-action hint. Rendered beneath
     /// `message` in a muted style. `None` for errors where the
     /// message is self-explanatory (e.g. "cannot be empty");
     /// `Some` when the corrective action isn't trivially inferable
     /// from the message text itself.
-    pub hint:    Option<String>,
+    pub hint: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct InspectorValidation {
-    pub reason_error:     Option<String>,
-    pub strategy_errors:  Vec<FieldError>,
+    pub reason_error: Option<String>,
+    pub strategy_errors: Vec<FieldError>,
     pub expires_at_error: Option<String>,
-    pub pattern_error:    Option<String>,   // RFC 054: invalid/empty glob
+    pub pattern_error: Option<String>, // RFC 054: invalid/empty glob
 }
 
 impl InspectorValidation {
@@ -155,7 +163,7 @@ pub struct InspectorState {
     pub strategy_kind: StrategyKind,
     pub strategy: AuditStrategy,
     pub note: String,
-    pub validation: InspectorValidation,   // RFC 002: replaces validation_error
+    pub validation: InspectorValidation, // RFC 002: replaces validation_error
     // Phase 3
     pub ticket: String,
     pub approved_by: String,
@@ -376,7 +384,7 @@ impl Default for App {
             collapsed_dirs: std::collections::HashSet::new(),
             undo_stack: Vec::new(),
             panes: {
-let (tree, _) = pane_grid::State::new(PaneKind::FileTree);
+                let (tree, _) = pane_grid::State::new(PaneKind::FileTree);
                 // We'll rebuild panes in rerun_audit/DiffReady; use placeholder here.
                 tree
             },
@@ -402,7 +410,7 @@ pub enum Message {
 
     // Inspector
     ReasonChanged(String),
-    ReasonAction(iced::widget::text_editor::Action),  // RFC 009
+    ReasonAction(iced::widget::text_editor::Action), // RFC 009
     NoteChanged(String),
     /// RFC 035 — payload changed from `String` to `StrategyKind`
     /// to support pick_list display/value separation.
@@ -413,7 +421,7 @@ pub enum Message {
     /// support pick_list display/value separation.
     RegexTargetChanged(RegexTarget),
     AddLineRule,
-    EditRule(usize),   // RFC 012: toggle rule edit mode
+    EditRule(usize), // RFC 012: toggle rule edit mode
     RemoveLineRule(usize),
     /// RFC 033 — payload changed from `String` to `LineAction`.
     LineRuleActionChanged(usize, LineAction),
@@ -474,7 +482,7 @@ pub enum Message {
     /// Internal approval step used by [`Message::ApproveAndSave`] and batch approval.
     /// Prefer `ApproveAndSave` for direct user actions.
     ApproveEntry,
-    ApproveAndSave,  // RFC 002: approve + save in one action
+    ApproveAndSave, // RFC 002: approve + save in one action
     RerunAudit,
     SaveDefinition,
     /// RFC 040 — opens the native save-file dialog; format derived from extension.
@@ -500,7 +508,7 @@ pub enum Message {
     ToggleDir(String),
 
     // Phase 8: async diff loading
-    DiffLoading(String),   // progress message (reserved for future channel-based progress)
+    DiffLoading(String), // progress message (reserved for future channel-based progress)
     DiffReady(Vec<aaai::DiffEntry>, aaai::AuditDefinition, IgnoreRules),
     DiffFailed(String),
 
@@ -591,14 +599,22 @@ impl App {
     pub fn update(&mut self, msg: Message) -> Task<Message> {
         match msg {
             // ── Opening ───────────────────────────────────────────────
-            Message::BeforePathChanged(s) => { self.before_path = s; self.validate_opening(); }
-            Message::AfterPathChanged(s)  => { self.after_path = s; self.validate_opening(); }
-            Message::DefinitionPathChanged(s) => { self.definition_path = s; }
+            Message::BeforePathChanged(s) => {
+                self.before_path = s;
+                self.validate_opening();
+            }
+            Message::AfterPathChanged(s) => {
+                self.after_path = s;
+                self.validate_opening();
+            }
+            Message::DefinitionPathChanged(s) => {
+                self.definition_path = s;
+            }
 
             Message::StartAudit => {
                 self.open_error = None;
                 let before = PathBuf::from(&self.before_path);
-                let after  = PathBuf::from(&self.after_path);
+                let after = PathBuf::from(&self.after_path);
                 let def_path = PathBuf::from(&self.definition_path);
 
                 if !before.is_dir() {
@@ -695,21 +711,24 @@ impl App {
             // ── File tree ──────────────────────────────────────────────
             Message::SelectEntry(idx) => {
                 self.selected_index = Some(idx);
-                if let Some(far) = self.audit_result.as_ref()
-                    .and_then(|r| r.results.get(idx))
-                {
+                if let Some(far) = self.audit_result.as_ref().and_then(|r| r.results.get(idx)) {
                     self.inspector = if let Some(entry) = &far.entry {
                         InspectorState {
                             reason: entry.reason.clone(),
                             editing_rule: None,
-                            reason_content: iced::widget::text_editor::Content::with_text(&entry.reason),
+                            reason_content: iced::widget::text_editor::Content::with_text(
+                                &entry.reason,
+                            ),
                             strategy_kind: StrategyKind::from_strategy(&entry.strategy),
                             strategy: entry.strategy.clone(),
                             note: entry.note.clone().unwrap_or_default(),
                             validation: InspectorValidation::default(),
                             ticket: entry.ticket.clone().unwrap_or_default(),
                             approved_by: entry.approved_by.clone().unwrap_or_default(),
-                            expires_at_str: entry.expires_at.map(|d| d.to_string()).unwrap_or_default(),
+                            expires_at_str: entry
+                                .expires_at
+                                .map(|d| d.to_string())
+                                .unwrap_or_default(),
                             // RFC 054 — reset pattern toggle; seed path from diff
                             use_pattern: false,
                             pattern_path: far.diff.path.clone(),
@@ -749,11 +768,17 @@ impl App {
             Message::ReasonAction(action) => {
                 // RFC 009: multi-line text editor for reason field
                 self.inspector.reason_content.perform(action);
-                self.inspector.reason = self.inspector.reason_content.text()
-                    .trim_end_matches('\n').to_string();
+                self.inspector.reason = self
+                    .inspector
+                    .reason_content
+                    .text()
+                    .trim_end_matches('\n')
+                    .to_string();
                 self.validate_inspector();
             }
-            Message::NoteChanged(s) => { self.inspector.note = s; }
+            Message::NoteChanged(s) => {
+                self.inspector.note = s;
+            }
 
             Message::StrategySelected(kind) => {
                 // RFC 035 — payload is already `StrategyKind`; construct the
@@ -782,7 +807,10 @@ impl App {
             }
             Message::AddLineRule => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
-                    rules.push(LineRule { action: LineAction::Added, line: String::new() });
+                    rules.push(LineRule {
+                        action: LineAction::Added,
+                        line: String::new(),
+                    });
                 }
             }
             Message::EditRule(idx) => {
@@ -796,7 +824,9 @@ impl App {
 
             Message::RemoveLineRule(i) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
-                    if i < rules.len() { rules.remove(i); }
+                    if i < rules.len() {
+                        rules.remove(i);
+                    }
                 }
                 self.validate_inspector();
             }
@@ -811,7 +841,9 @@ impl App {
             }
             Message::LineRuleLineChanged(i, s) => {
                 if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
-                    if let Some(r) = rules.get_mut(i) { r.line = s; }
+                    if let Some(r) = rules.get_mut(i) {
+                        r.line = s;
+                    }
                 }
                 self.validate_inspector();
             }
@@ -834,27 +866,36 @@ impl App {
 
             Message::ApproveEntry => {
                 if let Some(idx) = self.selected_index {
-                    if let Some(far) = self.audit_result.as_ref()
-                        .and_then(|r| r.results.get(idx))
-                    {
+                    if let Some(far) = self.audit_result.as_ref().and_then(|r| r.results.get(idx)) {
                         let expires_at = if self.inspector.expires_at_str.trim().is_empty() {
-                                None
-                            } else {
-                                chrono::NaiveDate::parse_from_str(
-                                    self.inspector.expires_at_str.trim(), "%Y-%m-%d"
-                                ).ok()
-                            };
+                            None
+                        } else {
+                            chrono::NaiveDate::parse_from_str(
+                                self.inspector.expires_at_str.trim(),
+                                "%Y-%m-%d",
+                            )
+                            .ok()
+                        };
                         let entry = AuditEntry {
                             path: far.diff.path.clone(),
                             diff_type: far.diff.diff_type,
                             reason: self.inspector.reason.trim().to_string(),
                             strategy: self.inspector.strategy.clone(),
                             enabled: true,
-                            ticket: { let t = self.inspector.ticket.trim().to_string(); if t.is_empty() { None } else { Some(t) } },
-                            approved_by: { let a = self.inspector.approved_by.trim().to_string(); if a.is_empty() { None } else { Some(a) } },
+                            ticket: {
+                                let t = self.inspector.ticket.trim().to_string();
+                                if t.is_empty() { None } else { Some(t) }
+                            },
+                            approved_by: {
+                                let a = self.inspector.approved_by.trim().to_string();
+                                if a.is_empty() { None } else { Some(a) }
+                            },
                             approved_at: Some(chrono::Utc::now()),
                             expires_at,
-                            note: { let n = self.inspector.note.trim().to_string(); if n.is_empty() { None } else { Some(n) } },
+                            note: {
+                                let n = self.inspector.note.trim().to_string();
+                                if n.is_empty() { None } else { Some(n) }
+                            },
                             created_at: None,
                             updated_at: None,
                         };
@@ -870,7 +911,10 @@ impl App {
                                 };
                                 let path = entry_path.clone();
                                 if let Some(def) = &mut self.definition {
-                                    let mut stamped = AuditEntry { path: entry_path, ..entry };
+                                    let mut stamped = AuditEntry {
+                                        path: entry_path,
+                                        ..entry
+                                    };
                                     stamped.stamp_now();
                                     let path_for_undo = stamped.path.clone();
                                     def.upsert_entry(stamped);
@@ -893,13 +937,11 @@ impl App {
                                         self.audit_result.as_ref().and_then(|result| {
                                             let n = result.results.len();
                                             let start = (idx + 1) % n;
-                                            (0..n)
-                                                .map(|i| (start + i) % n)
-                                                .find(|&i| {
-                                                    let r = &result.results[i];
-                                                    r.status == AuditStatus::Pending
-                                                        && r.diff.path != approved_path
-                                                })
+                                            (0..n).map(|i| (start + i) % n).find(|&i| {
+                                                let r = &result.results[i];
+                                                r.status == AuditStatus::Pending
+                                                    && r.diff.path != approved_path
+                                            })
                                         });
 
                                     let rerun = self.start_async_rerun();
@@ -917,7 +959,11 @@ impl App {
                                 }
                             }
                             Err(e) => {
-                                self.inspector.validation.strategy_errors.push(FieldError { field: "expires_at".into(), message: e, hint: None });
+                                self.inspector.validation.strategy_errors.push(FieldError {
+                                    field: "expires_at".into(),
+                                    message: e,
+                                    hint: None,
+                                });
                             }
                         }
                     }
@@ -952,8 +998,7 @@ impl App {
                         Some(t!("error.batch.reason_required.message").to_string());
                     return Task::none();
                 }
-                let indices: Vec<usize> =
-                    self.batch.selected.iter().copied().collect();
+                let indices: Vec<usize> = self.batch.selected.iter().copied().collect();
                 let mut count = 0usize;
 
                 if let Some(result) = &self.audit_result {
@@ -1031,7 +1076,8 @@ impl App {
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.saved").as_ref(),
-                                t!("toast.saved_to_path", path = path.display().to_string()).as_ref(),
+                                t!("toast.saved_to_path", path = path.display().to_string())
+                                    .as_ref(),
                             );
                         }
                         Err(e) => {
@@ -1070,7 +1116,7 @@ impl App {
                             .set_title(title)
                             .set_file_name("aaai-report.md")
                             .add_filter("Markdown", &["md"])
-                            .add_filter("JSON",     &["json"])
+                            .add_filter("JSON", &["json"])
                             .save_file()
                             .await
                             .map(|h| h.path().to_path_buf())
@@ -1097,8 +1143,8 @@ impl App {
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.saved").as_ref(),
-                                t!("toast.saved_to_path",
-                                   path = chosen.display().to_string()).as_ref(),
+                                t!("toast.saved_to_path", path = chosen.display().to_string())
+                                    .as_ref(),
                             );
                             if self.pending_leave_to_opening {
                                 self.pending_leave_to_opening = false;
@@ -1124,13 +1170,17 @@ impl App {
 
             Message::ReportPathPicked(Some(out)) => {
                 if let Some(result) = &self.audit_result {
-                    let before   = PathBuf::from(&self.before_path);
-                    let after    = PathBuf::from(&self.after_path);
-                    let def_path = if self.definition_path.is_empty() { None }
-                                   else { Some(PathBuf::from(&self.definition_path)) };
+                    let before = PathBuf::from(&self.before_path);
+                    let after = PathBuf::from(&self.after_path);
+                    let def_path = if self.definition_path.is_empty() {
+                        None
+                    } else {
+                        Some(PathBuf::from(&self.definition_path))
+                    };
 
                     // Derive format from chosen extension.
-                    let use_json = out.extension()
+                    let use_json = out
+                        .extension()
                         .and_then(|e| e.to_str())
                         .map(|e| e.eq_ignore_ascii_case("json"))
                         .unwrap_or(false);
@@ -1140,12 +1190,20 @@ impl App {
                     // tracked as follow-up.
                     let res = if use_json {
                         aaai::report::generator::ReportGenerator::write_json(
-                            result, &before, &after, def_path.as_deref(), &out,
+                            result,
+                            &before,
+                            &after,
+                            def_path.as_deref(),
+                            &out,
                             aaai::Masking::Disabled,
                         )
                     } else {
                         aaai::report::generator::ReportGenerator::write_markdown(
-                            result, &before, &after, def_path.as_deref(), &out,
+                            result,
+                            &before,
+                            &after,
+                            def_path.as_deref(),
+                            &out,
                             aaai::Masking::Disabled,
                         )
                     };
@@ -1156,7 +1214,8 @@ impl App {
                             self.push_toast(
                                 ToastIntent::Success,
                                 t!("toast.export_ok").as_ref(),
-                                t!("toast.saved_to_path", path = out.display().to_string()).as_ref(),
+                                t!("toast.saved_to_path", path = out.display().to_string())
+                                    .as_ref(),
                             );
                         }
                         Err(e) => self.push_toast(
@@ -1169,7 +1228,9 @@ impl App {
             }
 
             // ── Phase 5: search ───────────────────────────────────────
-            Message::SearchQueryChanged(s) => { self.search_query = s; }
+            Message::SearchQueryChanged(s) => {
+                self.search_query = s;
+            }
 
             // ── Phase 10: directory collapse ──────────────────────────────
             Message::ToggleDir(dir) => {
@@ -1191,12 +1252,15 @@ impl App {
                 let (pane_state, pane_file_tree) = pane_grid::State::new(PaneKind::FileTree);
                 self.panes = pane_state;
                 // Split FileTree | right-column (Diff + Inspector)
-                if let Some((right_pane, _)) = self.panes.split(
-                    pane_grid::Axis::Vertical, pane_file_tree, PaneKind::Diff
-                ) {
+                if let Some((right_pane, _)) =
+                    self.panes
+                        .split(pane_grid::Axis::Vertical, pane_file_tree, PaneKind::Diff)
+                {
                     // Split Diff | Inspector
                     let _ = self.panes.split(
-                        pane_grid::Axis::Vertical, right_pane, PaneKind::Inspector
+                        pane_grid::Axis::Vertical,
+                        right_pane,
+                        PaneKind::Inspector,
                     );
                 }
                 let result = aaai::AuditEngine::evaluate(&diffs, &definition);
@@ -1211,7 +1275,8 @@ impl App {
                 // RFC 052 — auto-select the first Pending entry so the user
                 // can start approving immediately without clicking in the tree.
                 let first_pending: Option<usize> = self.audit_result.as_ref().and_then(|r| {
-                    r.results.iter()
+                    r.results
+                        .iter()
                         .enumerate()
                         .find(|(_, far)| far.status == AuditStatus::Pending)
                         .map(|(idx, _)| idx)
@@ -1256,11 +1321,19 @@ impl App {
             }
             Message::SelectNext => {
                 if let Some(result) = &self.audit_result {
-                    let visible: Vec<usize> = result.results.iter().enumerate()
-                        .filter(|(_, r)| self.filter_mode.passes(r)
-                                      && r.diff.diff_type != aaai::DiffType::Unchanged
-                                      && (self.search_query.is_empty()
-                                          || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
+                    let visible: Vec<usize> = result
+                        .results
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, r)| {
+                            self.filter_mode.passes(r)
+                                && r.diff.diff_type != aaai::DiffType::Unchanged
+                                && (self.search_query.is_empty()
+                                    || r.diff
+                                        .path
+                                        .to_lowercase()
+                                        .contains(&self.search_query.to_lowercase()))
+                        })
                         .map(|(i, _)| i)
                         .collect();
                     if !visible.is_empty() {
@@ -1277,11 +1350,19 @@ impl App {
             }
             Message::SelectPrev => {
                 if let Some(result) = &self.audit_result {
-                    let visible: Vec<usize> = result.results.iter().enumerate()
-                        .filter(|(_, r)| self.filter_mode.passes(r)
-                                      && r.diff.diff_type != aaai::DiffType::Unchanged
-                                      && (self.search_query.is_empty()
-                                          || r.diff.path.to_lowercase().contains(&self.search_query.to_lowercase())))
+                    let visible: Vec<usize> = result
+                        .results
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, r)| {
+                            self.filter_mode.passes(r)
+                                && r.diff.diff_type != aaai::DiffType::Unchanged
+                                && (self.search_query.is_empty()
+                                    || r.diff
+                                        .path
+                                        .to_lowercase()
+                                        .contains(&self.search_query.to_lowercase()))
+                        })
                         .map(|(i, _)| i)
                         .collect();
                     if !visible.is_empty() {
@@ -1306,18 +1387,23 @@ impl App {
             }
 
             // ── Phase 10: pane resize ─────────────────────────────────
-            Message::PaneResized(e) => { self.panes.resize(e.split, e.ratio); }
-            Message::PaneFocused(p) => { self.focus = Some(p); }
+            Message::PaneResized(e) => {
+                self.panes.resize(e.split, e.ratio);
+            }
+            Message::PaneFocused(p) => {
+                self.focus = Some(p);
+            }
 
             // ── RFC 005: keyboard focus ───────────────────────────────────
             Message::Noop => {}
-            Message::DeselectEntry => { self.selected_index = None; }
+            Message::DeselectEntry => {
+                self.selected_index = None;
+            }
 
             // ── RFC 011: diff view mode ───────────────────────────────
             Message::SetDiffViewMode(mode) => {
                 self.diff_view_mode = mode;
             }
-
 
             // ── RFC 015: Opening picker handlers ─────────────────────
             Message::PickBeforeFolder => {
@@ -1452,23 +1538,23 @@ impl App {
                 if self.dirty {
                     // RFC 041 — open confirmation dialog instead of passive toast.
                     self.nav_guard_open = true;
-                    self.nav_guard_show_discard = false;  // RFC 086 — start hidden
+                    self.nav_guard_show_discard = false; // RFC 086 — start hidden
                 } else {
                     self.do_leave_to_opening();
                 }
             }
             Message::FocusNext => {
                 self.focus_target = match self.focus_target {
-                    FocusTarget::FileTree  => FocusTarget::Inspector,
+                    FocusTarget::FileTree => FocusTarget::Inspector,
                     FocusTarget::Inspector => FocusTarget::FileTree,
-                    FocusTarget::Search    => FocusTarget::FileTree,
+                    FocusTarget::Search => FocusTarget::FileTree,
                 };
             }
             Message::FocusPrev => {
                 self.focus_target = match self.focus_target {
-                    FocusTarget::FileTree  => FocusTarget::Inspector,
+                    FocusTarget::FileTree => FocusTarget::Inspector,
                     FocusTarget::Inspector => FocusTarget::FileTree,
-                    FocusTarget::Search    => FocusTarget::Inspector,
+                    FocusTarget::Search => FocusTarget::Inspector,
                 };
             }
             Message::FocusSearch => {
@@ -1481,21 +1567,32 @@ impl App {
             }
 
             // ── Phase 3: inspector fields ─────────────────────────────
-            Message::TicketChanged(s)     => { self.inspector.ticket = s; }
-            Message::ApprovedByChanged(s) => { self.inspector.approved_by = s; }
-            Message::ExpiresAtChanged(s)  => { self.inspector.expires_at_str = s; }
-            Message::ApplyTemplate(id)    => {
+            Message::TicketChanged(s) => {
+                self.inspector.ticket = s;
+            }
+            Message::ApprovedByChanged(s) => {
+                self.inspector.approved_by = s;
+            }
+            Message::ExpiresAtChanged(s) => {
+                self.inspector.expires_at_str = s;
+            }
+            Message::ApplyTemplate(id) => {
                 use aaai::templates::library as tmpl;
                 if let Some(t) = tmpl::find(&id) {
                     self.inspector.strategy = (t.strategy)();
-                    self.inspector.strategy_kind = StrategyKind::from_strategy(&self.inspector.strategy);
+                    self.inspector.strategy_kind =
+                        StrategyKind::from_strategy(&self.inspector.strategy);
                     self.validate_inspector();
                 }
             }
 
             // ── Phase 3: profiles ─────────────────────────────────────
-            Message::IgnorePathChanged(s)  => { self.ignore_path = s; }
-            Message::ProfileNameChanged(s) => { self.profile_name_input = s; }
+            Message::IgnorePathChanged(s) => {
+                self.ignore_path = s;
+            }
+            Message::ProfileNameChanged(s) => {
+                self.profile_name_input = s;
+            }
             Message::SaveProfile => {
                 let name = self.profile_name_input.trim().to_string();
                 if name.is_empty() {
@@ -1509,9 +1606,17 @@ impl App {
                 let profile = AuditProfile {
                     name: name.clone(),
                     before: self.before_path.clone(),
-                    after:  self.after_path.clone(),
-                    definition: if self.definition_path.is_empty() { None } else { Some(self.definition_path.clone()) },
-                    ignore_file: if self.ignore_path.is_empty() { None } else { Some(self.ignore_path.clone()) },
+                    after: self.after_path.clone(),
+                    definition: if self.definition_path.is_empty() {
+                        None
+                    } else {
+                        Some(self.definition_path.clone())
+                    },
+                    ignore_file: if self.ignore_path.is_empty() {
+                        None
+                    } else {
+                        Some(self.ignore_path.clone())
+                    },
                     // RFC 023 §3.2: new profiles start un-touched. The
                     // first LoadProfile or explicit re-save will stamp this.
                     last_used_at: None,
@@ -1536,10 +1641,10 @@ impl App {
             }
             Message::LoadProfile(idx) => {
                 if let Some(p) = self.profiles.profiles.get(idx).cloned() {
-                    self.before_path     = p.before;
-                    self.after_path      = p.after;
+                    self.before_path = p.before;
+                    self.after_path = p.after;
                     self.definition_path = p.definition.unwrap_or_default();
-                    self.ignore_path     = p.ignore_file.unwrap_or_default();
+                    self.ignore_path = p.ignore_file.unwrap_or_default();
                     // RFC 047 — auto-expand so the user can see which approvals file loaded.
                     if !self.definition_path.is_empty() {
                         self.optional_settings_expanded = true;
@@ -1560,7 +1665,11 @@ impl App {
                 if let Some(p) = self.profiles.profiles.get(idx).cloned() {
                     self.profiles.remove(&p.name);
                     let _ = self.profiles.save();
-                    self.push_toast(ToastIntent::Success, t!("profile.deleted").as_ref(), &p.name);
+                    self.push_toast(
+                        ToastIntent::Success,
+                        t!("profile.deleted").as_ref(),
+                        &p.name,
+                    );
                 }
             }
 
@@ -1581,8 +1690,8 @@ impl App {
                             let audit_result = AuditEngine::evaluate(&self.diffs, &def);
                             // Record this run in history, matching CLI behaviour.
                             let before = PathBuf::from(&self.before_path);
-                            let after  = PathBuf::from(&self.after_path);
-                            let defn   = if self.definition_path.is_empty() {
+                            let after = PathBuf::from(&self.after_path);
+                            let defn = if self.definition_path.is_empty() {
                                 None
                             } else {
                                 Some(PathBuf::from(&self.definition_path))
@@ -1606,11 +1715,7 @@ impl App {
                         );
                     }
                     Err(e) => {
-                        self.push_toast(
-                            ToastIntent::Error,
-                            t!("toast.rerun").as_ref(),
-                            &e,
-                        );
+                        self.push_toast(ToastIntent::Error, t!("toast.rerun").as_ref(), &e);
                     }
                 }
             }
@@ -1621,7 +1726,9 @@ impl App {
                 self.nav_guard_show_discard = false;
             }
             // RFC 086 — second-step reveal of the data-losing action.
-            Message::NavGuardRevealDiscard => { self.nav_guard_show_discard = true; }
+            Message::NavGuardRevealDiscard => {
+                self.nav_guard_show_discard = true;
+            }
 
             Message::NavGuardDiscardAndLeave => {
                 self.nav_guard_open = false;
@@ -1675,14 +1782,23 @@ impl App {
             }
 
             // ── RFC 038: keyboard help overlay ────────────────────────
-            Message::ToggleHelp  => { self.help_open = !self.help_open; }
-            Message::CloseHelp   => { self.help_open = false; }
-            Message::EscapeKey   => {
+            Message::ToggleHelp => {
+                self.help_open = !self.help_open;
+            }
+            Message::CloseHelp => {
+                self.help_open = false;
+            }
+            Message::EscapeKey => {
                 // Prioritise overlay-close before falling through to deselect.
-                if self.help_open        { self.help_open = false; }
-                else if self.nav_guard_open { self.nav_guard_open = false; }
-                else if self.settings_open  { self.settings_open = false; }
-                else { self.selected_index = None; }
+                if self.help_open {
+                    self.help_open = false;
+                } else if self.nav_guard_open {
+                    self.nav_guard_open = false;
+                } else if self.settings_open {
+                    self.settings_open = false;
+                } else {
+                    self.selected_index = None;
+                }
             }
 
             // RFC 076 — status legend popover ─────────────────────────
@@ -1732,7 +1848,10 @@ impl App {
                 let abs = vp.absolute_offset();
                 return iced::widget::operation::scroll_to(
                     crate::views::diff_view::DIFF_AFTER_ID.clone(),
-                    iced::widget::operation::AbsoluteOffset { x: Some(abs.x), y: Some(abs.y) },
+                    iced::widget::operation::AbsoluteOffset {
+                        x: Some(abs.x),
+                        y: Some(abs.y),
+                    },
                 );
             }
             Message::DiffAfterScrolled(vp) => {
@@ -1744,7 +1863,10 @@ impl App {
                 let abs = vp.absolute_offset();
                 return iced::widget::operation::scroll_to(
                     crate::views::diff_view::DIFF_BEFORE_ID.clone(),
-                    iced::widget::operation::AbsoluteOffset { x: Some(abs.x), y: Some(abs.y) },
+                    iced::widget::operation::AbsoluteOffset {
+                        x: Some(abs.x),
+                        y: Some(abs.y),
+                    },
                 );
             }
 
@@ -1783,7 +1905,9 @@ impl App {
             Message::SaveSettings => {
                 self.prefs = self.settings_draft.clone();
                 // Trim empty entries before saving
-                self.prefs.global_ignored_dirs.retain(|d| !d.trim().is_empty());
+                self.prefs
+                    .global_ignored_dirs
+                    .retain(|d| !d.trim().is_empty());
                 // Apply language change immediately
                 if !self.prefs.language.is_empty() {
                     rust_i18n::set_locale(&self.prefs.language);
@@ -1814,12 +1938,16 @@ impl App {
             }
             Message::SettingsIgnoreDirRemove(i) => {
                 let dirs = &mut self.settings_draft.global_ignored_dirs;
-                if i < dirs.len() { dirs.remove(i); }
+                if i < dirs.len() {
+                    dirs.remove(i);
+                }
             }
 
             // ── Overlays ──────────────────────────────────────────────
-            Message::CloseModals => { self.batch_sheet_open = false; }
-            Message::CloseMenus  => { /* snora overlay close — no state change needed */ }
+            Message::CloseModals => {
+                self.batch_sheet_open = false;
+            }
+            Message::CloseMenus => { /* snora overlay close — no state change needed */ }
 
             // ── Toasts ────────────────────────────────────────────────
             Message::DismissToast(id) => {
@@ -1840,52 +1968,63 @@ impl App {
     // ── Subscription ─────────────────────────────────────────────────────
 
     pub fn subscription(&self) -> Subscription<Message> {
-        
         let toast_sub = snora::toast::subscription(&self.toasts, || Message::ToastTick);
         let kb_sub = iced::keyboard::listen().map(|event| {
             use iced::keyboard::{Event as KbEvent, Key, Modifiers};
             match event {
                 KbEvent::KeyPressed { key, modifiers, .. } => {
                     match (key.as_ref(), modifiers) {
-                        (Key::Character("s"), m) if m.contains(Modifiers::CTRL) =>
-                            Message::SaveDefinition,
-                        (Key::Character("r"), m) if m.contains(Modifiers::CTRL) =>
-                            Message::RerunAudit,
-                        (Key::Character("z"), m) if m.contains(Modifiers::CTRL) && m.contains(Modifiers::SHIFT) =>
-                            Message::RevertSelectedEntry,
-                        (Key::Character("z"), m) if m.contains(Modifiers::CTRL) =>
-                            Message::UndoApproval,
+                        (Key::Character("s"), m) if m.contains(Modifiers::CTRL) => {
+                            Message::SaveDefinition
+                        }
+                        (Key::Character("r"), m) if m.contains(Modifiers::CTRL) => {
+                            Message::RerunAudit
+                        }
+                        (Key::Character("z"), m)
+                            if m.contains(Modifiers::CTRL) && m.contains(Modifiers::SHIFT) =>
+                        {
+                            Message::RevertSelectedEntry
+                        }
+                        (Key::Character("z"), m) if m.contains(Modifiers::CTRL) => {
+                            Message::UndoApproval
+                        }
                         // RFC 005: Ctrl+E → export report
-                        (Key::Character("e"), m) if m.contains(Modifiers::CTRL) =>
-                            Message::ExportReport,
-                        (Key::Named(iced::keyboard::key::Named::ArrowDown), _) =>
-                            Message::SelectNext,
-                        (Key::Named(iced::keyboard::key::Named::ArrowUp), _) =>
-                            Message::SelectPrev,
+                        (Key::Character("e"), m) if m.contains(Modifiers::CTRL) => {
+                            Message::ExportReport
+                        }
+                        (Key::Named(iced::keyboard::key::Named::ArrowDown), _) => {
+                            Message::SelectNext
+                        }
+                        (Key::Named(iced::keyboard::key::Named::ArrowUp), _) => Message::SelectPrev,
                         // RFC 005: Tab / Shift+Tab for pane focus cycling
                         (Key::Named(iced::keyboard::key::Named::Tab), m)
                             if m.contains(Modifiers::SHIFT) =>
-                            Message::FocusPrev,
-                        (Key::Named(iced::keyboard::key::Named::Tab), _) =>
-                            Message::FocusNext,
+                        {
+                            Message::FocusPrev
+                        }
+                        (Key::Named(iced::keyboard::key::Named::Tab), _) => Message::FocusNext,
                         // RFC 005: / key → focus search
                         (Key::Character("/"), m)
                             if !m.contains(Modifiers::CTRL) && !m.contains(Modifiers::ALT) =>
-                            Message::FocusSearch,
+                        {
+                            Message::FocusSearch
+                        }
                         // RFC 051 — Ctrl+Enter submits approval (the reason text is
                         // trimmed in the handler, so an accidental trailing newline
                         // from the text_editor is harmless).
                         (Key::Named(iced::keyboard::key::Named::Enter), m)
                             if m.contains(Modifiers::CTRL) =>
-                            Message::ApproveAndSave,
+                        {
+                            Message::ApproveAndSave
+                        }
                         // RFC 005: Enter → focus inspector reason
-                        (Key::Named(iced::keyboard::key::Named::Enter), _) =>
-                            Message::FocusInspectorReason,
+                        (Key::Named(iced::keyboard::key::Named::Enter), _) => {
+                            Message::FocusInspectorReason
+                        }
                         // RFC 038: ? key → toggle keyboard help overlay
                         (Key::Character("?"), _) => Message::ToggleHelp,
                         // Escape — handled via EscapeKey to avoid capturing self in the closure
-                        (Key::Named(iced::keyboard::key::Named::Escape), _) =>
-                            Message::EscapeKey,
+                        (Key::Named(iced::keyboard::key::Named::Escape), _) => Message::EscapeKey,
                         _ => Message::Noop,
                     }
                 }
@@ -1895,11 +2034,9 @@ impl App {
         // RFC 021 §3.5 — 30-second wall-clock tick. Only enabled when at
         // least one timestamp is present, so we don't burn CPU re-rendering
         // until the user has actually saved or exported once.
-        let needs_tick =
-            self.last_saved_at.is_some() || self.last_reported_at.is_some();
+        let needs_tick = self.last_saved_at.is_some() || self.last_reported_at.is_some();
         let time_sub: Subscription<Message> = if needs_tick {
-            iced::time::every(std::time::Duration::from_secs(30))
-                .map(|_| Message::RelativeTimeTick)
+            iced::time::every(std::time::Duration::from_secs(30)).map(|_| Message::RelativeTimeTick)
         } else {
             Subscription::none()
         };
@@ -1912,7 +2049,7 @@ impl App {
     pub fn view(&self) -> Element<'_, Message> {
         let body = match self.screen {
             Screen::Opening => opening::view(self),
-            Screen::Main    => main_view::view(self),
+            Screen::Main => main_view::view(self),
         };
 
         let footer = self.view_footer();
@@ -1938,85 +2075,111 @@ impl App {
 
         // RFC 036 — Settings dialog modal overlay
         if self.settings_open {
-            use iced::{Color, Length};
             use iced::widget::{container, mouse_area, stack};
+            use iced::{Color, Length};
 
             let backdrop = mouse_area(
-                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(|_| container::Style {
-                        background: Some(iced::Background::Color(
-                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.35 }
-                        )),
-                        ..Default::default()
-                    })
+                container(
+                    iced::widget::space()
+                        .width(Length::Fill)
+                        .height(Length::Fill),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(iced::Background::Color(Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.35,
+                    })),
+                    ..Default::default()
+                }),
             )
             .on_press(Message::CloseSettings);
 
-            let dialog = iced::widget::center(
-                crate::views::settings_dialog::view(&self.settings_draft, &self.locale, &self.design_tokens)
-            );
+            let dialog = iced::widget::center(crate::views::settings_dialog::view(
+                &self.settings_draft,
+                &self.locale,
+                &self.design_tokens,
+            ));
 
             stack![base, backdrop, dialog].into()
 
         // RFC 038 — Keyboard help overlay (only on Main screen)
         } else if self.help_open && matches!(self.screen, Screen::Main) {
-            use iced::{Color, Length};
             use iced::widget::{container, mouse_area, stack};
+            use iced::{Color, Length};
 
             let backdrop = mouse_area(
-                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(|_| container::Style {
-                        background: Some(iced::Background::Color(
-                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.35 }
-                        )),
-                        ..Default::default()
-                    })
+                container(
+                    iced::widget::space()
+                        .width(Length::Fill)
+                        .height(Length::Fill),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(iced::Background::Color(Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.35,
+                    })),
+                    ..Default::default()
+                }),
             )
             .on_press(Message::CloseHelp);
 
-            let dialog = iced::widget::center(
-                crate::views::help_overlay::view(&self.design_tokens)
-            );
+            let dialog =
+                iced::widget::center(crate::views::help_overlay::view(&self.design_tokens));
 
             stack![base, backdrop, dialog].into()
 
         // RFC 041 — Navigation guard (only on Main screen)
         } else if self.nav_guard_open && matches!(self.screen, Screen::Main) {
-            use iced::{Color, Length};
             use iced::widget::{container, mouse_area, stack};
+            use iced::{Color, Length};
 
             let backdrop = mouse_area(
-                container(iced::widget::space().width(Length::Fill).height(Length::Fill))
-                    .width(Length::Fill)
-                    .height(Length::Fill)
-                    .style(|_| container::Style {
-                        background: Some(iced::Background::Color(
-                            Color { r: 0.0, g: 0.0, b: 0.0, a: 0.50 }
-                        )),
-                        ..Default::default()
-                    })
+                container(
+                    iced::widget::space()
+                        .width(Length::Fill)
+                        .height(Length::Fill),
+                )
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(iced::Background::Color(Color {
+                        r: 0.0,
+                        g: 0.0,
+                        b: 0.0,
+                        a: 0.50,
+                    })),
+                    ..Default::default()
+                }),
             )
             .on_press(Message::NavGuardCancel);
 
-            let dialog = iced::widget::center(
-                crate::views::nav_guard::view(self.nav_guard_show_discard, &self.design_tokens)
-            );
+            let dialog = iced::widget::center(crate::views::nav_guard::view(
+                self.nav_guard_show_discard,
+                &self.design_tokens,
+            ));
 
             stack![base, backdrop, dialog].into()
-
         } else {
             base
         }
     }
 
     fn view_footer(&self) -> Element<'_, Message> {
-        use iced::{Alignment::Center, Length, widget::{button, container, row, space, text, tooltip}};
         use iced::widget::tooltip::Position;
-        
+        use iced::{
+            Alignment::Center,
+            Length,
+            widget::{button, container, row, space, text, tooltip},
+        };
+
         // RFC 036 — language picker moved to Settings dialog.
         // RFC 038 — ? button (help overlay) + ⚙ settings button.
         let help_btn = tooltip(
@@ -2025,9 +2188,15 @@ impl App {
                     .size(self.design_tokens.typography.label.size)
                     .line_height(self.design_tokens.typography.label.line_height),
             )
-                .on_press(Message::ToggleHelp)
-                .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.sm]))
-                .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
+            .on_press(Message::ToggleHelp)
+            .padding(iced::Padding::from([
+                self.design_tokens.spacing.xs,
+                self.design_tokens.spacing.sm,
+            ]))
+            .style({
+                let t = self.design_tokens.clone();
+                move |_th, s| crate::style::btn_ghost(&t, s)
+            }),
             text(t!("help.title").to_string())
                 .size(self.design_tokens.typography.body_small.size)
                 .line_height(self.design_tokens.typography.body_small.line_height),
@@ -2040,9 +2209,15 @@ impl App {
                     .size(self.design_tokens.typography.label.size)
                     .line_height(self.design_tokens.typography.label.line_height),
             )
-                .on_press(Message::OpenSettings)
-                .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.sm]))
-                .style({ let t = self.design_tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) }),
+            .on_press(Message::OpenSettings)
+            .padding(iced::Padding::from([
+                self.design_tokens.spacing.xs,
+                self.design_tokens.spacing.sm,
+            ]))
+            .style({
+                let t = self.design_tokens.clone();
+                move |_th, s| crate::style::btn_ghost(&t, s)
+            }),
             text(t!("settings.button_tooltip").to_string())
                 .size(self.design_tokens.typography.body_small.size)
                 .line_height(self.design_tokens.typography.body_small.line_height),
@@ -2076,7 +2251,10 @@ impl App {
             .spacing(self.design_tokens.spacing.md),
         )
         .width(Length::Fill)
-        .padding(iced::Padding::from([self.design_tokens.spacing.xs, self.design_tokens.spacing.lg]))
+        .padding(iced::Padding::from([
+            self.design_tokens.spacing.xs,
+            self.design_tokens.spacing.lg,
+        ]))
         .style(panel_style(self.design_tokens.clone()))
         .into()
     }
@@ -2100,7 +2278,8 @@ impl App {
             if chrono::NaiveDate::parse_from_str(&ins.expires_at_str, "%Y-%m-%d").is_err() {
                 // RFC 031 — i18n-migrated; this was the last
                 // hardcoded user-facing string in app.rs.
-                v.expires_at_error = Some(t!("error.inspector.expires_at_format.message").to_string());
+                v.expires_at_error =
+                    Some(t!("error.inspector.expires_at_format.message").to_string());
             }
         }
 
@@ -2181,7 +2360,7 @@ impl App {
     pub fn validate_opening(&mut self) {
         let mut v = OpeningValidation::default();
         let before_s = self.before_path.trim().to_string();
-        let after_s  = self.after_path.trim().to_string();
+        let after_s = self.after_path.trim().to_string();
 
         // RFC 031 — all 6 inline validation messages migrated to t!().
         // Distinct from the RFC 020 banner path's
@@ -2219,31 +2398,43 @@ impl App {
     /// I/O errors are swallowed — a failing auto-save must never block the audit.
     fn auto_save_profile(&mut self) {
         let name = {
-            let from_def = (!self.definition_path.is_empty()).then(|| {
-                std::path::Path::new(&self.definition_path)
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .map(|s| s.to_string())
-            }).flatten();
+            let from_def = (!self.definition_path.is_empty())
+                .then(|| {
+                    std::path::Path::new(&self.definition_path)
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                })
+                .flatten();
 
-            let from_before = (!self.before_path.is_empty()).then(|| {
-                std::path::Path::new(&self.before_path)
-                    .file_name()
-                    .and_then(|s| s.to_str())
-                    .map(|s| s.to_string())
-            }).flatten();
+            let from_before = (!self.before_path.is_empty())
+                .then(|| {
+                    std::path::Path::new(&self.before_path)
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                })
+                .flatten();
 
-            from_def.or(from_before).unwrap_or_else(|| "untitled".to_string())
+            from_def
+                .or(from_before)
+                .unwrap_or_else(|| "untitled".to_string())
         };
 
         let profile = aaai::profile::store::AuditProfile {
             name,
-            before:      self.before_path.clone(),
-            after:       self.after_path.clone(),
-            definition:  if self.definition_path.is_empty() { None }
-                         else { Some(self.definition_path.clone()) },
-            ignore_file: if self.ignore_path.is_empty() { None }
-                         else { Some(self.ignore_path.clone()) },
+            before: self.before_path.clone(),
+            after: self.after_path.clone(),
+            definition: if self.definition_path.is_empty() {
+                None
+            } else {
+                Some(self.definition_path.clone())
+            },
+            ignore_file: if self.ignore_path.is_empty() {
+                None
+            } else {
+                Some(self.ignore_path.clone())
+            },
             last_used_at: Some(chrono::Utc::now()),
         };
 
@@ -2257,7 +2448,7 @@ impl App {
     pub fn recommended_strategy(diff_type: DiffType) -> StrategyKind {
         match diff_type {
             DiffType::Modified => StrategyKind::LineMatch,
-            _                  => StrategyKind::None,
+            _ => StrategyKind::None,
         }
     }
 
@@ -2268,11 +2459,15 @@ impl App {
         let mut out: Vec<String> = Vec::new();
 
         let mut push = |s: String| {
-            if seen.insert(s.clone()) && out.len() < 3 { out.push(s); }
+            if seen.insert(s.clone()) && out.len() < 3 {
+                out.push(s);
+            }
         };
 
         // Extension (last component after last '.', not in a dir name)
-        let ext: Option<&str> = path.rsplit('.').next()
+        let ext: Option<&str> = path
+            .rsplit('.')
+            .next()
             .filter(|e| !e.contains('/') && !e.is_empty() && e.len() <= 6);
 
         if parts.len() >= 2 {
@@ -2326,7 +2521,7 @@ impl App {
     /// toast is immediately visible while the diff runs.
     fn start_async_rerun(&mut self) -> Task<Message> {
         let before = std::path::PathBuf::from(&self.before_path);
-        let after  = std::path::PathBuf::from(&self.after_path);
+        let after = std::path::PathBuf::from(&self.after_path);
         let ignore = self.active_ignore.clone();
 
         self.is_loading = true;
@@ -2350,7 +2545,8 @@ impl App {
         let id = self.toast_id;
         self.toast_id += 1;
         self.toasts.push(Toast::new(
-            id, intent,
+            id,
+            intent,
             title.to_string(),
             body.to_string(),
             Message::DismissToast(id),
@@ -2447,7 +2643,10 @@ mod tests {
         ));
         assert!(!app.is_loading);
         assert_eq!(app.diffs.len(), 1);
-        let error = app.open_error.as_ref().expect("root failure must be presented");
+        let error = app
+            .open_error
+            .as_ref()
+            .expect("root failure must be presented");
         assert!(error.message.contains("AAAI-ROOT-UNAVAILABLE"));
         assert!(!error.hint.is_empty());
     }
@@ -2509,8 +2708,14 @@ mod tests {
     #[test]
     fn rfc064_suggest_patterns_depth2() {
         let s = App::suggest_patterns("src/main.rs");
-        assert!(s.contains(&"src/**".to_string()), "should suggest parent/**");
-        assert!(s.contains(&"**/*.rs".to_string()), "should suggest **/*.ext");
+        assert!(
+            s.contains(&"src/**".to_string()),
+            "should suggest parent/**"
+        );
+        assert!(
+            s.contains(&"**/*.rs".to_string()),
+            "should suggest **/*.ext"
+        );
     }
 
     #[test]
@@ -2527,16 +2732,20 @@ mod tests {
         let s = App::suggest_patterns("dist/output");
         // depth 2, no extension: only parent/**
         assert!(s.contains(&"dist/**".to_string()));
-        assert!(!s.iter().any(|p| p.contains("**/*.")),
-            "no ext-based chip when file has no extension");
+        assert!(
+            !s.iter().any(|p| p.contains("**/*.")),
+            "no ext-based chip when file has no extension"
+        );
     }
 
     #[test]
     fn rfc064_suggest_patterns_single_component() {
         let s = App::suggest_patterns("README.md");
         // single component (no /): no parent chip, only ext
-        assert!(!s.iter().any(|p| p.contains("/**")),
-            "no parent/** for single-component path");
+        assert!(
+            !s.iter().any(|p| p.contains("/**")),
+            "no parent/** for single-component path"
+        );
         assert!(s.contains(&"**/*.md".to_string()));
     }
 

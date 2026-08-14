@@ -1,8 +1,6 @@
 //! Tests for config round-trip serialization, validation, and glob matching.
 
-use super::definition::{
-    AuditDefinition, AuditEntry, AuditStrategy, LineAction, LineRule,
-};
+use super::definition::{AuditDefinition, AuditEntry, AuditStrategy, LineAction, LineRule};
 use crate::diff::entry::DiffType;
 
 fn sample_entry() -> AuditEntry {
@@ -12,8 +10,14 @@ fn sample_entry() -> AuditEntry {
         reason: "Port change".to_string(),
         strategy: AuditStrategy::LineMatch {
             rules: vec![
-                LineRule { action: LineAction::Removed, line: "port = 80".to_string() },
-                LineRule { action: LineAction::Added,   line: "port = 8080".to_string() },
+                LineRule {
+                    action: LineAction::Removed,
+                    line: "port = 80".to_string(),
+                },
+                LineRule {
+                    action: LineAction::Added,
+                    line: "port = 8080".to_string(),
+                },
             ],
         },
         enabled: true,
@@ -69,7 +73,10 @@ fn approvable_fails_empty_reason() {
 #[test]
 fn approvable_fails_invalid_regex() {
     let mut e = sample_entry();
-    e.strategy = AuditStrategy::Regex { pattern: "[invalid".to_string(), target: Default::default() };
+    e.strategy = AuditStrategy::Regex {
+        pattern: "[invalid".to_string(),
+        target: Default::default(),
+    };
     assert!(e.is_approvable().is_err());
 }
 
@@ -80,14 +87,36 @@ fn approvable_ok_for_valid_entry() {
 
 #[test]
 fn strategy_validate_checksum_requires_64_hex() {
-    assert!(AuditStrategy::Checksum { expected_sha256: "a".repeat(64) }.validate().is_ok());
-    assert!(AuditStrategy::Checksum { expected_sha256: "abc".to_string() }.validate().is_err());
-    assert!(AuditStrategy::Checksum { expected_sha256: "z".repeat(64) }.validate().is_err());
+    assert!(
+        AuditStrategy::Checksum {
+            expected_sha256: "a".repeat(64)
+        }
+        .validate()
+        .is_ok()
+    );
+    assert!(
+        AuditStrategy::Checksum {
+            expected_sha256: "abc".to_string()
+        }
+        .validate()
+        .is_err()
+    );
+    assert!(
+        AuditStrategy::Checksum {
+            expected_sha256: "z".repeat(64)
+        }
+        .validate()
+        .is_err()
+    );
 }
 
 #[test]
 fn strategy_validate_linematch_requires_rules() {
-    assert!(AuditStrategy::LineMatch { rules: vec![] }.validate().is_err());
+    assert!(
+        AuditStrategy::LineMatch { rules: vec![] }
+            .validate()
+            .is_err()
+    );
 }
 
 // ── Glob pattern matching ────────────────────────────────────────────────
@@ -159,7 +188,10 @@ fn glob_matches_extension_pattern() {
     let mut e = sample_entry();
     e.path = "**/*.lock".to_string();
     assert!(e.glob_matches("Cargo.lock"));
-    assert!(!e.glob_matches("package-lock.json"), "*.lock should not match .json");
+    assert!(
+        !e.glob_matches("package-lock.json"),
+        "*.lock should not match .json"
+    );
     assert!(e.glob_matches("sub/dir/yarn.lock"));
 }
 

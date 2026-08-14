@@ -1,8 +1,8 @@
 //! `aaai completions` — generate shell tab-completion scripts.
 
-use std::io;
 use clap::{Args, CommandFactory};
 use clap_complete::{Shell, generate};
+use std::io;
 
 const COMPLETIONS_AFTER_HELP: &str = "\
 Next steps:

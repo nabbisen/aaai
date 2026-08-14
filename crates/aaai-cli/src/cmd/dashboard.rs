@@ -1,11 +1,10 @@
 //! `aaai dashboard` — colour-coded audit statistics dashboard.
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
-use aaai::{AuditEngine, AuditStatus, DiffEngine, DiffType,
-                config::io as config_io};
+use aaai::{AuditEngine, AuditStatus, DiffEngine, DiffType, config::io as config_io};
 
 const DASHBOARD_AFTER_HELP: &str = "\
 Next steps:
@@ -29,17 +28,18 @@ pub struct DashboardArgs {
 
 pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
     let definition = config_io::load(&args.config)?;
-    let diffs      = DiffEngine::compare(&args.left, &args.right)?;
-    let result     = AuditEngine::evaluate(&diffs, &definition);
-    let s          = &result.summary;
+    let diffs = DiffEngine::compare(&args.left, &args.right)?;
+    let result = AuditEngine::evaluate(&diffs, &definition);
+    let s = &result.summary;
 
     // Expiry info
-    let expired      = definition.expired_entries();
+    let expired = definition.expired_entries();
     let expiring_soon = definition.expiring_soon(30);
 
     // ── Banner ────────────────────────────────────────────────────────
     println!();
-    println!("  {}",
+    println!(
+        "  {}",
         if s.is_passing() {
             "╔══════════════════════════════╗".green().bold()
         } else {
@@ -52,7 +52,8 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
         format!("  ║  aaai  ──  {}              ║", "FAILED".red().bold())
     };
     println!("{verdict_line}");
-    println!("  {}",
+    println!(
+        "  {}",
         if s.is_passing() {
             "╚══════════════════════════════╝".green().bold()
         } else {
@@ -62,10 +63,10 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
     println!();
 
     // ── Stat cards ────────────────────────────────────────────────────
-    print_stat_card("OK",      s.ok,      "green");
+    print_stat_card("OK", s.ok, "green");
     print_stat_card("Pending", s.pending, "yellow");
-    print_stat_card("Failed",  s.failed,  "red");
-    print_stat_card("Error",   s.error,   "magenta");
+    print_stat_card("Failed", s.failed, "red");
+    print_stat_card("Error", s.error, "magenta");
     print_stat_card("Ignored", s.ignored, "white");
     println!();
     println!("  Total files: {}", s.total);
@@ -73,24 +74,44 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
     // ── Expiry warnings ───────────────────────────────────────────────
     if !expired.is_empty() {
         println!();
-        println!("  {} {} expired entries:", "⚠ ".yellow().bold(), expired.len());
+        println!(
+            "  {} {} expired entries:",
+            "⚠ ".yellow().bold(),
+            expired.len()
+        );
         for e in &expired {
-            println!("    {} — expired: {}", e.path.red(),
-                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+            println!(
+                "    {} — expired: {}",
+                e.path.red(),
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default()
+            );
         }
     }
     if !expiring_soon.is_empty() {
-        println!("  {} {} entries expiring within 30 days:", "⏰".yellow(), expiring_soon.len());
+        println!(
+            "  {} {} entries expiring within 30 days:",
+            "⏰".yellow(),
+            expiring_soon.len()
+        );
         for e in &expiring_soon {
-            println!("    {} — {}", e.path,
-                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+            println!(
+                "    {} — {}",
+                e.path,
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default()
+            );
         }
     }
 
     // ── Attention list ────────────────────────────────────────────────
-    let attention: Vec<_> = result.results.iter()
-        .filter(|r| matches!(r.status, AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error)
-                 && r.diff.diff_type != DiffType::Unchanged)
+    let attention: Vec<_> = result
+        .results
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.status,
+                AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error
+            ) && r.diff.diff_type != DiffType::Unchanged
+        })
         .collect();
 
     if !attention.is_empty() {
@@ -98,10 +119,10 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
         println!("  {} Needs attention:", "▸".bold());
         for r in &attention {
             let icon = match r.status {
-                AuditStatus::Failed  => "✗".red().bold().to_string(),
+                AuditStatus::Failed => "✗".red().bold().to_string(),
                 AuditStatus::Pending => "?".yellow().to_string(),
-                AuditStatus::Error   => "!".magenta().to_string(),
-                _                    => " ".to_string(),
+                AuditStatus::Error => "!".magenta().to_string(),
+                _ => " ".to_string(),
             };
             println!("    {icon} {} ({})", r.diff.path, r.status);
             if let Some(d) = &r.detail {
@@ -114,15 +135,20 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
         println!();
         println!("  {} All changed entries:", "▸".bold());
         for r in &result.results {
-            if r.diff.diff_type == DiffType::Unchanged { continue; }
+            if r.diff.diff_type == DiffType::Unchanged {
+                continue;
+            }
             let icon = match r.status {
-                AuditStatus::Ok      => "✓".green().to_string(),
+                AuditStatus::Ok => "✓".green().to_string(),
                 AuditStatus::Pending => "?".yellow().to_string(),
-                AuditStatus::Failed  => "✗".red().bold().to_string(),
-                AuditStatus::Error   => "!".magenta().to_string(),
+                AuditStatus::Failed => "✗".red().bold().to_string(),
+                AuditStatus::Error => "!".magenta().to_string(),
                 AuditStatus::Ignored => "–".dimmed().to_string(),
             };
-            let stats = r.diff.stats.as_ref()
+            let stats = r
+                .diff
+                .stats
+                .as_ref()
                 .map(|st| format!(" +{} −{}", st.lines_added, st.lines_removed))
                 .unwrap_or_default();
             let binary = if r.diff.is_binary { " [bin]" } else { "" };
@@ -144,11 +170,11 @@ pub fn run(args: DashboardArgs) -> anyhow::Result<()> {
 
 fn print_stat_card(label: &str, count: usize, color: &str) {
     let count_str = match color {
-        "green"   => count.to_string().green().bold().to_string(),
-        "yellow"  => count.to_string().yellow().bold().to_string(),
-        "red"     => count.to_string().red().bold().to_string(),
+        "green" => count.to_string().green().bold().to_string(),
+        "yellow" => count.to_string().yellow().bold().to_string(),
+        "red" => count.to_string().red().bold().to_string(),
         "magenta" => count.to_string().magenta().bold().to_string(),
-        _         => count.to_string().dimmed().to_string(),
+        _ => count.to_string().dimmed().to_string(),
     };
     println!("  {:8} {count_str}", format!("{label}:"));
 }

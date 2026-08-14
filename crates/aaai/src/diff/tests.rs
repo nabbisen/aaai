@@ -23,7 +23,9 @@ fn write(dir: &std::path::Path, rel: &str, content: &str) {
 }
 
 fn find(diffs: &[super::entry::DiffEntry], path: &str) -> super::entry::DiffEntry {
-    diffs.iter().find(|d| d.path == path)
+    diffs
+        .iter()
+        .find(|d| d.path == path)
         .unwrap_or_else(|| panic!("entry not found: {path}"))
         .clone()
 }
@@ -33,7 +35,7 @@ fn find(diffs: &[super::entry::DiffEntry], path: &str) -> super::entry::DiffEntr
 #[test]
 fn detects_added_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(after.path(), "new.txt", "hello");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
@@ -45,7 +47,7 @@ fn detects_added_file() {
 #[test]
 fn detects_removed_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "gone.toml", "[x]");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
@@ -56,9 +58,9 @@ fn detects_removed_file() {
 #[test]
 fn detects_modified_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "cfg.toml", "port = 80\n");
-    write(after.path(),  "cfg.toml", "port = 8080\n");
+    write(after.path(), "cfg.toml", "port = 8080\n");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let e = find(&diffs, "cfg.toml");
@@ -69,9 +71,9 @@ fn detects_modified_file() {
 #[test]
 fn detects_unchanged_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "same.txt", "content");
-    write(after.path(),  "same.txt", "content");
+    write(after.path(), "same.txt", "content");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let e = find(&diffs, "same.txt");
@@ -81,7 +83,7 @@ fn detects_unchanged_file() {
 #[test]
 fn output_is_sorted() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(after.path(), "z.txt", "z");
     write(after.path(), "a.txt", "a");
     write(after.path(), "m.txt", "m");
@@ -96,7 +98,7 @@ fn output_is_sorted() {
 #[test]
 fn nested_paths_use_forward_slash() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(after.path(), "sub/dir/file.txt", "hi");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
@@ -108,7 +110,7 @@ fn nested_paths_use_forward_slash() {
 #[test]
 fn sha256_present_for_after_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(after.path(), "file.bin", "data");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
@@ -133,7 +135,7 @@ fn before_root_must_be_directory() {
 #[test]
 fn binary_file_detected() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     // Write a file with null bytes (binary marker).
     let binary_content: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0xFF, 0xFE];
     std::fs::write(after.path().join("data.bin"), &binary_content).unwrap();
@@ -143,31 +145,41 @@ fn binary_file_detected() {
     assert_eq!(e.diff_type, DiffType::Added);
     assert!(e.is_binary, "null bytes should mark file as binary");
     assert!(e.after_text.is_none(), "binary file should have no text");
-    assert!(e.after_sha256.is_some(), "binary file should still have hash");
+    assert!(
+        e.after_sha256.is_some(),
+        "binary file should still have hash"
+    );
     assert!(e.after_size.is_some(), "binary file should have size");
 }
 
 #[test]
 fn diff_stats_computed_for_modified_text() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "lines.txt", "line1\nline2\nline3\n");
-    write(after.path(),  "lines.txt", "line1\nline2_changed\nline3\nline4\n");
+    write(
+        after.path(),
+        "lines.txt",
+        "line1\nline2_changed\nline3\nline4\n",
+    );
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let e = find(&diffs, "lines.txt");
     assert_eq!(e.diff_type, DiffType::Modified);
-    let stats = e.stats.as_ref().expect("stats should be present for modified text");
-    assert!(stats.lines_added   >= 1, "should have added lines");
+    let stats = e
+        .stats
+        .as_ref()
+        .expect("stats should be present for modified text");
+    assert!(stats.lines_added >= 1, "should have added lines");
     assert!(stats.lines_removed >= 1, "should have removed lines");
 }
 
 #[test]
 fn size_tracking_for_modified_file() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "f.txt", "short");
-    write(after.path(),  "f.txt", "much longer content here");
+    write(after.path(), "f.txt", "much longer content here");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let e = find(&diffs, "f.txt");
@@ -180,13 +192,13 @@ fn size_tracking_for_modified_file() {
 fn parallel_compare_produces_sorted_output() {
     use crate::diff::ignore::IgnoreRules;
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     for name in ["z.txt", "a.txt", "m.txt", "b.txt"] {
         write(after.path(), name, name);
     }
-    let diffs = DiffEngine::compare_with_ignore(
-        before.path(), after.path(), &IgnoreRules::default()
-    ).unwrap();
+    let diffs =
+        DiffEngine::compare_with_ignore(before.path(), after.path(), &IgnoreRules::default())
+            .unwrap();
     let paths: Vec<_> = diffs.iter().map(|d| d.path.as_str()).collect();
     let mut sorted = paths.clone();
     sorted.sort();
@@ -195,8 +207,8 @@ fn parallel_compare_produces_sorted_output() {
 
 #[test]
 fn progress_sequence_is_complete_and_deterministic() {
-    use std::sync::Mutex;
     use crate::diff::ignore::IgnoreRules;
+    use std::sync::Mutex;
 
     #[derive(Default)]
     struct RecordingProgress(Mutex<Vec<DiffProgress>>);
@@ -208,7 +220,13 @@ fn progress_sequence_is_complete_and_deterministic() {
 
     let before = tmp_dir();
     let after = tmp_dir();
-    for name in ["z.txt", "a.txt", "middle.txt", "%literal", "nested/file.txt"] {
+    for name in [
+        "z.txt",
+        "a.txt",
+        "middle.txt",
+        "%literal",
+        "nested/file.txt",
+    ] {
         write(after.path(), name, name);
     }
 
@@ -216,19 +234,50 @@ fn progress_sequence_is_complete_and_deterministic() {
     for _ in 0..8 {
         let progress = RecordingProgress::default();
         DiffEngine::compare_with_progress(
-            before.path(), after.path(), &IgnoreRules::default(), &progress,
-        ).unwrap();
+            before.path(),
+            after.path(),
+            &IgnoreRules::default(),
+            &progress,
+        )
+        .unwrap();
         let events = progress.0.into_inner().unwrap();
-        assert!(matches!(events.first(), Some(DiffProgress::Started { total: 6 })));
+        assert!(matches!(
+            events.first(),
+            Some(DiffProgress::Started { total: 6 })
+        ));
         assert!(matches!(events.get(7), Some(DiffProgress::Sorting)));
-        assert!(matches!(events.get(8), Some(DiffProgress::Done { total_files: 6 })));
-        let files: Vec<_> = events[1..7].iter().enumerate().map(|(index, event)| {
-            let DiffProgress::File { path, processed, total } = event else { panic!() };
-            assert_eq!(*processed, index + 1);
-            assert_eq!(*total, 6);
-            path.clone()
-        }).collect();
-        assert_eq!(files, ["%25literal", "a.txt", "middle.txt", "nested", "nested/file.txt", "z.txt"]);
+        assert!(matches!(
+            events.get(8),
+            Some(DiffProgress::Done { total_files: 6 })
+        ));
+        let files: Vec<_> = events[1..7]
+            .iter()
+            .enumerate()
+            .map(|(index, event)| {
+                let DiffProgress::File {
+                    path,
+                    processed,
+                    total,
+                } = event
+                else {
+                    panic!()
+                };
+                assert_eq!(*processed, index + 1);
+                assert_eq!(*total, 6);
+                path.clone()
+            })
+            .collect();
+        assert_eq!(
+            files,
+            [
+                "%25literal",
+                "a.txt",
+                "middle.txt",
+                "nested",
+                "nested/file.txt",
+                "z.txt"
+            ]
+        );
         if let Some(previous) = &expected {
             assert_eq!(&files, previous);
         }
@@ -255,15 +304,21 @@ fn path_read_issue_is_unreadable_and_audit_error() {
 #[test]
 fn before_sha256_tracked() {
     let before = tmp_dir();
-    let after  = tmp_dir();
+    let after = tmp_dir();
     write(before.path(), "f.txt", "content");
-    write(after.path(),  "f.txt", "different");
+    write(after.path(), "f.txt", "different");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let e = find(&diffs, "f.txt");
-    assert!(e.before_sha256.is_some(), "before_sha256 must be present for modified files");
+    assert!(
+        e.before_sha256.is_some(),
+        "before_sha256 must be present for modified files"
+    );
     assert!(e.after_sha256.is_some());
-    assert_ne!(e.before_sha256, e.after_sha256, "hashes must differ for modified file");
+    assert_ne!(
+        e.before_sha256, e.after_sha256,
+        "hashes must differ for modified file"
+    );
 }
 #[cfg(unix)]
 #[test]
@@ -335,8 +390,8 @@ fn selected_root_symlink_is_rejected() {
             .contains(&physical.path().display().to_string())
     );
     for bypass in [root_link.join("."), root_link.join("subdir").join("..")] {
-        let error = DiffEngine::compare(&bypass, other.path())
-            .expect_err("root-link bypass must fail");
+        let error =
+            DiffEngine::compare(&bypass, other.path()).expect_err("root-link bypass must fail");
         assert!(error.to_string().contains("AAAI-ROOT-UNAVAILABLE"));
     }
 }
@@ -376,7 +431,13 @@ fn unix_socket_is_incomparable_and_never_opened_for_content() {
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     let entry = find(&diffs, "socket");
     assert_eq!(entry.diff_type, DiffType::Incomparable);
-    assert!(entry.error_detail.as_deref().unwrap().starts_with("[AAAI-PATH-SPECIAL]"));
+    assert!(
+        entry
+            .error_detail
+            .as_deref()
+            .unwrap()
+            .starts_with("[AAAI-PATH-SPECIAL]")
+    );
 }
 
 #[cfg(unix)]
@@ -509,26 +570,45 @@ fn relative_inside_links_and_link_type_conflicts_are_incomparable() {
     symlink("inside-dir", after.path().join("link-vs-dir")).unwrap();
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
-    for name in ["relative-file-link", "relative-dir-link", "link-vs-file", "link-vs-dir"] {
+    for name in [
+        "relative-file-link",
+        "relative-dir-link",
+        "link-vs-file",
+        "link-vs-dir",
+    ] {
         let entry = find(&diffs, name);
         assert_eq!(entry.diff_type, DiffType::Incomparable);
-        assert!(entry.error_detail.as_deref().unwrap().starts_with("[AAAI-PATH-LINK]"));
+        assert!(
+            entry
+                .error_detail
+                .as_deref()
+                .unwrap()
+                .starts_with("[AAAI-PATH-LINK]")
+        );
         assert!(entry.before_sha256.is_none() && entry.after_sha256.is_none());
     }
-    assert!(!diffs.iter().any(|entry| entry.path == "relative-dir-link/descendant"));
+    assert!(
+        !diffs
+            .iter()
+            .any(|entry| entry.path == "relative-dir-link/descendant")
+    );
 }
 
 #[cfg(unix)]
 #[test]
 fn ignored_file_link_is_omitted_without_reading_target() {
-    use std::os::unix::fs::symlink;
     use crate::diff::ignore::IgnoreRules;
+    use std::os::unix::fs::symlink;
 
     let before = tmp_dir();
     let after = tmp_dir();
     let outside = tmp_dir();
     write(outside.path(), "canary", "outside-secret-content");
-    symlink(outside.path().join("canary"), after.path().join("ignored-file")).unwrap();
+    symlink(
+        outside.path().join("canary"),
+        after.path().join("ignored-file"),
+    )
+    .unwrap();
     let ignore = IgnoreRules::from_str("ignored-file\n").unwrap();
     let diffs = DiffEngine::compare_with_ignore(before.path(), after.path(), &ignore).unwrap();
     assert!(diffs.is_empty());
@@ -542,8 +622,13 @@ fn link_audit_preserves_namespace_content_and_stable_metadata() {
     fn stable(path: &std::path::Path) -> (u64, u32, u64, u64, std::time::SystemTime, bool, bool) {
         let metadata = fs::symlink_metadata(path).unwrap();
         (
-            metadata.len(), metadata.permissions().mode(), metadata.dev(), metadata.ino(),
-            metadata.modified().unwrap(), metadata.file_type().is_file(), metadata.file_type().is_symlink(),
+            metadata.len(),
+            metadata.permissions().mode(),
+            metadata.dev(),
+            metadata.ino(),
+            metadata.modified().unwrap(),
+            metadata.file_type().is_file(),
+            metadata.file_type().is_symlink(),
         )
     }
 
@@ -556,14 +641,20 @@ fn link_audit_preserves_namespace_content_and_stable_metadata() {
     symlink(&canary, &link).unwrap();
     let before_canary = (fs::read(&canary).unwrap(), stable(&canary));
     let before_link = stable(&link);
-    let before_entries: Vec<_> = fs::read_dir(after.path()).unwrap().map(|entry| entry.unwrap().file_name()).collect();
+    let before_entries: Vec<_> = fs::read_dir(after.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     assert_eq!(find(&diffs, "linked").diff_type, DiffType::Incomparable);
 
     assert_eq!((fs::read(&canary).unwrap(), stable(&canary)), before_canary);
     assert_eq!(stable(&link), before_link);
-    let after_entries: Vec<_> = fs::read_dir(after.path()).unwrap().map(|entry| entry.unwrap().file_name()).collect();
+    let after_entries: Vec<_> = fs::read_dir(after.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
     assert_eq!(after_entries, before_entries);
 }
 
@@ -597,11 +688,23 @@ fn cross_root_links_are_not_followed_into_the_other_selected_root() {
     // through the cross-root link under test.
     write(before.path(), "secret.txt", "cross-root-secret-canary");
     fs::create_dir(before.path().join("folder")).unwrap();
-    write(before.path(), "folder/nested.txt", "cross-root-nested-canary");
+    write(
+        before.path(),
+        "folder/nested.txt",
+        "cross-root-nested-canary",
+    );
 
     // after/ -> before/  (file and directory, absolute and relative)
-    symlink(before.path().join("secret.txt"), after.path().join("to-other-file")).unwrap();
-    symlink(before.path().join("folder"), after.path().join("to-other-dir")).unwrap();
+    symlink(
+        before.path().join("secret.txt"),
+        after.path().join("to-other-file"),
+    )
+    .unwrap();
+    symlink(
+        before.path().join("folder"),
+        after.path().join("to-other-dir"),
+    )
+    .unwrap();
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
 
@@ -622,7 +725,9 @@ fn cross_root_links_are_not_followed_into_the_other_selected_root() {
 
     // The directory link must not have been enumerated: nothing under it.
     assert!(
-        !diffs.iter().any(|entry| entry.path.starts_with("to-other-dir/")),
+        !diffs
+            .iter()
+            .any(|entry| entry.path.starts_with("to-other-dir/")),
         "descendants of a cross-root directory link must never be enumerated"
     );
 
@@ -633,7 +738,12 @@ fn cross_root_links_are_not_followed_into_the_other_selected_root() {
     let via_link = diffs
         .iter()
         .filter(|entry| entry.path.starts_with("to-other-"))
-        .map(|entry| format!("{}{:?}{:?}{:?}", entry.path, entry.before_text, entry.after_text, entry.error_detail))
+        .map(|entry| {
+            format!(
+                "{}{:?}{:?}{:?}",
+                entry.path, entry.before_text, entry.after_text, entry.error_detail
+            )
+        })
         .collect::<String>();
     assert!(!via_link.contains("cross-root-secret-canary"));
     assert!(!via_link.contains("cross-root-nested-canary"));
@@ -704,8 +814,8 @@ fn windows_file_and_directory_symlinks_are_reparse_errors() {
 #[cfg(windows)]
 #[test]
 fn windows_link_matrix_remains_metadata_only() {
-    use std::os::windows::fs::{symlink_dir, symlink_file};
     use crate::diff::ignore::IgnoreRules;
+    use std::os::windows::fs::{symlink_dir, symlink_file};
 
     let before = tmp_dir();
     let after = tmp_dir();
@@ -713,50 +823,110 @@ fn windows_link_matrix_remains_metadata_only() {
     write(after.path(), "inside-target", "ordinary-inside");
     write(outside.path(), "canary", "outside-secret-content");
     fs::create_dir(outside.path().join("folder")).unwrap();
-    write(outside.path(), "folder/outside-descendant-name", "outside-descendant-content");
-    write(after.path(), "inside-dir/inside-descendant", "ordinary-descendant");
+    write(
+        outside.path(),
+        "folder/outside-descendant-name",
+        "outside-descendant-content",
+    );
+    write(
+        after.path(),
+        "inside-dir/inside-descendant",
+        "ordinary-descendant",
+    );
 
-    symlink_file("inside-target", after.path().join("relative-inside")).expect("Windows relative symlink fixture");
-    symlink_file(outside.path().join("canary"), after.path().join("absolute-outside")).expect("Windows absolute symlink fixture");
-    symlink_file("missing-target", after.path().join("broken")).expect("Windows broken symlink fixture");
+    symlink_file("inside-target", after.path().join("relative-inside"))
+        .expect("Windows relative symlink fixture");
+    symlink_file(
+        outside.path().join("canary"),
+        after.path().join("absolute-outside"),
+    )
+    .expect("Windows absolute symlink fixture");
+    symlink_file("missing-target", after.path().join("broken"))
+        .expect("Windows broken symlink fixture");
     symlink_file("cycle-b", after.path().join("cycle-a")).expect("Windows cycle fixture");
     symlink_file("cycle-a", after.path().join("cycle-b")).expect("Windows cycle fixture");
-    symlink_file(outside.path().join("canary"), before.path().join("removed")).expect("Windows removed symlink fixture");
-    symlink_file(outside.path().join("canary"), before.path().join("same")).expect("Windows same-path symlink fixture");
-    symlink_file(outside.path().join("canary"), after.path().join("same")).expect("Windows same-path symlink fixture");
-    symlink_dir(outside.path().join("folder"), after.path().join("ignored-dir")).expect("Windows ignored directory-link fixture");
-    symlink_file(outside.path().join("canary"), after.path().join("ignored-file")).expect("Windows ignored file-link fixture");
-    symlink_dir(outside.path().join("folder"), after.path().join("outside-dir")).expect("Windows outside directory-link fixture");
-    symlink_dir("inside-dir", after.path().join("inside-dir-link")).expect("Windows inside directory-link fixture");
+    symlink_file(outside.path().join("canary"), before.path().join("removed"))
+        .expect("Windows removed symlink fixture");
+    symlink_file(outside.path().join("canary"), before.path().join("same"))
+        .expect("Windows same-path symlink fixture");
+    symlink_file(outside.path().join("canary"), after.path().join("same"))
+        .expect("Windows same-path symlink fixture");
+    symlink_dir(
+        outside.path().join("folder"),
+        after.path().join("ignored-dir"),
+    )
+    .expect("Windows ignored directory-link fixture");
+    symlink_file(
+        outside.path().join("canary"),
+        after.path().join("ignored-file"),
+    )
+    .expect("Windows ignored file-link fixture");
+    symlink_dir(
+        outside.path().join("folder"),
+        after.path().join("outside-dir"),
+    )
+    .expect("Windows outside directory-link fixture");
+    symlink_dir("inside-dir", after.path().join("inside-dir-link"))
+        .expect("Windows inside directory-link fixture");
     symlink_dir("self-dir", after.path().join("self-dir")).expect("Windows self-cycle fixture");
     write(before.path(), "link-vs-file", "regular-before");
     fs::create_dir(before.path().join("link-vs-dir")).unwrap();
-    symlink_file("inside-target", after.path().join("link-vs-file")).expect("Windows file conflict fixture");
-    symlink_dir("inside-dir", after.path().join("link-vs-dir")).expect("Windows directory conflict fixture");
+    symlink_file("inside-target", after.path().join("link-vs-file"))
+        .expect("Windows file conflict fixture");
+    symlink_dir("inside-dir", after.path().join("link-vs-dir"))
+        .expect("Windows directory conflict fixture");
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     for name in [
-        "relative-inside", "absolute-outside", "broken", "cycle-a", "cycle-b",
-        "removed", "same", "ignored-dir", "ignored-file", "outside-dir", "inside-dir-link", "self-dir",
-        "link-vs-file", "link-vs-dir",
+        "relative-inside",
+        "absolute-outside",
+        "broken",
+        "cycle-a",
+        "cycle-b",
+        "removed",
+        "same",
+        "ignored-dir",
+        "ignored-file",
+        "outside-dir",
+        "inside-dir-link",
+        "self-dir",
+        "link-vs-file",
+        "link-vs-dir",
     ] {
         let entry = find(&diffs, name);
         assert_eq!(entry.diff_type, DiffType::Incomparable);
-        assert!(entry.error_detail.as_deref().unwrap().starts_with("[AAAI-PATH-REPARSE]"));
+        assert!(
+            entry
+                .error_detail
+                .as_deref()
+                .unwrap()
+                .starts_with("[AAAI-PATH-REPARSE]")
+        );
         assert!(entry.before_sha256.is_none() && entry.after_sha256.is_none());
     }
-    let rendered = diffs.iter().map(|entry| format!("{}{:?}", entry.path, entry.error_detail)).collect::<String>();
+    let rendered = diffs
+        .iter()
+        .map(|entry| format!("{}{:?}", entry.path, entry.error_detail))
+        .collect::<String>();
     assert!(!rendered.contains("outside-secret-content"));
     assert!(!rendered.contains("outside-descendant-name"));
     assert!(!rendered.contains("outside-descendant-content"));
-    assert!(!diffs.iter().any(|entry| entry.path == "outside-dir/outside-descendant-name"));
+    assert!(
+        !diffs
+            .iter()
+            .any(|entry| entry.path == "outside-dir/outside-descendant-name")
+    );
     assert!(!rendered.contains(&outside.path().display().to_string()));
 
     let ignore = IgnoreRules::from_str("ignored-dir\nignored-file\n").unwrap();
     let ignored = DiffEngine::compare_with_ignore(before.path(), after.path(), &ignore).unwrap();
     assert!(!ignored.iter().any(|entry| entry.path == "ignored-dir"));
     assert!(!ignored.iter().any(|entry| entry.path == "ignored-file"));
-    assert!(!diffs.iter().any(|entry| entry.path == "inside-dir-link/inside-descendant"));
+    assert!(
+        !diffs
+            .iter()
+            .any(|entry| entry.path == "inside-dir-link/inside-descendant")
+    );
 }
 
 /// Windows twin of `cross_root_links_are_not_followed_into_the_other_selected_root`.
@@ -850,8 +1020,11 @@ fn windows_link_audit_preserves_namespace_content_and_stable_metadata() {
     fn stable(path: &std::path::Path) -> (u64, u32, u64, std::time::SystemTime, bool, bool) {
         let metadata = fs::symlink_metadata(path).unwrap();
         (
-            metadata.file_size(), metadata.file_attributes(), metadata.last_write_time(),
-            metadata.modified().unwrap(), metadata.permissions().readonly(),
+            metadata.file_size(),
+            metadata.file_attributes(),
+            metadata.last_write_time(),
+            metadata.modified().unwrap(),
+            metadata.permissions().readonly(),
             metadata.file_type().is_symlink(),
         )
     }
@@ -865,13 +1038,19 @@ fn windows_link_audit_preserves_namespace_content_and_stable_metadata() {
     symlink_file(&canary, &link).expect("hosted Windows non-mutation symlink fixture");
     let before_canary = (fs::read(&canary).unwrap(), stable(&canary));
     let before_link = stable(&link);
-    let before_entries: Vec<_> = fs::read_dir(after.path()).unwrap().map(|entry| entry.unwrap().file_name()).collect();
+    let before_entries: Vec<_> = fs::read_dir(after.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
 
     let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
     assert_eq!(find(&diffs, "linked").diff_type, DiffType::Incomparable);
     assert_eq!((fs::read(&canary).unwrap(), stable(&canary)), before_canary);
     assert_eq!(stable(&link), before_link);
-    let after_entries: Vec<_> = fs::read_dir(after.path()).unwrap().map(|entry| entry.unwrap().file_name()).collect();
+    let after_entries: Vec<_> = fs::read_dir(after.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
     assert_eq!(after_entries, before_entries);
 }
 

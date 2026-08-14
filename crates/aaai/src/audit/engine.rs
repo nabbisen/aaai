@@ -1,10 +1,10 @@
 //! Audit engine: matches DiffEntries against AuditDefinition → AuditResult.
 
+use super::result::{AuditResult, AuditStatus, FileAuditResult};
+use super::strategy;
 use crate::audit::warning;
 use crate::config::definition::AuditDefinition;
 use crate::diff::entry::{DiffEntry, DiffType};
-use super::result::{AuditResult, AuditStatus, FileAuditResult};
-use super::strategy;
 
 /// The stateless audit evaluator.
 ///
@@ -55,9 +55,9 @@ impl AuditEngine {
             let mut result = judge(diff, definition);
             // Filter suppressed warnings.
             if !options.suppress_warnings.is_empty() {
-                result.warnings.retain(|w| {
-                    !options.suppress_warnings.iter().any(|s| s == w.kind())
-                });
+                result
+                    .warnings
+                    .retain(|w| !options.suppress_warnings.iter().any(|s| s == w.kind()));
             }
             results.push(result);
         }
@@ -73,9 +73,10 @@ fn judge(diff: &DiffEntry, definition: &AuditDefinition) -> FileAuditResult {
             diff: diff.clone(),
             entry: None,
             status: AuditStatus::Error,
-            detail: diff.error_detail.clone().or_else(|| {
-                Some("File could not be read or compared.".into())
-            }),
+            detail: diff
+                .error_detail
+                .clone()
+                .or_else(|| Some("File could not be read or compared.".into())),
             warnings: Vec::new(),
         };
     }

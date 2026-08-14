@@ -7,9 +7,9 @@
 //!   3  ERROR   — file-level read / compare errors
 //!   4  (reserved for config error, handled by anyhow before this point)
 
+use colored::Colorize;
 use std::path::PathBuf;
 use std::process;
-use colored::Colorize;
 
 use clap::Args;
 
@@ -78,11 +78,13 @@ pub struct AuditArgs {
 
 pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     // Clone paths upfront so they're available throughout the function.
-    let left_path  = args.left.clone();
+    let left_path = args.left.clone();
     let right_path = args.right.clone();
 
     // Load ignore rules
-    let ignore_path = args.ignore.clone()
+    let ignore_path = args
+        .ignore
+        .clone()
         .unwrap_or_else(|| args.left.join(".aaaiignore"));
     let ignore = IgnoreRules::load(&ignore_path)?;
 
@@ -92,7 +94,8 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         .map(|(c, _)| c);
     let use_masking = args.mask_secrets || proj_cfg.as_ref().map_or(false, |c| c.mask_secrets);
     let masker: Option<MaskingEngine> = if use_masking {
-        let custom = proj_cfg.as_ref()
+        let custom = proj_cfg
+            .as_ref()
             .map(|c| c.custom_mask_patterns.clone())
             .unwrap_or_default();
         Some(MaskingEngine::with_custom(&custom))
@@ -115,19 +118,23 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         let pb = indicatif::ProgressBar::new(0);
         pb.set_style(
             indicatif::ProgressStyle::with_template(
-                "  {spinner:.cyan} [{bar:30.cyan/blue}] {pos}/{len} {msg}"
-            )?.progress_chars("█▓░")
+                "  {spinner:.cyan} [{bar:30.cyan/blue}] {pos}/{len} {msg}",
+            )?
+            .progress_chars("█▓░"),
         );
-        let _lp  = args.left.clone();
-        let _rp  = args.right.clone();
+        let _lp = args.left.clone();
+        let _rp = args.right.clone();
         let _ign = ignore.clone();
-        let handle = std::thread::spawn(move || {
-            DiffEngine::compare_with_progress(&_lp, &_rp, &_ign, &sink)
-        });
+        let handle =
+            std::thread::spawn(move || DiffEngine::compare_with_progress(&_lp, &_rp, &_ign, &sink));
         for event in rx {
             match event {
                 DiffProgress::Started { total } => pb.set_length(total as u64),
-                DiffProgress::File { path: _path, processed, total: _total } => {
+                DiffProgress::File {
+                    path: _path,
+                    processed,
+                    total: _total,
+                } => {
                     pb.set_position(processed as u64);
                 }
                 DiffProgress::Sorting => pb.set_message("Sorting…"),
@@ -145,7 +152,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         process::exit(3);
     });
     let result = AuditEngine::evaluate(&diffs, &definition);
-    let s      = &result.summary;
+    let s = &result.summary;
 
     // Append history
     if !args.no_history {
@@ -156,7 +163,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     }
 
     // Expiry warnings
-    let expired      = definition.expired_entries();
+    let expired = definition.expired_entries();
     let expiring_soon = definition.expiring_soon(30);
 
     // ── JSON output ────────────────────────────────────────────────────
@@ -190,16 +197,27 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     } else if args.quiet {
         // quiet: summary only (printed after this block)
     } else {
-        print_human_audit(&result, &args, &masker, &expired, &expiring_soon, s,
-                           &left_path, &right_path, &args.config);
+        print_human_audit(
+            &result,
+            &args,
+            &masker,
+            &expired,
+            &expiring_soon,
+            s,
+            &left_path,
+            &right_path,
+            &args.config,
+        );
     }
 
     // Summary (always printed unless --json-output)
     if !args.json_output {
         if args.quiet {
             let verdict_str = if s.is_passing() { "PASSED" } else { "FAILED" };
-            println!("{verdict_str}  Total:{}  ✓{}  ⚠{}  ✗{}  !{}",
-                s.total, s.ok, s.pending, s.failed, s.error);
+            println!(
+                "{verdict_str}  Total:{}  ✓{}  ⚠{}  ✗{}  !{}",
+                s.total, s.ok, s.pending, s.failed, s.error
+            );
         }
     }
 
@@ -207,9 +225,15 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
 }
 
 fn exit_code(s: &aaai::AuditSummary, allow_pending: bool) -> i32 {
-    if s.error > 0   { return 3; }
-    if s.failed > 0  { return 1; }
-    if !allow_pending && s.pending > 0 { return 2; }
+    if s.error > 0 {
+        return 3;
+    }
+    if s.failed > 0 {
+        return 1;
+    }
+    if !allow_pending && s.pending > 0 {
+        return 2;
+    }
     0
 }
 
@@ -219,36 +243,35 @@ const SEP: &str = "────────────────────�
 
 fn status_symbol(status: AuditStatus) -> &'static str {
     match status {
-        AuditStatus::Ok      => "✓",
+        AuditStatus::Ok => "✓",
         AuditStatus::Pending => "⚠",
-        AuditStatus::Failed  => "✗",
-        AuditStatus::Error   => "!",
+        AuditStatus::Failed => "✗",
+        AuditStatus::Error => "!",
         AuditStatus::Ignored => "—",
     }
 }
 
 fn status_label(status: AuditStatus) -> &'static str {
     match status {
-        AuditStatus::Ok      => "OK     ",
+        AuditStatus::Ok => "OK     ",
         AuditStatus::Pending => "Pending",
-        AuditStatus::Failed  => "Failed ",
-        AuditStatus::Error   => "Error  ",
+        AuditStatus::Failed => "Failed ",
+        AuditStatus::Error => "Error  ",
         AuditStatus::Ignored => "Ignored",
     }
 }
 
 fn print_human_audit(
     result: &aaai::AuditResult,
-    args:   &AuditArgs,
+    args: &AuditArgs,
     masker: &Option<aaai::MaskingEngine>,
-    expired:       &[&aaai::config::definition::AuditEntry],
+    expired: &[&aaai::config::definition::AuditEntry],
     expiring_soon: &[&aaai::config::definition::AuditEntry],
     s: &aaai::AuditSummary,
-    left_path:   &std::path::Path,
-    right_path:  &std::path::Path,
+    left_path: &std::path::Path,
+    right_path: &std::path::Path,
     config_path: &std::path::Path,
 ) {
-
     // ── Zone 1: Header with Result ────────────────────────────────────
     let result_colored = if s.is_passing() {
         "✓ PASSED".green().bold().to_string()
@@ -257,88 +280,126 @@ fn print_human_audit(
     };
     println!("{}", SEP);
     println!("  {}   Result: {}", "aaai audit".bold(), result_colored);
-    println!("  Before : {}  After : {}",
+    println!(
+        "  Before : {}  After : {}",
         left_path.display().to_string().dimmed(),
-        right_path.display().to_string().dimmed());
+        right_path.display().to_string().dimmed()
+    );
     println!("  Config : {}", config_path.display().to_string().dimmed());
     println!("{}", SEP);
     println!();
 
     // ── Zone 2: Summary ───────────────────────────────────────────────
-    println!("  Total: {}   {} OK: {}   {} Pending: {}   {} Failed: {}   {} Error: {}",
+    println!(
+        "  Total: {}   {} OK: {}   {} Pending: {}   {} Failed: {}   {} Error: {}",
         s.total,
-        "✓".green(),   s.ok.to_string().green(),
-        "⚠".yellow(),  s.pending.to_string().yellow(),
-        "✗".red(),     s.failed.to_string().red(),
-        "!".red(),     s.error.to_string().red(),
+        "✓".green(),
+        s.ok.to_string().green(),
+        "⚠".yellow(),
+        s.pending.to_string().yellow(),
+        "✗".red(),
+        s.failed.to_string().red(),
+        "!".red(),
+        s.error.to_string().red(),
     );
     println!();
 
     // ── Expiry notices ────────────────────────────────────────────────
     if !expired.is_empty() {
-        println!("{}", format!("  ⚠  {} entry / entries EXPIRED:", expired.len()).yellow().bold());
+        println!(
+            "{}",
+            format!("  ⚠  {} entry / entries EXPIRED:", expired.len())
+                .yellow()
+                .bold()
+        );
         for e in expired {
-            println!("     {} (expired: {})", e.path,
-                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+            println!(
+                "     {} (expired: {})",
+                e.path,
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default()
+            );
         }
         println!();
     }
     if !expiring_soon.is_empty() {
-        println!("{}", format!("  ⏰  {} entry / entries expiring within 30 days:", expiring_soon.len()).yellow());
+        println!(
+            "{}",
+            format!(
+                "  ⏰  {} entry / entries expiring within 30 days:",
+                expiring_soon.len()
+            )
+            .yellow()
+        );
         for e in expiring_soon {
-            println!("     {} (expires: {})", e.path,
-                e.expires_at.map(|d| d.to_string()).unwrap_or_default());
+            println!(
+                "     {} (expires: {})",
+                e.path,
+                e.expires_at.map(|d| d.to_string()).unwrap_or_default()
+            );
         }
         println!();
     }
 
     // ── Zone 3: Entry list ────────────────────────────────────────────
     // Default: Failed + Pending only (max 20). --verbose: all non-Unchanged.
-    let visible: Vec<_> = result.results.iter().filter(|r| {
-        match r.status {
-            AuditStatus::Ok      => args.verbose && r.diff.diff_type != aaai::DiffType::Unchanged,
+    let visible: Vec<_> = result
+        .results
+        .iter()
+        .filter(|r| match r.status {
+            AuditStatus::Ok => args.verbose && r.diff.diff_type != aaai::DiffType::Unchanged,
             AuditStatus::Ignored => args.verbose,
-            _                    => true,
-        }
-    }).collect();
+            _ => true,
+        })
+        .collect();
 
     let truncated = !args.verbose && visible.len() > 20;
-    let display_slice = if truncated { &visible[..20] } else { &visible[..] };
+    let display_slice = if truncated {
+        &visible[..20]
+    } else {
+        &visible[..]
+    };
 
     for r in display_slice {
-        let sym   = status_symbol(r.status);
+        let sym = status_symbol(r.status);
         let label = status_label(r.status);
         let sym_colored = match r.status {
-            AuditStatus::Ok      => sym.green().to_string(),
+            AuditStatus::Ok => sym.green().to_string(),
             AuditStatus::Pending => sym.yellow().to_string(),
-            AuditStatus::Failed  => sym.red().bold().to_string(),
-            AuditStatus::Error   => sym.red().to_string(),
+            AuditStatus::Failed => sym.red().bold().to_string(),
+            AuditStatus::Error => sym.red().to_string(),
             AuditStatus::Ignored => sym.dimmed().to_string(),
         };
         let label_colored = match r.status {
-            AuditStatus::Ok      => label.green().to_string(),
+            AuditStatus::Ok => label.green().to_string(),
             AuditStatus::Pending => label.yellow().to_string(),
-            AuditStatus::Failed  => label.red().bold().to_string(),
-            AuditStatus::Error   => label.red().to_string(),
+            AuditStatus::Failed => label.red().bold().to_string(),
+            AuditStatus::Error => label.red().to_string(),
             AuditStatus::Ignored => label.dimmed().to_string(),
         };
-        let ticket_tag = r.entry.as_ref()
+        let ticket_tag = r
+            .entry
+            .as_ref()
             .and_then(|e| e.ticket.as_ref())
             .map(|t| format!(" [{}]", t))
             .unwrap_or_default();
-        let expiry_tag = r.entry.as_ref()
+        let expiry_tag = r
+            .entry
+            .as_ref()
             .and_then(|e| e.expires_at)
             .map(|d| {
                 let today = chrono::Utc::now().date_naive();
-                if d <= today { format!(" ⚠ expired:{d}") }
-                else { format!(" ⏰ {d}") }
+                if d <= today {
+                    format!(" ⚠ expired:{d}")
+                } else {
+                    format!(" ⏰ {d}")
+                }
             })
             .unwrap_or_default();
 
-        println!("  {} {}  {}{}{expiry_tag}  ({})",
-            sym_colored, label_colored,
-            r.diff.path, ticket_tag,
-            r.diff.diff_type);
+        println!(
+            "  {} {}  {}{}{expiry_tag}  ({})",
+            sym_colored, label_colored, r.diff.path, ticket_tag, r.diff.diff_type
+        );
 
         if let Some(detail) = &r.detail {
             if r.status != AuditStatus::Ok {
@@ -348,7 +409,8 @@ fn print_human_audit(
         if args.verbose {
             if let Some(entry) = &r.entry {
                 if !entry.reason.is_empty() {
-                    let reason = masker.as_ref()
+                    let reason = masker
+                        .as_ref()
                         .map(|m| m.mask(&entry.reason))
                         .unwrap_or_else(|| entry.reason.clone());
                     println!("           Reason: {}", reason.dimmed());
@@ -358,8 +420,10 @@ fn print_human_audit(
                 }
             }
             if let Some(stats) = &r.diff.stats {
-                println!("           Lines: +{} -{} (={} unchanged)",
-                    stats.lines_added, stats.lines_removed, stats.lines_unchanged);
+                println!(
+                    "           Lines: +{} -{} (={} unchanged)",
+                    stats.lines_added, stats.lines_removed, stats.lines_unchanged
+                );
             }
             if let Some(label) = r.diff.size_change_label() {
                 println!("           Size: {}", label.dimmed());
@@ -372,8 +436,11 @@ fn print_human_audit(
 
     if truncated {
         let hidden = visible.len() - 20;
-        println!("  {} (and {} more — use --verbose to see all)",
-            "...".dimmed(), hidden);
+        println!(
+            "  {} (and {} more — use --verbose to see all)",
+            "...".dimmed(),
+            hidden
+        );
     }
     println!();
 

@@ -55,7 +55,9 @@ pub struct ProjectConfig {
     pub suppress_warnings: Vec<String>,
 }
 
-fn default_version() -> String { "1".into() }
+fn default_version() -> String {
+    "1".into()
+}
 
 impl ProjectConfig {
     /// Load from `path`.  Returns `None` when the file does not exist.
@@ -82,7 +84,7 @@ impl ProjectConfig {
             }
             match dir.parent() {
                 Some(p) => dir = p.to_path_buf(),
-                None    => return Ok(None),
+                None => return Ok(None),
             }
         }
     }

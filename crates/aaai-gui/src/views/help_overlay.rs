@@ -17,19 +17,28 @@ pub fn view<'a>(tokens: &'a Tokens) -> Element<'a, Message> {
     let title = text(t!("help.title").to_string())
         .size(tokens.typography.title.size)
         .line_height(tokens.typography.title.line_height)
-        .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
+        .font(iced::Font {
+            weight: iced::font::Weight::Bold,
+            ..Default::default()
+        });
 
     // Column headers
     let header = row![
         text(t!("help.shortcut_label").to_string())
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height)
-            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() })
+            .font(iced::Font {
+                weight: iced::font::Weight::Semibold,
+                ..Default::default()
+            })
             .width(Length::Fixed(160.0)),
         text(t!("help.action_label").to_string())
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height)
-            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
+            .font(iced::Font {
+                weight: iced::font::Weight::Semibold,
+                ..Default::default()
+            }),
     ]
     .spacing(tokens.spacing.md);
 
@@ -44,17 +53,17 @@ pub fn view<'a>(tokens: &'a Tokens) -> Element<'a, Message> {
 
     // Shortcut rows — (key_label, action_key)
     let shortcuts: &[(&str, &str)] = &[
-        ("Ctrl + S",          "help.save"),
-        ("Ctrl + R",          "help.rerun"),
-        ("Ctrl + Z",          "help.undo"),
-        ("Ctrl + Shift + Z",  "help.revert"),
-        ("Ctrl + Enter",      "help.approve_and_save"),
-        ("Ctrl + E",          "help.export"),
-        ("↑ / ↓",            "help.navigate"),
-        ("Tab / Shift+Tab",   "help.cycle_pane"),
-        ("Enter",             "help.approve"),
-        ("/",                 "help.search"),
-        ("?",                 "help.show_help"),
+        ("Ctrl + S", "help.save"),
+        ("Ctrl + R", "help.rerun"),
+        ("Ctrl + Z", "help.undo"),
+        ("Ctrl + Shift + Z", "help.revert"),
+        ("Ctrl + Enter", "help.approve_and_save"),
+        ("Ctrl + E", "help.export"),
+        ("↑ / ↓", "help.navigate"),
+        ("Tab / Shift+Tab", "help.cycle_pane"),
+        ("Enter", "help.approve"),
+        ("/", "help.search"),
+        ("?", "help.show_help"),
     ];
 
     let key_color = crate::style::to_iced(tokens.palette.text_primary);
@@ -85,24 +94,17 @@ pub fn view<'a>(tokens: &'a Tokens) -> Element<'a, Message> {
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height),
     )
-        .on_press(Message::CloseHelp)
-        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
+    .on_press(Message::CloseHelp)
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
 
-    let body = column![
-        title,
-        separator,
-        header,
-    ]
-    .extend(rows)
-    .push(
-        row![
-            iced::widget::space().width(Length::Fill),
-            close_btn,
-        ]
-        .align_y(iced::Alignment::Center),
-    )
-    .spacing(tokens.spacing.sm)
-    .width(Length::Fixed(380.0));
+    let body = column![title, separator, header,]
+        .extend(rows)
+        .push(
+            row![iced::widget::space().width(Length::Fill), close_btn,]
+                .align_y(iced::Alignment::Center),
+        )
+        .spacing(tokens.spacing.sm)
+        .width(Length::Fixed(380.0));
 
     container(body)
         .padding(Padding::from([tokens.spacing.xl, tokens.spacing.xxl]))
@@ -112,14 +114,19 @@ pub fn view<'a>(tokens: &'a Tokens) -> Element<'a, Message> {
 
 fn dialog_style(tokens: &Tokens) -> container::Style {
     container::Style {
-        background: Some(iced::Background::Color(crate::style::to_iced(tokens.palette.surface_raised))),
+        background: Some(iced::Background::Color(crate::style::to_iced(
+            tokens.palette.surface_raised,
+        ))),
         border: iced::Border {
             color: crate::style::to_iced(tokens.palette.border),
             width: 1.0,
             radius: iced::border::Radius::from(8.0),
         },
         shadow: iced::Shadow {
-            color: Color { a: 0.18, ..Color::BLACK },
+            color: Color {
+                a: 0.18,
+                ..Color::BLACK
+            },
             offset: iced::Vector { x: 0.0, y: 4.0 },
             blur_radius: 16.0,
         },

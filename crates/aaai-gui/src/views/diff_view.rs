@@ -7,8 +7,8 @@ use iced::{
 use rust_i18n::t;
 use similar::{ChangeTag, TextDiff};
 
-use aaai::{DiffType, diff::entry::DiffEntry};
 use crate::app::Message;
+use aaai::{DiffType, diff::entry::DiffEntry};
 
 /// RFC 069 — stable IDs for the side-by-side diff panes, used for scroll sync.
 pub static DIFF_BEFORE_ID: std::sync::LazyLock<iced::widget::Id> =
@@ -16,7 +16,12 @@ pub static DIFF_BEFORE_ID: std::sync::LazyLock<iced::widget::Id> =
 pub static DIFF_AFTER_ID: std::sync::LazyLock<iced::widget::Id> =
     std::sync::LazyLock::new(|| iced::widget::Id::new("diff_after"));
 
-pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a snora::design::Tokens, _is_hc: bool) -> Element<'a, Message> {
+pub fn view<'a>(
+    diff: &'a DiffEntry,
+    mode: crate::app::DiffViewMode,
+    tokens: &'a snora::design::Tokens,
+    _is_hc: bool,
+) -> Element<'a, Message> {
     use crate::app::DiffViewMode;
 
     if diff.is_dir {
@@ -25,7 +30,9 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a
     match diff.diff_type {
         DiffType::Unchanged => placeholder(t!("diff.identical").to_string(), tokens),
         DiffType::Unreadable | DiffType::Incomparable => {
-            let msg = diff.error_detail.clone()
+            let msg = diff
+                .error_detail
+                .clone()
                 .unwrap_or_else(|| t!("diff.unreadable").to_string());
             placeholder(msg, tokens)
         }
@@ -35,8 +42,8 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a
             let has_text = diff.has_text_diff();
             let tab_bar = build_tab_bar(mode, has_text, tokens);
             let content = match mode {
-                DiffViewMode::SideBySide  => side_by_side(diff, tokens),
-                DiffViewMode::Unified     => unified_view(diff, tokens),
+                DiffViewMode::SideBySide => side_by_side(diff, tokens),
+                DiffViewMode::Unified => unified_view(diff, tokens),
                 DiffViewMode::ChangedOnly => changed_only_view(diff, tokens),
             };
             column![tab_bar, content]
@@ -49,7 +56,11 @@ pub fn view<'a>(diff: &'a DiffEntry, mode: crate::app::DiffViewMode, tokens: &'a
 }
 
 /// RFC 011: Tab selector for diff view modes.
-fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora::design::Tokens) -> Element<'static, Message> {
+fn build_tab_bar(
+    mode: crate::app::DiffViewMode,
+    _has_text: bool,
+    tokens: &snora::design::Tokens,
+) -> Element<'static, Message> {
     use crate::app::DiffViewMode;
 
     let tab = |label: String, target: DiffViewMode, active: bool| -> Element<'static, Message> {
@@ -74,19 +85,29 @@ fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora
                     .line_height(tokens.typography.label.line_height)
                     .color(fg)
                     .font(if active {
-                        iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }
+                        iced::Font {
+                            weight: iced::font::Weight::Semibold,
+                            ..Default::default()
+                        }
                     } else {
                         iced::Font::default()
-                    })
+                    }),
             )
             .padding(Padding::from([tokens.spacing.sm, tokens.spacing.md]))
             .style(move |_| iced::widget::container::Style {
                 border: border_bottom,
                 ..Default::default()
-            })
+            }),
         )
-        .on_press_maybe(if active { None } else { Some(Message::SetDiffViewMode(target)) })
-        .style({ let t = tokens.clone(); move |_th, s| crate::style::btn_ghost(&t, s) })
+        .on_press_maybe(if active {
+            None
+        } else {
+            Some(Message::SetDiffViewMode(target))
+        })
+        .style({
+            let t = tokens.clone();
+            move |_th, s| crate::style::btn_ghost(&t, s)
+        })
         .into()
     };
 
@@ -94,9 +115,17 @@ fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora
     let tab_s2 = t!("diff.tab_unified").to_string();
     let tab_s3 = t!("diff.tab_changed_only").to_string();
     let tab_items: Vec<Element<'static, Message>> = vec![
-        tab(tab_s1, DiffViewMode::SideBySide,  mode == DiffViewMode::SideBySide),
-        tab(tab_s2, DiffViewMode::Unified,     mode == DiffViewMode::Unified),
-        tab(tab_s3, DiffViewMode::ChangedOnly, mode == DiffViewMode::ChangedOnly),
+        tab(
+            tab_s1,
+            DiffViewMode::SideBySide,
+            mode == DiffViewMode::SideBySide,
+        ),
+        tab(tab_s2, DiffViewMode::Unified, mode == DiffViewMode::Unified),
+        tab(
+            tab_s3,
+            DiffViewMode::ChangedOnly,
+            mode == DiffViewMode::ChangedOnly,
+        ),
     ];
     let tab_bar_border = crate::style::to_iced(tokens.palette.border);
     let tab_bar_bg = crate::style::to_iced(tokens.palette.surface);
@@ -106,10 +135,12 @@ fn build_tab_bar(mode: crate::app::DiffViewMode, _has_text: bool, tokens: &snora
     iced::widget::container(
         scrollable(
             iced::widget::row(tab_items)
-            .spacing(0)
-            .align_y(iced::Alignment::Center)
+                .spacing(0)
+                .align_y(iced::Alignment::Center),
         )
-        .direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::default()))
+        .direction(scrollable::Direction::Horizontal(
+            scrollable::Scrollbar::default(),
+        )),
     )
     .width(Length::Fill)
     .style(move |_| iced::widget::container::Style {
@@ -131,19 +162,22 @@ fn placeholder(msg: String, tokens: &snora::design::Tokens) -> Element<'static, 
             .line_height(tokens.typography.body.line_height)
             .color(crate::style::to_iced(tokens.palette.text_secondary)),
     )
-        .padding(tokens.spacing.lg)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+    .padding(tokens.spacing.lg)
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .into()
 }
 
 /// Panel shown for binary files.
-fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+fn binary_panel<'a>(
+    diff: &'a DiffEntry,
+    tokens: &'a snora::design::Tokens,
+) -> Element<'a, Message> {
     let kind_label = match diff.diff_type {
-        DiffType::Added    => t!("diff.binary_file_added").to_string(),
-        DiffType::Removed  => t!("diff.binary_file_removed").to_string(),
+        DiffType::Added => t!("diff.binary_file_added").to_string(),
+        DiffType::Removed => t!("diff.binary_file_removed").to_string(),
         DiffType::Modified => t!("diff.binary_file_modified").to_string(),
-        _                  => t!("diff.binary_file").to_string(),
+        _ => t!("diff.binary_file").to_string(),
     };
 
     let mut rows: Vec<Element<'_, Message>> = vec![
@@ -151,8 +185,10 @@ fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
             .size(tokens.typography.title.size)
             .line_height(tokens.typography.title.line_height)
             .font(iced::Font {
-                weight: iced::font::Weight::Semibold, ..Default::default()
-            }).into(),
+                weight: iced::font::Weight::Semibold,
+                ..Default::default()
+            })
+            .into(),
     ];
 
     // Size change
@@ -166,7 +202,9 @@ fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                 text(label)
                     .size(tokens.typography.body_small.size)
                     .line_height(tokens.typography.body_small.line_height),
-            ].spacing(tokens.spacing.sm).into()
+            ]
+            .spacing(tokens.spacing.sm)
+            .into(),
         );
     }
 
@@ -182,7 +220,9 @@ fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                     .size(tokens.typography.body_small.size)
                     .line_height(tokens.typography.body_small.line_height)
                     .font(iced::Font::MONOSPACE),
-            ].spacing(tokens.spacing.sm).into()
+            ]
+            .spacing(tokens.spacing.sm)
+            .into(),
         );
     }
     if let Some(h) = &diff.after_sha256 {
@@ -196,30 +236,34 @@ fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                     .size(tokens.typography.body_small.size)
                     .line_height(tokens.typography.body_small.line_height)
                     .font(iced::Font::MONOSPACE),
-            ].spacing(tokens.spacing.sm).into()
+            ]
+            .spacing(tokens.spacing.sm)
+            .into(),
         );
     }
 
-    if diff.before_sha256.as_ref() == diff.after_sha256.as_ref()
-        && diff.before_sha256.is_some()
-    {
+    if diff.before_sha256.as_ref() == diff.after_sha256.as_ref() && diff.before_sha256.is_some() {
         rows.push(
             text(t!("diff.hashes_match").to_string())
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
-                .color(crate::theme::added_color(tokens)).into(),
+                .color(crate::theme::added_color(tokens))
+                .into(),
         );
     } else if diff.before_sha256.is_some() && diff.after_sha256.is_some() {
         rows.push(
             text(t!("diff.hashes_differ").to_string())
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
-                .color(crate::theme::removed_color(tokens)).into(),
+                .color(crate::theme::removed_color(tokens))
+                .into(),
         );
     }
 
     container(
-        column(rows).spacing(tokens.spacing.md).padding(tokens.spacing.xl),
+        column(rows)
+            .spacing(tokens.spacing.md)
+            .padding(tokens.spacing.xl),
     )
     .width(Length::Fill)
     .height(Length::Fill)
@@ -228,8 +272,6 @@ fn binary_panel<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
 
 /// Stats bar shown above the side-by-side diff.
 fn stats_bar<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
-    
-
     let mut parts: Vec<Element<'_, Message>> = Vec::new();
 
     if let Some(stats) = &diff.stats {
@@ -238,14 +280,14 @@ fn stats_bar<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Elem
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
                 .color(crate::theme::added_color(tokens))
-                .into()
+                .into(),
         );
         parts.push(
             text(format!("  −{} lines", stats.lines_removed))
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
                 .color(crate::theme::removed_color(tokens))
-                .into()
+                .into(),
         );
     }
 
@@ -255,7 +297,7 @@ fn stats_bar<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Elem
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
                 .color(crate::style::to_iced(tokens.palette.text_muted))
-                .into()
+                .into(),
         );
     }
 
@@ -276,10 +318,13 @@ fn stats_bar<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Elem
         .into()
 }
 
-fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+fn side_by_side<'a>(
+    diff: &'a DiffEntry,
+    tokens: &'a snora::design::Tokens,
+) -> Element<'a, Message> {
     let before_str = diff.before_text.as_deref().unwrap_or("");
-    let after_str  = diff.after_text.as_deref().unwrap_or("");
-    let text_diff  = TextDiff::from_lines(before_str, after_str);
+    let after_str = diff.after_text.as_deref().unwrap_or("");
+    let text_diff = TextDiff::from_lines(before_str, after_str);
 
     let mut before_lines: Vec<Element<'_, Message>> = Vec::new();
     let mut after_lines: Vec<Element<'_, Message>> = Vec::new();
@@ -298,7 +343,12 @@ fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                 line_num_a += 1;
             }
             ChangeTag::Equal => {
-                after_lines.push(diff_line(line_num_a, content.clone(), LineKind::Equal, tokens));
+                after_lines.push(diff_line(
+                    line_num_a,
+                    content.clone(),
+                    LineKind::Equal,
+                    tokens,
+                ));
                 before_lines.push(diff_line(line_num_b, content, LineKind::Equal, tokens));
                 line_num_b += 1;
                 line_num_a += 1;
@@ -306,19 +356,21 @@ fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
         }
     }
 
-    let before_col: Element<'_, Message> = scrollable(
-        column(before_lines).spacing(0).width(Length::Fill)
-    )
-    .id(DIFF_BEFORE_ID.clone())
-    .on_scroll(Message::DiffBeforeScrolled)
-    .width(Length::Fill).height(Length::Fill).into();
+    let before_col: Element<'_, Message> =
+        scrollable(column(before_lines).spacing(0).width(Length::Fill))
+            .id(DIFF_BEFORE_ID.clone())
+            .on_scroll(Message::DiffBeforeScrolled)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into();
 
-    let after_col: Element<'_, Message> = scrollable(
-        column(after_lines).spacing(0).width(Length::Fill)
-    )
-    .id(DIFF_AFTER_ID.clone())
-    .on_scroll(Message::DiffAfterScrolled)
-    .width(Length::Fill).height(Length::Fill).into();
+    let after_col: Element<'_, Message> =
+        scrollable(column(after_lines).spacing(0).width(Length::Fill))
+            .id(DIFF_AFTER_ID.clone())
+            .on_scroll(Message::DiffAfterScrolled)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into();
 
     let header = row![
         container(
@@ -326,7 +378,8 @@ fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                 .size(tokens.typography.title.size)
                 .line_height(tokens.typography.title.line_height)
                 .font(iced::Font {
-                    weight: iced::font::Weight::Semibold, ..Default::default()
+                    weight: iced::font::Weight::Semibold,
+                    ..Default::default()
                 }),
         )
         .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
@@ -336,7 +389,8 @@ fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                 .size(tokens.typography.title.size)
                 .line_height(tokens.typography.title.line_height)
                 .font(iced::Font {
-                    weight: iced::font::Weight::Semibold, ..Default::default()
+                    weight: iced::font::Weight::Semibold,
+                    ..Default::default()
                 }),
         )
         .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
@@ -344,13 +398,15 @@ fn side_by_side<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
     ]
     .spacing(tokens.spacing.xs);
 
-    let body = row![before_col, after_col].spacing(tokens.spacing.xs).height(Length::Fill);
+    let body = row![before_col, after_col]
+        .spacing(tokens.spacing.xs)
+        .height(Length::Fill);
 
     column![
         header,
         stats_bar(diff, tokens),
         body,
-        diff_legend(tokens),   // RFC 010: colour legend
+        diff_legend(tokens), // RFC 010: colour legend
     ]
     .spacing(0)
     .width(Length::Fill)
@@ -370,66 +426,90 @@ fn diff_legend(tokens: &snora::design::Tokens) -> Element<'static, Message> {
         iced::widget::container(iced::widget::text("  "))
             .height(Length::Fixed(12.0))
             .style(move |_| iced::widget::container::Style {
-                background: Some(Background::Color(
-                    Color { a: 0.30, ..removed })),
-                border: iced::Border { radius: 2.0.into(), ..Default::default() },
+                background: Some(Background::Color(Color { a: 0.30, ..removed })),
+                border: iced::Border {
+                    radius: 2.0.into(),
+                    ..Default::default()
+                },
                 ..Default::default()
             })
             .into();
 
-    let added_swatch: Element<'static, Message> =
-        iced::widget::container(iced::widget::text("  "))
-            .height(Length::Fixed(12.0))
-            .style(move |_| iced::widget::container::Style {
-                background: Some(Background::Color(
-                    Color { a: 0.30, ..added })),
-                border: iced::Border { radius: 2.0.into(), ..Default::default() },
+    let added_swatch: Element<'static, Message> = iced::widget::container(iced::widget::text("  "))
+        .height(Length::Fixed(12.0))
+        .style(move |_| iced::widget::container::Style {
+            background: Some(Background::Color(Color { a: 0.30, ..added })),
+            border: iced::Border {
+                radius: 2.0.into(),
                 ..Default::default()
-            })
-            .into();
+            },
+            ..Default::default()
+        })
+        .into();
 
     let legend_row = iced::widget::row(vec![
         text(t!("diff.legend_label").to_string())
             .size(tokens.typography.body_small.size)
             .line_height(tokens.typography.body_small.line_height)
-            .color(muted).into(),
+            .color(muted)
+            .into(),
         removed_swatch,
         text(t!("diff.legend_removed").to_string())
             .size(tokens.typography.body_small.size)
             .line_height(tokens.typography.body_small.line_height)
-            .color(muted).into(),
+            .color(muted)
+            .into(),
         added_swatch,
         text(t!("diff.legend_added").to_string())
             .size(tokens.typography.body_small.size)
             .line_height(tokens.typography.body_small.line_height)
-            .color(muted).into(),
-    ]).spacing(tokens.spacing.sm).align_y(iced::Alignment::Center);
+            .color(muted)
+            .into(),
+    ])
+    .spacing(tokens.spacing.sm)
+    .align_y(iced::Alignment::Center);
 
     // T8 (RFC 099 §6a) — same overflow as the tab bar: at 800 logical width
     // `Added` does not fit and was not rendered at all.
     iced::widget::container(
-        scrollable(legend_row)
-            .direction(scrollable::Direction::Horizontal(scrollable::Scrollbar::default()))
+        scrollable(legend_row).direction(scrollable::Direction::Horizontal(
+            scrollable::Scrollbar::default(),
+        )),
     )
-        .padding(Padding::from([tokens.spacing.xs, tokens.spacing.md]))
-        .width(Length::Fill)
-        .into()
+    .padding(Padding::from([tokens.spacing.xs, tokens.spacing.md]))
+    .width(Length::Fill)
+    .into()
 }
 
-enum LineKind { Equal, Added, Removed }
+enum LineKind {
+    Equal,
+    Added,
+    Removed,
+}
 
-fn diff_line(num: usize, content: String, kind: LineKind, tokens: &snora::design::Tokens) -> Element<'static, Message> {
+fn diff_line(
+    num: usize,
+    content: String,
+    kind: LineKind,
+    tokens: &snora::design::Tokens,
+) -> Element<'static, Message> {
     let bg = match kind {
-        LineKind::Equal   => None,
-        LineKind::Added   => Some(Color { a: 0.15, ..crate::theme::added_color(tokens) }),
-        LineKind::Removed => Some(Color { a: 0.15, ..crate::theme::removed_color(tokens) }),
+        LineKind::Equal => None,
+        LineKind::Added => Some(Color {
+            a: 0.15,
+            ..crate::theme::added_color(tokens)
+        }),
+        LineKind::Removed => Some(Color {
+            a: 0.15,
+            ..crate::theme::removed_color(tokens)
+        }),
     };
     let line_num = container(
         text(num.to_string())
             .size(tokens.typography.body_small.size)
             .line_height(tokens.typography.body_small.line_height)
             .font(iced::Font::MONOSPACE)
-            .color(crate::style::to_iced(tokens.palette.text_muted))
+            .color(crate::style::to_iced(tokens.palette.text_muted)),
     )
     .padding(Padding::from([tokens.spacing.xs, tokens.spacing.xs]))
     .width(Length::Fixed(36.0));
@@ -462,9 +542,12 @@ fn diff_line(num: usize, content: String, kind: LineKind, tokens: &snora::design
 
 // ── RFC 011: Unified view ──────────────────────────────────────────────────────
 
-fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+fn unified_view<'a>(
+    diff: &'a DiffEntry,
+    tokens: &'a snora::design::Tokens,
+) -> Element<'a, Message> {
     let before = diff.before_text.as_deref().unwrap_or("");
-    let after  = diff.after_text.as_deref().unwrap_or("");
+    let after = diff.after_text.as_deref().unwrap_or("");
 
     if before.is_empty() && after.is_empty() {
         return placeholder(t!("diff.no_text_content").to_string(), tokens);
@@ -474,7 +557,8 @@ fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
     let mut rows: Vec<Element<'_, Message>> = Vec::new();
 
     // Collect into owned data first to avoid borrow conflicts
-    let changes: Vec<(similar::ChangeTag, String)> = td.iter_all_changes()
+    let changes: Vec<(similar::ChangeTag, String)> = td
+        .iter_all_changes()
         .map(|c| (c.tag(), c.value().to_owned()))
         .collect();
     drop(td);
@@ -482,12 +566,21 @@ fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
     for (tag, value) in changes {
         let line_str: String = value.trim_end_matches('\n').to_string();
         let (prefix, bg) = match tag {
-            similar::ChangeTag::Delete =>
-                ("-", Color { a: 0.12, ..crate::theme::removed_color(tokens) }),
-            similar::ChangeTag::Insert =>
-                ("+", Color { a: 0.12, ..crate::theme::added_color(tokens) }),
-            similar::ChangeTag::Equal  =>
-                (" ", Color::TRANSPARENT),
+            similar::ChangeTag::Delete => (
+                "-",
+                Color {
+                    a: 0.12,
+                    ..crate::theme::removed_color(tokens)
+                },
+            ),
+            similar::ChangeTag::Insert => (
+                "+",
+                Color {
+                    a: 0.12,
+                    ..crate::theme::added_color(tokens)
+                },
+            ),
+            similar::ChangeTag::Equal => (" ", Color::TRANSPARENT),
         };
         rows.push(
             iced::widget::container(
@@ -510,14 +603,14 @@ fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
                         .font(iced::Font::MONOSPACE),
                 ]
                 .spacing(tokens.spacing.xs)
-                .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
+                .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm])),
             )
             .width(Length::Fill)
             .style(move |_| iced::widget::container::Style {
                 background: Some(iced::Background::Color(bg)),
                 ..Default::default()
             })
-            .into()
+            .into(),
         );
     }
 
@@ -534,9 +627,12 @@ fn unified_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> E
 
 // ── RFC 011: Changed-only view ────────────────────────────────────────────────
 
-fn changed_only_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens) -> Element<'a, Message> {
+fn changed_only_view<'a>(
+    diff: &'a DiffEntry,
+    tokens: &'a snora::design::Tokens,
+) -> Element<'a, Message> {
     let before = diff.before_text.as_deref().unwrap_or("");
-    let after  = diff.after_text.as_deref().unwrap_or("");
+    let after = diff.after_text.as_deref().unwrap_or("");
 
     if before.is_empty() && after.is_empty() {
         return placeholder(t!("diff.no_text_content").to_string(), tokens);
@@ -546,7 +642,8 @@ fn changed_only_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens)
     let mut rows: Vec<Element<'_, Message>> = Vec::new();
     let mut last_was_equal = false;
 
-    let co_changes: Vec<(similar::ChangeTag, String)> = td.iter_all_changes()
+    let co_changes: Vec<(similar::ChangeTag, String)> = td
+        .iter_all_changes()
         .map(|c| (c.tag(), c.value().to_owned()))
         .collect();
     drop(td);
@@ -561,11 +658,11 @@ fn changed_only_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens)
                                 .size(tokens.typography.label.size)
                                 .line_height(tokens.typography.label.line_height)
                                 .color(crate::style::to_iced(tokens.palette.text_muted))
-                                .font(iced::Font::MONOSPACE)
+                                .font(iced::Font::MONOSPACE),
                         )
                         .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
                         .width(Length::Fill)
-                        .into()
+                        .into(),
                     );
                 }
                 last_was_equal = true;
@@ -587,21 +684,22 @@ fn changed_only_view<'a>(diff: &'a DiffEntry, tokens: &'a snora::design::Tokens)
                                 .size(tokens.typography.label.size)
                                 .line_height(tokens.typography.label.line_height)
                                 .font(iced::Font::MONOSPACE)
-                                .color(fg).width(Length::Fixed(14.0)),
+                                .color(fg)
+                                .width(Length::Fixed(14.0)),
                             text(line_str)
                                 .size(tokens.typography.body.size)
                                 .line_height(tokens.typography.body.line_height)
                                 .font(iced::Font::MONOSPACE),
                         ]
                         .spacing(tokens.spacing.xs)
-                        .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm]))
+                        .padding(Padding::from([tokens.spacing.xs, tokens.spacing.sm])),
                     )
                     .width(Length::Fill)
                     .style(move |_| iced::widget::container::Style {
                         background: Some(iced::Background::Color(bg)),
                         ..Default::default()
                     })
-                    .into()
+                    .into(),
                 );
             }
         }

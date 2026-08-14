@@ -83,7 +83,9 @@ impl DiffEngine {
                 .expect("path came from one map")
                 .display
                 .as_str();
-            left_display.cmp(right_display).then_with(|| left.cmp(right))
+            left_display
+                .cmp(right_display)
+                .then_with(|| left.cmp(right))
         });
 
         let total = paths_to_compare.len();

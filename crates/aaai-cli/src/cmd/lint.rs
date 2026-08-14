@@ -10,10 +10,10 @@
 //! * LineMatch rules with empty lines
 //! * strategies that don't match the diff type (e.g. LineMatch on Added)
 
-use std::collections::HashMap;
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 use aaai::config::io as config_io;
 
@@ -83,7 +83,8 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
                 severity: "warning".into(),
                 message: format!(
                     "Reason is {} chars (minimum recommended: {}).",
-                    entry.reason.trim().len(), args.min_reason_len
+                    entry.reason.trim().len(),
+                    args.min_reason_len
                 ),
             });
         }
@@ -185,18 +186,36 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
     println!("Entries: {}", def.entries.len());
     println!();
 
-    let errors:   Vec<_> = issues.iter().filter(|i| i.severity == "error").collect();
+    let errors: Vec<_> = issues.iter().filter(|i| i.severity == "error").collect();
     let warnings: Vec<_> = issues.iter().filter(|i| i.severity == "warning").collect();
-    let infos:    Vec<_> = issues.iter().filter(|i| i.severity == "info").collect();
+    let infos: Vec<_> = issues.iter().filter(|i| i.severity == "info").collect();
 
     for issue in &errors {
-        println!("{} [{}] {}  — {}", "✗".red().bold(), issue.kind.red(), issue.path.bold(), issue.message);
+        println!(
+            "{} [{}] {}  — {}",
+            "✗".red().bold(),
+            issue.kind.red(),
+            issue.path.bold(),
+            issue.message
+        );
     }
     for issue in &warnings {
-        println!("{} [{}] {}  — {}", "⚠".yellow(), issue.kind.yellow(), issue.path, issue.message);
+        println!(
+            "{} [{}] {}  — {}",
+            "⚠".yellow(),
+            issue.kind.yellow(),
+            issue.path,
+            issue.message
+        );
     }
     for issue in &infos {
-        println!("{} [{}] {}  — {}", "ℹ".cyan(), issue.kind.cyan(), issue.path.dimmed(), issue.message.dimmed());
+        println!(
+            "{} [{}] {}  — {}",
+            "ℹ".cyan(),
+            issue.kind.cyan(),
+            issue.path.dimmed(),
+            issue.message.dimmed()
+        );
     }
 
     if issues.is_empty() {

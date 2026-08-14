@@ -7,7 +7,10 @@ fn connection_string_password_masked() {
     let engine = MaskingEngine::builtin();
     let text = "postgres://admin:my_secret_password@db.example.com:5432/mydb";
     let masked = engine.mask(text);
-    assert!(masked.contains("***MASKED***"), "password in URL should be masked");
+    assert!(
+        masked.contains("***MASKED***"),
+        "password in URL should be masked"
+    );
     assert!(!masked.contains("my_secret_password"));
 }
 
@@ -26,5 +29,8 @@ fn multiple_secrets_all_masked() {
     let text = "api_key = 'abcdefghijklmnop1234'\npassword = secret123word\n";
     let masked = engine.mask(text);
     let mask_count = masked.matches("***MASKED***").count();
-    assert!(mask_count >= 2, "both secrets should be masked, got {mask_count}");
+    assert!(
+        mask_count >= 2,
+        "both secrets should be masked, got {mask_count}"
+    );
 }

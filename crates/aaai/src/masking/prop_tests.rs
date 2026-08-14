@@ -5,8 +5,8 @@
 //! * Safe strings are never modified.
 //! * Masking never panics on arbitrary input.
 
-use proptest::prelude::*;
 use super::engine::MaskingEngine;
+use proptest::prelude::*;
 
 proptest! {
     #[test]

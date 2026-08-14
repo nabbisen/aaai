@@ -14,10 +14,10 @@ use snora::design::Tokens;
 /// OS dark-mode query (RFC 093 §5.1).
 pub fn tokens_for(theme: &AppTheme) -> Tokens {
     match theme {
-        AppTheme::Light             => Tokens::light(),
-        AppTheme::Dark              => Tokens::dark(),
-        AppTheme::System            => Tokens::light(),
+        AppTheme::Light => Tokens::light(),
+        AppTheme::Dark => Tokens::dark(),
+        AppTheme::System => Tokens::light(),
         AppTheme::HighContrastLight => Tokens::high_contrast_light(),
-        AppTheme::HighContrastDark  => Tokens::high_contrast_dark(),
+        AppTheme::HighContrastDark => Tokens::high_contrast_dark(),
     }
 }

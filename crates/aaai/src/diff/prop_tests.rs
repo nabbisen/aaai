@@ -1,7 +1,7 @@
 //! Property-based tests for the diff engine and ignore rules.
 
-use proptest::prelude::*;
 use super::ignore::IgnoreRules;
+use proptest::prelude::*;
 
 proptest! {
     #[test]

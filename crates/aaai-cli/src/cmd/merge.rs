@@ -7,9 +7,9 @@
 //! An optional `--detect-conflicts` flag reports paths present in both files
 //! with differing diff_type values (a common sign of a stale definition).
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
 use aaai::config::{definition::AuditEntry, io as config_io};
 
@@ -42,23 +42,36 @@ pub struct MergeArgs {
 pub fn run(args: MergeArgs) -> anyhow::Result<()> {
     println!("{}", "aaai merge".bold());
 
-    let mut base_def    = config_io::load(&args.base)?;
+    let mut base_def = config_io::load(&args.base)?;
     let overlay_def = config_io::load(&args.overlay)?;
 
     // Conflict detection
-    let conflicts: Vec<(&AuditEntry, &AuditEntry)> = overlay_def.entries.iter()
+    let conflicts: Vec<(&AuditEntry, &AuditEntry)> = overlay_def
+        .entries
+        .iter()
         .filter_map(|oe| {
             base_def.find_entry(&oe.path).and_then(|be| {
-                if be.diff_type != oe.diff_type { Some((be, oe)) } else { None }
+                if be.diff_type != oe.diff_type {
+                    Some((be, oe))
+                } else {
+                    None
+                }
             })
         })
         .collect();
 
     if !conflicts.is_empty() {
-        println!("{}", format!("⚠  {} conflicting entries:", conflicts.len()).yellow().bold());
+        println!(
+            "{}",
+            format!("⚠  {} conflicting entries:", conflicts.len())
+                .yellow()
+                .bold()
+        );
         for (base_e, over_e) in &conflicts {
-            println!("  {} — base: {:?}  overlay: {:?}",
-                base_e.path, base_e.diff_type, over_e.diff_type);
+            println!(
+                "  {} — base: {:?}  overlay: {:?}",
+                base_e.path, base_e.diff_type, over_e.diff_type
+            );
         }
         println!();
     }
@@ -76,7 +89,10 @@ pub fn run(args: MergeArgs) -> anyhow::Result<()> {
         base_def.upsert_entry(entry);
     }
 
-    println!("  Base entries    : {}", base_def.entries.len() - overlay_count.min(base_def.entries.len()));
+    println!(
+        "  Base entries    : {}",
+        base_def.entries.len() - overlay_count.min(base_def.entries.len())
+    );
     println!("  Overlay entries : {overlay_count}");
     println!("  Result entries  : {}", base_def.entries.len());
 
@@ -88,6 +104,10 @@ pub fn run(args: MergeArgs) -> anyhow::Result<()> {
     let out = args.out.unwrap_or(args.base.clone());
     config_io::save(&base_def, &out, true)?;
 
-    println!("{} Merged definition written to: {}", "✓".green(), out.display());
+    println!(
+        "{} Merged definition written to: {}",
+        "✓".green(),
+        out.display()
+    );
     Ok(())
 }

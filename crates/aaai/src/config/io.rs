@@ -44,15 +44,14 @@ pub fn save(def: &AuditDefinition, path: &Path, backup: bool) -> Result<()> {
     // Optional backup.
     if backup && path.exists() {
         let bak = path.with_extension("bak");
-        std::fs::copy(path, &bak).with_context(|| {
-            format!("Cannot create backup {}", bak.display())
-        })?;
+        std::fs::copy(path, &bak)
+            .with_context(|| format!("Cannot create backup {}", bak.display()))?;
         log::info!("Backup written to {}", bak.display());
     }
 
     // Serialize to YAML.
-    let yaml = serde_yaml::to_string(def)
-        .context("Failed to serialize audit definition to YAML")?;
+    let yaml =
+        serde_yaml::to_string(def).context("Failed to serialize audit definition to YAML")?;
 
     // Write to a temp file in the same directory for atomic rename.
     let tmp = path.with_extension("tmp");
@@ -60,13 +59,8 @@ pub fn save(def: &AuditDefinition, path: &Path, backup: bool) -> Result<()> {
         .with_context(|| format!("Cannot write to temp file {}", tmp.display()))?;
 
     // Atomic rename.
-    std::fs::rename(&tmp, path).with_context(|| {
-        format!(
-            "Cannot rename {} → {}",
-            tmp.display(),
-            path.display()
-        )
-    })?;
+    std::fs::rename(&tmp, path)
+        .with_context(|| format!("Cannot rename {} → {}", tmp.display(), path.display()))?;
 
     log::info!("Audit definition saved to {}", path.display());
     Ok(())

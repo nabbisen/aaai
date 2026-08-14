@@ -24,5 +24,8 @@ fn double_lock_fails() {
 
     let _guard1 = acquire(&def).unwrap();
     let result2 = acquire(&def);
-    assert!(result2.is_err(), "second acquire should fail while lock is held");
+    assert!(
+        result2.is_err(),
+        "second acquire should fail while lock is held"
+    );
 }

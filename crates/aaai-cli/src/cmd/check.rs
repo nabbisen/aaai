@@ -1,8 +1,8 @@
 //! `aaai check` — validate an audit definition file.
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
 use aaai::config::io as config_io;
 
@@ -36,13 +36,21 @@ pub fn run(args: CheckArgs) -> anyhow::Result<()> {
     println!("Version : {}", def.version);
     println!("Entries : {}", def.entries.len());
 
-    let expired       = def.expired_entries();
+    let expired = def.expired_entries();
     let expiring_soon = def.expiring_soon(30);
     if !expired.is_empty() {
-        println!("{}", format!("⚠  {} expired entries", expired.len()).yellow().bold());
+        println!(
+            "{}",
+            format!("⚠  {} expired entries", expired.len())
+                .yellow()
+                .bold()
+        );
     }
     if !expiring_soon.is_empty() {
-        println!("{}", format!("⏰ {} entries expiring within 30 days", expiring_soon.len()).yellow());
+        println!(
+            "{}",
+            format!("⏰ {} entries expiring within 30 days", expiring_soon.len()).yellow()
+        );
     }
     println!();
 
@@ -50,11 +58,25 @@ pub fn run(args: CheckArgs) -> anyhow::Result<()> {
     for entry in &def.entries {
         let result = entry.is_approvable();
         let show = args.all || result.is_err();
-        if !show { continue; }
+        if !show {
+            continue;
+        }
 
-        let icon = if result.is_ok() { "✓".green() } else { "✗".red().bold() };
-        let reason_tag = if entry.reason.trim().is_empty() { " (no reason)".yellow().to_string() } else { String::new() };
-        let ticket_tag = entry.ticket.as_deref().map(|t| format!(" [{}]", t)).unwrap_or_default();
+        let icon = if result.is_ok() {
+            "✓".green()
+        } else {
+            "✗".red().bold()
+        };
+        let reason_tag = if entry.reason.trim().is_empty() {
+            " (no reason)".yellow().to_string()
+        } else {
+            String::new()
+        };
+        let ticket_tag = entry
+            .ticket
+            .as_deref()
+            .map(|t| format!(" [{}]", t))
+            .unwrap_or_default();
         println!("{icon}  {}{ticket_tag}{reason_tag}", entry.path);
 
         if let Err(msg) = &result {
@@ -62,14 +84,22 @@ pub fn run(args: CheckArgs) -> anyhow::Result<()> {
             issues += 1;
         }
         if entry.is_expired() {
-            println!("   {}", format!("⚠ expired: {}", entry.expires_at.unwrap()).yellow());
+            println!(
+                "   {}",
+                format!("⚠ expired: {}", entry.expires_at.unwrap()).yellow()
+            );
         }
     }
 
     if issues == 0 {
         println!("{}", "All entries are valid.".green());
     } else {
-        println!("{}", format!("{issues} entry/entries have validation errors.").red().bold());
+        println!(
+            "{}",
+            format!("{issues} entry/entries have validation errors.")
+                .red()
+                .bold()
+        );
         std::process::exit(1);
     }
     Ok(())

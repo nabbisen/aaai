@@ -72,27 +72,25 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
-    env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("warn")
-    ).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
 
     let cli = Cli::parse();
     match cli.command {
-        Commands::Audit(args)       => cmd::audit::run(args),
-        Commands::Snap(args)        => cmd::snap::run(args),
-        Commands::Report(args)      => cmd::report::run(args),
-        Commands::Check(args)       => cmd::check::run(args),
-        Commands::History(args)     => cmd::history::run(args),
-        Commands::Config(args)      => cmd::config::run(args),
-        Commands::Dashboard(args)   => cmd::dashboard::run(args),
-        Commands::Watch(args)       => cmd::watch::run(args),
+        Commands::Audit(args) => cmd::audit::run(args),
+        Commands::Snap(args) => cmd::snap::run(args),
+        Commands::Report(args) => cmd::report::run(args),
+        Commands::Check(args) => cmd::check::run(args),
+        Commands::History(args) => cmd::history::run(args),
+        Commands::Config(args) => cmd::config::run(args),
+        Commands::Dashboard(args) => cmd::dashboard::run(args),
+        Commands::Watch(args) => cmd::watch::run(args),
         Commands::Completions(args) => cmd::completions::run(args),
-        Commands::Diff(args)        => cmd::diff_cmd::run(args),
-        Commands::Merge(args)       => cmd::merge::run(args),
-        Commands::Init(args)        => cmd::init::run(args),
-        Commands::Export(args)      => cmd::export::run(args),
-        Commands::Version(args)     => cmd::version_cmd::run(args),
-        Commands::Lint(args)        => cmd::lint::run(args),
-        Commands::ExitCodes(args)   => cmd::exit_codes::run(args),
+        Commands::Diff(args) => cmd::diff_cmd::run(args),
+        Commands::Merge(args) => cmd::merge::run(args),
+        Commands::Init(args) => cmd::init::run(args),
+        Commands::Export(args) => cmd::export::run(args),
+        Commands::Version(args) => cmd::version_cmd::run(args),
+        Commands::Lint(args) => cmd::lint::run(args),
+        Commands::ExitCodes(args) => cmd::exit_codes::run(args),
     }
 }

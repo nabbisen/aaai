@@ -1,19 +1,23 @@
 //! Criterion benchmarks for the diff engine.
 
-use criterion::{criterion_group, criterion_main, Criterion};
-use std::hint::black_box;
-use std::fs;
 use aaai::DiffEngine;
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::fs;
+use std::hint::black_box;
 
 fn setup_tree(n_files: usize) -> (tempfile::TempDir, tempfile::TempDir) {
     let before = tempfile::tempdir().unwrap();
-    let after  = tempfile::tempdir().unwrap();
+    let after = tempfile::tempdir().unwrap();
     for i in 0..n_files {
-        fs::write(before.path().join(format!("file_{i:04}.txt")), format!("before content {i}\n")).unwrap();
+        fs::write(
+            before.path().join(format!("file_{i:04}.txt")),
+            format!("before content {i}\n"),
+        )
+        .unwrap();
         let content = if i % 5 == 0 {
-            format!("after content {i}\n")   // modified
+            format!("after content {i}\n") // modified
         } else {
-            format!("before content {i}\n")  // unchanged
+            format!("before content {i}\n") // unchanged
         };
         fs::write(after.path().join(format!("file_{i:04}.txt")), content).unwrap();
     }
@@ -27,18 +31,14 @@ fn setup_tree(n_files: usize) -> (tempfile::TempDir, tempfile::TempDir) {
 fn bench_diff_100(c: &mut Criterion) {
     let (before, after) = setup_tree(100);
     c.bench_function("diff_100_files", |b| {
-        b.iter(|| {
-            DiffEngine::compare(black_box(before.path()), black_box(after.path())).unwrap()
-        })
+        b.iter(|| DiffEngine::compare(black_box(before.path()), black_box(after.path())).unwrap())
     });
 }
 
 fn bench_diff_1000(c: &mut Criterion) {
     let (before, after) = setup_tree(1000);
     c.bench_function("diff_1000_files", |b| {
-        b.iter(|| {
-            DiffEngine::compare(black_box(before.path()), black_box(after.path())).unwrap()
-        })
+        b.iter(|| DiffEngine::compare(black_box(before.path()), black_box(after.path())).unwrap())
     });
 }
 

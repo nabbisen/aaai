@@ -1,12 +1,15 @@
 //! `aaai snap` — Phase 3: --template flag, ignore file support.
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
 use aaai::{
     AuditDefinition, DiffEngine, DiffType, IgnoreRules,
-    config::{definition::{AuditEntry, AuditStrategy}, io as config_io},
+    config::{
+        definition::{AuditEntry, AuditStrategy},
+        io as config_io,
+    },
     templates::library as tmpl,
 };
 
@@ -65,19 +68,22 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
     println!("{}", "aaai snap".bold());
 
     // Resolve template strategy
-    let template_strategy: Option<AuditStrategy> = match &args.template {
-        Some(id) => {
-            let t = tmpl::find(id)
+    let template_strategy: Option<AuditStrategy> =
+        match &args.template {
+            Some(id) => {
+                let t = tmpl::find(id)
                 .ok_or_else(|| anyhow::anyhow!(
                     "Unknown template {:?}. Run `aaai snap --list-templates` to list available.", id
                 ))?;
-            Some((t.strategy)())
-        }
-        None => None,
-    };
+                Some((t.strategy)())
+            }
+            None => None,
+        };
 
     // Load ignore rules
-    let ignore_path = args.ignore.clone()
+    let ignore_path = args
+        .ignore
+        .clone()
         .unwrap_or_else(|| args.left.join(".aaaiignore"));
     let ignore = IgnoreRules::load(&ignore_path)?;
 
@@ -94,7 +100,9 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
         .ok()
         .flatten()
         .map(|(c, _)| c);
-    let approver_name: Option<String> = args.approver.clone()
+    let approver_name: Option<String> = args
+        .approver
+        .clone()
         .or_else(|| proj_cfg.as_ref().and_then(|c| c.approver_name.clone()));
 
     let diffs = DiffEngine::compare_with_ignore(&args.left, &args.right, &ignore)?;
@@ -143,7 +151,14 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
         for e in &definition.entries {
             println!("  {} {}  ({})", "entry:".dimmed(), e.path, e.diff_type);
         }
-        println!("{}", format!("--- {} entries would be added, {} skipped ---", added, skipped).dimmed());
+        println!(
+            "{}",
+            format!(
+                "--- {} entries would be added, {} skipped ---",
+                added, skipped
+            )
+            .dimmed()
+        );
         return Ok(());
     }
 
@@ -153,7 +168,11 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
     if let Some(name) = &approver_name {
         println!("  Approver: {}", name.cyan());
     }
-    println!("  {} entries added, {} skipped (already have a reason)", added.to_string().yellow(), skipped);
+    println!(
+        "  {} entries added, {} skipped (already have a reason)",
+        added.to_string().yellow(),
+        skipped
+    );
 
     if args.suggest_glob {
         suggest_globs(&definition);
@@ -162,7 +181,10 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
         println!("  Template applied: {}", id.cyan());
     }
     println!();
-    println!("{}", "Next: fill in the 'reason' field for each entry, then run `aaai audit`.".dimmed());
+    println!(
+        "{}",
+        "Next: fill in the 'reason' field for each entry, then run `aaai audit`.".dimmed()
+    );
     Ok(())
 }
 
@@ -176,23 +198,33 @@ fn suggest_globs(def: &aaai::AuditDefinition) {
             dir_counts.entry(dir).or_default().push(entry.path.clone());
         }
     }
-    let candidates: Vec<_> = dir_counts.iter()
+    let candidates: Vec<_> = dir_counts
+        .iter()
         .filter(|(_, paths)| paths.len() >= 2)
         .collect();
 
-    if candidates.is_empty() { return; }
+    if candidates.is_empty() {
+        return;
+    }
 
     println!();
     println!("{}", "💡 Glob consolidation suggestions:".cyan().bold());
     for (dir, paths) in &candidates {
-        let exts: std::collections::HashSet<_> = paths.iter()
-            .filter_map(|p| p.rsplit('.').next())
-            .collect();
+        let exts: std::collections::HashSet<_> =
+            paths.iter().filter_map(|p| p.rsplit('.').next()).collect();
         if exts.len() == 1 {
             let ext = exts.into_iter().next().unwrap();
-            println!("  {} could be {}", paths.join(", ").dimmed(), format!("{dir}/*.{ext}").yellow());
+            println!(
+                "  {} could be {}",
+                paths.join(", ").dimmed(),
+                format!("{dir}/*.{ext}").yellow()
+            );
         } else {
-            println!("  {} could be {}/**", paths.join(", ").dimmed(), dir.yellow());
+            println!(
+                "  {} could be {}/**",
+                paths.join(", ").dimmed(),
+                dir.yellow()
+            );
         }
     }
 }

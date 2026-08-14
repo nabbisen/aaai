@@ -21,7 +21,11 @@ pub fn acquire(definition_path: &Path) -> anyhow::Result<LockGuard> {
         // Check whether the lock is stale.
         if let Ok(meta) = std::fs::metadata(&lock_path) {
             if let Ok(modified) = meta.modified() {
-                if SystemTime::now().duration_since(modified).unwrap_or_default() < LOCK_TTL {
+                if SystemTime::now()
+                    .duration_since(modified)
+                    .unwrap_or_default()
+                    < LOCK_TTL
+                {
                     anyhow::bail!(
                         "Definition file is locked by another process: {}.\n\
                          Delete {} to force-unlock.",
@@ -50,7 +54,10 @@ pub struct LockGuard {
 impl Drop for LockGuard {
     fn drop(&mut self) {
         if let Err(e) = std::fs::remove_file(&self.lock_path) {
-            log::warn!("Could not remove lock file {}: {e}", self.lock_path.display());
+            log::warn!(
+                "Could not remove lock file {}: {e}",
+                self.lock_path.display()
+            );
         } else {
             log::debug!("Lock released: {}", self.lock_path.display());
         }

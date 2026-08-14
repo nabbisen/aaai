@@ -117,14 +117,24 @@ fn audit_maps_unreadable_regular_file_to_error_exit_3() {
 
     let output = aaai()
         .args([
-            "audit", "--left", before.to_str().unwrap(), "--right", after.to_str().unwrap(),
-            "--config", audit_yaml.to_str().unwrap(), "--no-history",
+            "audit",
+            "--left",
+            before.to_str().unwrap(),
+            "--right",
+            after.to_str().unwrap(),
+            "--config",
+            audit_yaml.to_str().unwrap(),
+            "--no-history",
         ])
         .run_output()
         .unwrap();
     fs::set_permissions(after.join("blocked"), fs::Permissions::from_mode(0o600)).unwrap();
     assert_eq!(output.status.code(), Some(3));
-    let rendered = format!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    let rendered = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(rendered.contains("blocked"));
     assert!(rendered.contains("AAAI-PATH-READ"));
     assert!(!rendered.contains("Permission denied"));

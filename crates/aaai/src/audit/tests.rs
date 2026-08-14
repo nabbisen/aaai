@@ -1,22 +1,28 @@
 //! Unit tests for audit strategies and the audit engine.
 
+use super::engine::AuditEngine;
+use super::result::AuditStatus;
+use super::strategy;
 use crate::config::definition::{
     AuditDefinition, AuditEntry, AuditStrategy, LineAction, LineRule, RegexTarget,
 };
 use crate::diff::entry::{DiffEntry, DiffType};
-use super::engine::AuditEngine;
-use super::result::AuditStatus;
-use super::strategy;
 
 // ── helpers ──────────────────────────────────────────────────────────────
 
-fn make_diff(path: &str, diff_type: DiffType, before: Option<&str>, after: Option<&str>) -> DiffEntry {
+fn make_diff(
+    path: &str,
+    diff_type: DiffType,
+    before: Option<&str>,
+    after: Option<&str>,
+) -> DiffEntry {
     use sha2::{Digest, Sha256};
     let before_sha256 = before.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
-    let after_sha256  = after.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
+    let after_sha256 = after.map(|t| hex::encode(Sha256::digest(t.as_bytes())));
     let stats = match (diff_type, before, after) {
-        (DiffType::Modified, Some(b), Some(a)) =>
-            Some(crate::diff::entry::DiffStats::compute(b, a)),
+        (DiffType::Modified, Some(b), Some(a)) => {
+            Some(crate::diff::entry::DiffStats::compute(b, a))
+        }
         _ => None,
     };
     DiffEntry {
@@ -24,10 +30,10 @@ fn make_diff(path: &str, diff_type: DiffType, before: Option<&str>, after: Optio
         diff_type,
         is_dir: false,
         before_text: before.map(String::from),
-        after_text:  after.map(String::from),
+        after_text: after.map(String::from),
         is_binary: false,
         before_size: before.map(|t| t.len() as u64),
-        after_size:  after.map(|t| t.len() as u64),
+        after_size: after.map(|t| t.len() as u64),
         before_sha256,
         after_sha256,
         stats,
@@ -74,7 +80,9 @@ fn checksum_matches() {
     let content = "hello";
     let sha = hex::encode(Sha256::digest(content.as_bytes()));
     let diff = make_diff("f", DiffType::Modified, Some("old"), Some(content));
-    let strat = AuditStrategy::Checksum { expected_sha256: sha };
+    let strat = AuditStrategy::Checksum {
+        expected_sha256: sha,
+    };
     assert!(strategy::evaluate(&strat, &diff).is_ok());
 }
 
@@ -91,13 +99,22 @@ fn checksum_mismatch_fails() {
 
 #[test]
 fn linematch_added_line_ok() {
-    let diff = make_diff("cfg.toml", DiffType::Modified,
+    let diff = make_diff(
+        "cfg.toml",
+        DiffType::Modified,
         Some("port = 80\n"),
-        Some("port = 8080\n"));
+        Some("port = 8080\n"),
+    );
     let strat = AuditStrategy::LineMatch {
         rules: vec![
-            LineRule { action: LineAction::Removed, line: "port = 80".to_string() },
-            LineRule { action: LineAction::Added,   line: "port = 8080".to_string() },
+            LineRule {
+                action: LineAction::Removed,
+                line: "port = 80".to_string(),
+            },
+            LineRule {
+                action: LineAction::Added,
+                line: "port = 8080".to_string(),
+            },
         ],
     };
     assert!(strategy::evaluate(&strat, &diff).is_ok());
@@ -105,13 +122,17 @@ fn linematch_added_line_ok() {
 
 #[test]
 fn linematch_missing_line_fails() {
-    let diff = make_diff("cfg.toml", DiffType::Modified,
+    let diff = make_diff(
+        "cfg.toml",
+        DiffType::Modified,
         Some("port = 80\n"),
-        Some("port = 9999\n"));
+        Some("port = 9999\n"),
+    );
     let strat = AuditStrategy::LineMatch {
-        rules: vec![
-            LineRule { action: LineAction::Added, line: "port = 8080".to_string() },
-        ],
+        rules: vec![LineRule {
+            action: LineAction::Added,
+            line: "port = 8080".to_string(),
+        }],
     };
     let result = strategy::evaluate(&strat, &diff);
     assert!(result.is_err());
@@ -122,9 +143,12 @@ fn linematch_missing_line_fails() {
 
 #[test]
 fn regex_added_lines_match() {
-    let diff = make_diff("ver.txt", DiffType::Modified,
+    let diff = make_diff(
+        "ver.txt",
+        DiffType::Modified,
         Some("version = 1.0\n"),
-        Some("version = 2.0\n"));
+        Some("version = 2.0\n"),
+    );
     let strat = AuditStrategy::Regex {
         pattern: r"^version = \d+\.\d+$".to_string(),
         target: RegexTarget::AddedLines,
@@ -148,14 +172,18 @@ fn regex_invalid_pattern_errors() {
 fn exact_match_ok() {
     let expected = "exact content\n";
     let diff = make_diff("f", DiffType::Modified, Some("old\n"), Some(expected));
-    let strat = AuditStrategy::Exact { expected_content: expected.to_string() };
+    let strat = AuditStrategy::Exact {
+        expected_content: expected.to_string(),
+    };
     assert!(strategy::evaluate(&strat, &diff).is_ok());
 }
 
 #[test]
 fn exact_mismatch_fails() {
     let diff = make_diff("f", DiffType::Modified, Some("old\n"), Some("actual\n"));
-    let strat = AuditStrategy::Exact { expected_content: "expected\n".to_string() };
+    let strat = AuditStrategy::Exact {
+        expected_content: "expected\n".to_string(),
+    };
     assert!(strategy::evaluate(&strat, &diff).is_err());
 }
 
@@ -209,9 +237,9 @@ fn error_for_unreadable_diff() {
 #[test]
 fn summary_counts_are_correct() {
     let diffs = vec![
-        make_diff("ok.txt",      DiffType::Added,    None,          Some("x")),
-        make_diff("pending.txt", DiffType::Added,    None,          Some("y")),
-        make_diff("failed.txt",  DiffType::Modified, Some("a\n"),   Some("b\n")),
+        make_diff("ok.txt", DiffType::Added, None, Some("x")),
+        make_diff("pending.txt", DiffType::Added, None, Some("y")),
+        make_diff("failed.txt", DiffType::Modified, Some("a\n"), Some("b\n")),
     ];
     let def = make_def(vec![
         make_entry("ok.txt", DiffType::Added, AuditStrategy::None),
@@ -219,9 +247,9 @@ fn summary_counts_are_correct() {
         make_entry("failed.txt", DiffType::Added, AuditStrategy::None), // type mismatch
     ]);
     let result = AuditEngine::evaluate(&diffs, &def);
-    assert_eq!(result.summary.ok,      1);
+    assert_eq!(result.summary.ok, 1);
     assert_eq!(result.summary.pending, 1);
-    assert_eq!(result.summary.failed,  1);
+    assert_eq!(result.summary.failed, 1);
 }
 
 // ── Phase 3 behaviours ───────────────────────────────────────────────────
@@ -233,8 +261,11 @@ fn empty_reason_is_pending_not_ok() {
     entry.reason = "   ".to_string(); // whitespace only
     let def = make_def(vec![entry]);
     let result = AuditEngine::evaluate(&[diff], &def);
-    assert_eq!(result.results[0].status, AuditStatus::Pending,
-        "empty reason must produce Pending, not OK");
+    assert_eq!(
+        result.results[0].status,
+        AuditStatus::Pending,
+        "empty reason must produce Pending, not OK"
+    );
 }
 
 #[test]
@@ -252,8 +283,11 @@ fn unchanged_is_auto_ok_without_entry() {
     let diff = make_diff("same.txt", DiffType::Unchanged, Some("x"), Some("x"));
     let def = make_def(vec![]);
     let result = AuditEngine::evaluate(&[diff], &def);
-    assert_eq!(result.results[0].status, AuditStatus::Ok,
-        "Unchanged entries should be auto-OK even without a rule");
+    assert_eq!(
+        result.results[0].status,
+        AuditStatus::Ok,
+        "Unchanged entries should be auto-OK even without a rule"
+    );
 }
 
 // ── RFC 044: expires_at enforcement ──────────────────────────────────────────
@@ -266,21 +300,28 @@ fn unchanged_is_auto_ok_without_entry() {
 fn expired_entry_returns_pending() {
     use chrono::NaiveDate;
 
-    let diff  = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
+    let diff = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
     let mut entry = make_entry("config.toml", DiffType::Modified, AuditStrategy::None);
     // Set expiry to a date firmly in the past.
     entry.expires_at = Some(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap());
 
-    let def    = make_def(vec![entry.clone()]);
+    let def = make_def(vec![entry.clone()]);
     let result = AuditEngine::evaluate(&[diff], &def);
-    let far    = &result.results[0];
+    let far = &result.results[0];
 
-    assert_eq!(far.status, AuditStatus::Pending,
-        "Expired entries must be Pending — not Ok — so they surface for renewal");
-    assert!(far.entry.is_some(),
-        "Expired entry data must be preserved for Inspector display");
-    assert!(far.entry.as_ref().unwrap().is_expired(),
-        "Returned entry should self-report as expired");
+    assert_eq!(
+        far.status,
+        AuditStatus::Pending,
+        "Expired entries must be Pending — not Ok — so they surface for renewal"
+    );
+    assert!(
+        far.entry.is_some(),
+        "Expired entry data must be preserved for Inspector display"
+    );
+    assert!(
+        far.entry.as_ref().unwrap().is_expired(),
+        "Returned entry should self-report as expired"
+    );
 }
 
 /// RFC 044 — An entry whose `expires_at` is tomorrow (not yet expired) still
@@ -288,13 +329,16 @@ fn expired_entry_returns_pending() {
 #[test]
 fn not_yet_expired_entry_is_ok() {
     use chrono::{Duration, Utc};
-    let diff  = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
+    let diff = make_diff("config.toml", DiffType::Modified, Some("a"), Some("b"));
     let mut entry = make_entry("config.toml", DiffType::Modified, AuditStrategy::None);
     let tomorrow = (Utc::now() + Duration::days(1)).date_naive();
     entry.expires_at = Some(tomorrow);
 
-    let def    = make_def(vec![entry]);
+    let def = make_def(vec![entry]);
     let result = AuditEngine::evaluate(&[diff], &def);
-    assert_eq!(result.results[0].status, AuditStatus::Ok,
-        "An entry expiring tomorrow is still valid today");
+    assert_eq!(
+        result.results[0].status,
+        AuditStatus::Ok,
+        "An entry expiring tomorrow is still valid today"
+    );
 }

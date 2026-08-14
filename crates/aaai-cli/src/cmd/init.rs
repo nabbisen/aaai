@@ -7,14 +7,17 @@
 //! 4. Saving a .aaai.yaml project config
 //! 5. Optionally running `snap` to generate the initial definition
 
-use std::io::{self, Write};
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::io::{self, Write};
+use std::path::PathBuf;
 
 use aaai::{
     AuditDefinition, DiffEngine, DiffType,
-    config::{definition::{AuditEntry, AuditStrategy}, io as config_io},
+    config::{
+        definition::{AuditEntry, AuditStrategy},
+        io as config_io,
+    },
     project::config::ProjectConfig,
 };
 
@@ -56,17 +59,21 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
 
     // Interactive prompts.
     let before = prompt("Before (source) folder path", "before")?;
-    let after  = prompt("After (target) folder path",  "after")?;
-    let def    = prompt("Audit definition file",        "audit/audit.yaml")?;
+    let after = prompt("After (target) folder path", "after")?;
+    let def = prompt("Audit definition file", "audit/audit.yaml")?;
     let approver = prompt("Your name (approver_name, optional)", "")?;
-    let mask   = prompt_bool("Enable secret masking by default?", false)?;
+    let mask = prompt_bool("Enable secret masking by default?", false)?;
 
     // Build project config.
     let cfg = ProjectConfig {
         version: "1".into(),
         default_definition: Some(def.clone()),
         default_ignore: None,
-        approver_name: if approver.is_empty() { None } else { Some(approver) },
+        approver_name: if approver.is_empty() {
+            None
+        } else {
+            Some(approver)
+        },
         mask_secrets: mask,
         custom_mask_patterns: Vec::new(),
         suppress_warnings: Vec::new(),
@@ -88,12 +95,14 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
         )?;
         if run_snap {
             let before_p = PathBuf::from(&before);
-            let after_p  = PathBuf::from(&after);
+            let after_p = PathBuf::from(&after);
             if before_p.is_dir() && after_p.is_dir() {
                 let diffs = DiffEngine::compare(&before_p, &after_p)?;
                 let mut definition = AuditDefinition::new_empty();
                 for diff in &diffs {
-                    if diff.diff_type == DiffType::Unchanged || diff.is_dir { continue; }
+                    if diff.diff_type == DiffType::Unchanged || diff.is_dir {
+                        continue;
+                    }
                     definition.upsert_entry(AuditEntry {
                         path: diff.path.clone(),
                         diff_type: diff.diff_type,
@@ -110,10 +119,15 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
                     });
                 }
                 config_io::save(&definition, &def_path, false)?;
-                println!("{} Definition template written to {}",
-                    "✓".green(), def_path.display());
-                println!("  {} entries generated — fill in 'reason' fields before auditing.",
-                    definition.entries.len().to_string().yellow());
+                println!(
+                    "{} Definition template written to {}",
+                    "✓".green(),
+                    def_path.display()
+                );
+                println!(
+                    "  {} entries generated — fill in 'reason' fields before auditing.",
+                    definition.entries.len().to_string().yellow()
+                );
             } else {
                 println!("{}", "Skipped snap — folder paths not found.".yellow());
             }
@@ -131,14 +145,21 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
 fn non_interactive_init(_dir_unused: &PathBuf, config_path: &PathBuf) -> anyhow::Result<()> {
     let cfg = ProjectConfig::default();
     cfg.save(config_path)?;
-    println!("{} .aaai.yaml written to {}", "✓".green(), config_path.display());
+    println!(
+        "{} .aaai.yaml written to {}",
+        "✓".green(),
+        config_path.display()
+    );
     println!("Edit the file to configure your project defaults.");
     Ok(())
 }
 
 fn prompt(label: &str, default: &str) -> anyhow::Result<String> {
-    let default_hint = if default.is_empty() { String::new() }
-                       else { format!(" [{default}]") };
+    let default_hint = if default.is_empty() {
+        String::new()
+    } else {
+        format!(" [{default}]")
+    };
     print!("{}{}: ", label.bold(), default_hint);
     io::stdout().flush()?;
     let mut input = String::new();
@@ -160,7 +181,7 @@ fn prompt_bool(label: &str, default: bool) -> anyhow::Result<bool> {
     let trimmed = input.trim().to_lowercase();
     Ok(match trimmed.as_str() {
         "y" | "yes" => true,
-        "n" | "no"  => false,
-        _            => default,
+        "n" | "no" => false,
+        _ => default,
     })
 }

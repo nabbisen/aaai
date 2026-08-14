@@ -176,8 +176,20 @@ fn every_surface_encodes_and_masks_every_untrusted_field() {
     let ticket = run["results"][0]["properties"]["ticket"].as_str().unwrap();
     let props_before = run["properties"]["before"].as_str().unwrap();
     let props_after = run["properties"]["after"].as_str().unwrap();
-    assert!(!message.contains(CANARY), "SARIF message must be masked (F3): {message}");
-    assert!(!ticket.contains(CANARY), "SARIF properties.ticket must be masked (F3): {ticket}");
-    assert!(!props_before.contains(CANARY), "SARIF properties.before must be masked: {props_before}");
-    assert!(!props_after.contains(CANARY), "SARIF properties.after must be masked: {props_after}");
+    assert!(
+        !message.contains(CANARY),
+        "SARIF message must be masked (F3): {message}"
+    );
+    assert!(
+        !ticket.contains(CANARY),
+        "SARIF properties.ticket must be masked (F3): {ticket}"
+    );
+    assert!(
+        !props_before.contains(CANARY),
+        "SARIF properties.before must be masked: {props_before}"
+    );
+    assert!(
+        !props_after.contains(CANARY),
+        "SARIF properties.after must be masked: {props_after}"
+    );
 }

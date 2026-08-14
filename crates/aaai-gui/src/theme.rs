@@ -30,8 +30,8 @@
 //! | Added   | token `success`  | token `success` HC  | snora-design |
 //! | Removed | token `danger`   | token `danger` HC   | snora-design |
 
-use iced::Color;
 use aaai::AuditStatus;
+use iced::Color;
 use snora::design::Tokens;
 
 // ── Hand-picked constants for roles not covered by snora-design ───────────
@@ -39,27 +39,48 @@ use snora::design::Tokens;
 /// Standard error color — purple #B22EB2, 5.33:1 on white.
 /// Kept distinct from FAILED so "couldn't read" reads differently from
 /// "rule no longer matches" (design doc p.9 status-vocabulary distinction).
-pub const ERROR_COLOR: Color =
-    Color { r: 0.70, g: 0.18, b: 0.70, a: 1.0 };
+pub const ERROR_COLOR: Color = Color {
+    r: 0.70,
+    g: 0.18,
+    b: 0.70,
+    a: 1.0,
+};
 
 /// High-contrast error color — purple #7B1F7B, 9.04:1 on white.
-pub const ERROR_HC: Color =
-    Color { r: 0.482353, g: 0.121569, b: 0.482353, a: 1.0 };
+pub const ERROR_HC: Color = Color {
+    r: 0.482353,
+    g: 0.121569,
+    b: 0.482353,
+    a: 1.0,
+};
 
 /// Standard ignored color — grey #6B6B6B, 5.32:1 on white.
-pub const IGNORED_COLOR: Color =
-    Color { r: 0.420000, g: 0.420000, b: 0.420000, a: 1.0 };
+pub const IGNORED_COLOR: Color = Color {
+    r: 0.420000,
+    g: 0.420000,
+    b: 0.420000,
+    a: 1.0,
+};
 
 /// High-contrast ignored color — grey #525252, 7.81:1 on white.
-pub const IGNORED_HC: Color =
-    Color { r: 0.321569, g: 0.321569, b: 0.321569, a: 1.0 };
+pub const IGNORED_HC: Color = Color {
+    r: 0.321569,
+    g: 0.321569,
+    b: 0.321569,
+    a: 1.0,
+};
 
 // ── Token-aware status color resolver ────────────────────────────────────
 
 /// Convert a `snora_design::Color` to an `iced::Color`.
 #[inline]
 fn to_iced(c: snora::design::Color) -> Color {
-    Color { r: c.r, g: c.g, b: c.b, a: c.a }
+    Color {
+        r: c.r,
+        g: c.g,
+        b: c.b,
+        a: c.a,
+    }
 }
 
 /// Return the display color for an [`AuditStatus`], respecting the active
@@ -73,19 +94,35 @@ fn to_iced(c: snora::design::Color) -> Color {
 /// `is_hc` is `app.theme.is_high_contrast()`.
 pub fn status_color(status: AuditStatus, tokens: &Tokens, is_hc: bool) -> Color {
     match status {
-        AuditStatus::Ok      => to_iced(tokens.palette.success),
+        AuditStatus::Ok => to_iced(tokens.palette.success),
         AuditStatus::Pending => to_iced(tokens.palette.warning),
-        AuditStatus::Failed  => to_iced(tokens.palette.danger),
-        AuditStatus::Error   => if is_hc { ERROR_HC }   else { ERROR_COLOR },
-        AuditStatus::Ignored => if is_hc { IGNORED_HC } else { IGNORED_COLOR },
+        AuditStatus::Failed => to_iced(tokens.palette.danger),
+        AuditStatus::Error => {
+            if is_hc {
+                ERROR_HC
+            } else {
+                ERROR_COLOR
+            }
+        }
+        AuditStatus::Ignored => {
+            if is_hc {
+                IGNORED_HC
+            } else {
+                IGNORED_COLOR
+            }
+        }
     }
 }
 
 /// Shorthand for diff-view added lines — same as OK / success.
-pub fn added_color(tokens: &Tokens) -> Color { to_iced(tokens.palette.success) }
+pub fn added_color(tokens: &Tokens) -> Color {
+    to_iced(tokens.palette.success)
+}
 
 /// Shorthand for diff-view removed lines — same as Failed / danger.
-pub fn removed_color(tokens: &Tokens) -> Color { to_iced(tokens.palette.danger) }
+pub fn removed_color(tokens: &Tokens) -> Color {
+    to_iced(tokens.palette.danger)
+}
 
 #[cfg(test)]
 mod tests {
@@ -94,7 +131,11 @@ mod tests {
 
     fn luminance(c: Color) -> f32 {
         fn lin(ch: f32) -> f32 {
-            if ch <= 0.03928 { ch / 12.92 } else { ((ch + 0.055) / 1.055).powf(2.4) }
+            if ch <= 0.03928 {
+                ch / 12.92
+            } else {
+                ((ch + 0.055) / 1.055).powf(2.4)
+            }
         }
         0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
     }
@@ -103,7 +144,12 @@ mod tests {
         let (hi, lo) = if l1 > l2 { (l1, l2) } else { (l2, l1) };
         (hi + 0.05) / (lo + 0.05)
     }
-    const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
+    const WHITE: Color = Color {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    };
 
     /// All standard-theme status colors must meet WCAG AA (≥ 4.5:1).
     #[test]
@@ -147,20 +193,52 @@ mod tests {
         let tokens = snora::design::Tokens::light();
         // v0.35.0 constants (from snora-design light palette)
         let v035 = [
-            (AuditStatus::Ok,      Color { r: 0.082353, g: 0.501961, b: 0.239216, a: 1.0 }),
-            (AuditStatus::Pending, Color { r: 0.603922, g: 0.356863, b: 0.000000, a: 1.0 }),
-            (AuditStatus::Failed,  Color { r: 0.701961, g: 0.149020, b: 0.117647, a: 1.0 }),
-            (AuditStatus::Error,   ERROR_COLOR),
+            (
+                AuditStatus::Ok,
+                Color {
+                    r: 0.082353,
+                    g: 0.501961,
+                    b: 0.239216,
+                    a: 1.0,
+                },
+            ),
+            (
+                AuditStatus::Pending,
+                Color {
+                    r: 0.603922,
+                    g: 0.356863,
+                    b: 0.000000,
+                    a: 1.0,
+                },
+            ),
+            (
+                AuditStatus::Failed,
+                Color {
+                    r: 0.701961,
+                    g: 0.149020,
+                    b: 0.117647,
+                    a: 1.0,
+                },
+            ),
+            (AuditStatus::Error, ERROR_COLOR),
             (AuditStatus::Ignored, IGNORED_COLOR),
         ];
         for (s, expected) in v035 {
             let got = status_color(s, &tokens, false);
-            let diff = (got.r - expected.r).abs()
+            let diff = (got.r - expected.r)
+                .abs()
                 .max((got.g - expected.g).abs())
                 .max((got.b - expected.b).abs());
-            assert!(diff < 1e-5,
+            assert!(
+                diff < 1e-5,
                 "{s:?}: got ({:.6},{:.6},{:.6}) expected ({:.6},{:.6},{:.6})",
-                got.r, got.g, got.b, expected.r, expected.g, expected.b);
+                got.r,
+                got.g,
+                got.b,
+                expected.r,
+                expected.g,
+                expected.b
+            );
         }
     }
 

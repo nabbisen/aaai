@@ -1,7 +1,7 @@
 //! Audit result types.
 
-use crate::diff::entry::DiffEntry;
 use crate::config::definition::AuditEntry;
+use crate::diff::entry::DiffEntry;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuditStatus {

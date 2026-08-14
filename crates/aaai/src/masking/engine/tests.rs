@@ -1,13 +1,18 @@
 use super::*;
 
-fn engine() -> MaskingEngine { MaskingEngine::builtin() }
+fn engine() -> MaskingEngine {
+    MaskingEngine::builtin()
+}
 
 #[test]
 fn masks_api_key_assignment() {
     let text = r#"api_key = "sk-abcdefghijklmnop1234567890""#;
     let masked = engine().mask(text);
     assert!(masked.contains(MASK), "expected mask in: {masked}");
-    assert!(!masked.contains("sk-abcdefghijklmnop"), "key should be masked");
+    assert!(
+        !masked.contains("sk-abcdefghijklmnop"),
+        "key should be masked"
+    );
 }
 
 #[test]

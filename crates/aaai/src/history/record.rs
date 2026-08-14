@@ -11,12 +11,12 @@ pub struct HistoryRecord {
     pub before: String,
     pub after: String,
     pub definition: Option<String>,
-    pub result: String,   // "PASSED" | "FAILED"
-    pub total:   usize,
-    pub ok:      usize,
+    pub result: String, // "PASSED" | "FAILED"
+    pub total: usize,
+    pub ok: usize,
     pub pending: usize,
-    pub failed:  usize,
-    pub error:   usize,
+    pub failed: usize,
+    pub error: usize,
 }
 
 impl HistoryRecord {
@@ -27,16 +27,20 @@ impl HistoryRecord {
         summary: &crate::audit::result::AuditSummary,
     ) -> Self {
         Self {
-            run_at:     Utc::now(),
-            before:     before.display().to_string(),
-            after:      after.display().to_string(),
+            run_at: Utc::now(),
+            before: before.display().to_string(),
+            after: after.display().to_string(),
             definition: definition.map(|p| p.display().to_string()),
-            result:     if summary.is_passing() { "PASSED".into() } else { "FAILED".into() },
-            total:      summary.total,
-            ok:         summary.ok,
-            pending:    summary.pending,
-            failed:     summary.failed,
-            error:      summary.error,
+            result: if summary.is_passing() {
+                "PASSED".into()
+            } else {
+                "FAILED".into()
+            },
+            total: summary.total,
+            ok: summary.ok,
+            pending: summary.pending,
+            failed: summary.failed,
+            error: summary.error,
         }
     }
 }

@@ -6,14 +6,12 @@
 //! path, diff_type, status, reason, strategy, ticket,
 //! approved_by, approved_at, expires_at, enabled, note, created_at, updated_at
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
 use aaai::{
-    AuditEngine, DiffEngine, MaskingEngine,
-    config::io as config_io,
-    project::config::ProjectConfig,
+    AuditEngine, DiffEngine, MaskingEngine, config::io as config_io, project::config::ProjectConfig,
 };
 
 const EXPORT_AFTER_HELP: &str = "\
@@ -47,8 +45,8 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
     let sep: char = if args.format == "tsv" { '\t' } else { ',' };
 
     let definition = config_io::load(&args.config)?;
-    let diffs      = DiffEngine::compare(&args.left, &args.right)?;
-    let result     = AuditEngine::evaluate(&diffs, &definition);
+    let diffs = DiffEngine::compare(&args.left, &args.right)?;
+    let result = AuditEngine::evaluate(&diffs, &definition);
 
     // RFC 103 F4 — this file bypassed the report API entirely and never
     // masked anything. A CSV/TSV export is opened in a spreadsheet for
@@ -63,16 +61,31 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
     let mut lines: Vec<String> = Vec::new();
 
     // Header
-    lines.push(join(&[
-        "path", "diff_type", "status", "reason", "strategy",
-        "ticket", "approved_by", "approved_at", "expires_at",
-        "enabled", "note", "created_at", "updated_at",
-    ], sep));
+    lines.push(join(
+        &[
+            "path",
+            "diff_type",
+            "status",
+            "reason",
+            "strategy",
+            "ticket",
+            "approved_by",
+            "approved_at",
+            "expires_at",
+            "enabled",
+            "note",
+            "created_at",
+            "updated_at",
+        ],
+        sep,
+    ));
 
     // Rows
     for r in &result.results {
         use aaai::DiffType;
-        if !args.all && r.diff.diff_type == DiffType::Unchanged { continue; }
+        if !args.all && r.diff.diff_type == DiffType::Unchanged {
+            continue;
+        }
 
         let entry = r.entry.as_ref();
         // Masked (free text, §4): reason, ticket, note. `path` is never
@@ -126,8 +139,12 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
     match &args.out {
         Some(path) => {
             std::fs::write(path, output.as_bytes())?;
-            println!("{} Exported {} rows to {}",
-                "✓".green(), result.results.len(), path.display());
+            println!(
+                "{} Exported {} rows to {}",
+                "✓".green(),
+                result.results.len(),
+                path.display()
+            );
         }
         None => print!("{output}"),
     }
@@ -135,7 +152,8 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
 }
 
 fn join(fields: &[&str], sep: char) -> String {
-    fields.iter()
+    fields
+        .iter()
         .map(|f| csv_escape(f, sep))
         .collect::<Vec<_>>()
         .join(&sep.to_string())

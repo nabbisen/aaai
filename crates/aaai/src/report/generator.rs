@@ -1,8 +1,8 @@
 //! Report generation — Markdown and JSON output.
 
 use super::html::build_html;
-use std::path::Path;
 use chrono::Local;
+use std::path::Path;
 
 use crate::audit::result::{AuditResult, AuditStatus};
 use crate::masking::Masking;
@@ -66,37 +66,54 @@ impl ReportGenerator {
         masking: Masking<'_>,
         include_diff: bool,
     ) -> String {
-        let mut md = Self::build_markdown(result, before_root, after_root, definition_path, masking);
+        let mut md =
+            Self::build_markdown(result, before_root, after_root, definition_path, masking);
         if include_diff {
-            md.push_str("
+            md.push_str(
+                "
 ## Diff Details
 
-");
+",
+            );
             for r in &result.results {
-                if r.diff.diff_type != crate::diff::entry::DiffType::Modified { continue; }
-                if r.diff.is_binary { continue; }
+                if r.diff.diff_type != crate::diff::entry::DiffType::Modified {
+                    continue;
+                }
+                if r.diff.is_binary {
+                    continue;
+                }
                 let before = r.diff.before_text.as_deref().unwrap_or("");
-                let after  = r.diff.after_text.as_deref().unwrap_or("");
-                if before == after { continue; }
-                md.push_str(&format!("### `{}`
+                let after = r.diff.after_text.as_deref().unwrap_or("");
+                if before == after {
+                    continue;
+                }
+                md.push_str(&format!(
+                    "### `{}`
 
 ```diff
-", r.diff.path));
+",
+                    r.diff.path
+                ));
                 use similar::{ChangeTag, TextDiff};
                 let td = TextDiff::from_lines(before, after);
                 for change in td.iter_all_changes() {
                     let prefix = match change.tag() {
                         ChangeTag::Insert => "+",
                         ChangeTag::Delete => "-",
-                        ChangeTag::Equal  => " ",
+                        ChangeTag::Equal => " ",
                     };
                     let line = change.value().trim_end_matches('\n');
-                    md.push_str(&format!("{prefix}{}
-", masking.mask(line)));
+                    md.push_str(&format!(
+                        "{prefix}{}
+",
+                        masking.mask(line)
+                    ));
                 }
-                md.push_str("```
+                md.push_str(
+                    "```
 
-");
+",
+                );
             }
         }
         md
@@ -111,8 +128,11 @@ impl ReportGenerator {
     ) -> String {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S %Z").to_string();
         let s = &result.summary;
-        let (verdict_sym, verdict_word) =
-            if s.is_passing() { ("✓", "PASSED") } else { ("✗", "FAILED") };
+        let (verdict_sym, verdict_word) = if s.is_passing() {
+            ("✓", "PASSED")
+        } else {
+            ("✗", "FAILED")
+        };
 
         let mut md = String::new();
         // ── Zone 1: Header ───────────────────────────────────────────
@@ -122,11 +142,19 @@ impl ReportGenerator {
         // ── Zone 2: Summary (issues-first column order) ──────────────
         md.push_str("## Summary\n\n");
         md.push_str("| Status | Count |\n|---|---:|\n");
-        if s.failed  > 0 { md.push_str(&format!("| ✗ Failed  | {} |\n", s.failed)); }
-        if s.pending > 0 { md.push_str(&format!("| ⚠ Pending | {} |\n", s.pending)); }
-        if s.error   > 0 { md.push_str(&format!("| ! Error   | {} |\n", s.error)); }
+        if s.failed > 0 {
+            md.push_str(&format!("| ✗ Failed  | {} |\n", s.failed));
+        }
+        if s.pending > 0 {
+            md.push_str(&format!("| ⚠ Pending | {} |\n", s.pending));
+        }
+        if s.error > 0 {
+            md.push_str(&format!("| ! Error   | {} |\n", s.error));
+        }
         md.push_str(&format!("| ✓ OK      | {} |\n", s.ok));
-        if s.ignored > 0 { md.push_str(&format!("| — Ignored | {} |\n", s.ignored)); }
+        if s.ignored > 0 {
+            md.push_str(&format!("| — Ignored | {} |\n", s.ignored));
+        }
         md.push_str(&format!("| **Total** | **{}** |\n", s.total));
         md.push('\n');
 
@@ -134,21 +162,38 @@ impl ReportGenerator {
         // §4 root paths — masked, matching every other free-text field.
         md.push_str("## Execution Details\n\n");
         md.push_str(&format!("- **Run at:** {now}\n"));
-        md.push_str(&format!("- **Before:** `{}`\n", masking.mask(&before_root.display().to_string())));
-        md.push_str(&format!("- **After:** `{}`\n", masking.mask(&after_root.display().to_string())));
+        md.push_str(&format!(
+            "- **Before:** `{}`\n",
+            masking.mask(&before_root.display().to_string())
+        ));
+        md.push_str(&format!(
+            "- **After:** `{}`\n",
+            masking.mask(&after_root.display().to_string())
+        ));
         if let Some(dp) = definition_path {
-            md.push_str(&format!("- **Definition:** `{}`\n", masking.mask(&dp.display().to_string())));
+            md.push_str(&format!(
+                "- **Definition:** `{}`\n",
+                masking.mask(&dp.display().to_string())
+            ));
         }
         md.push('\n');
 
         // ── Zone 4: Action Required (Failed + Pending + Error) ───────
-        let attention: Vec<_> = result.results.iter()
-            .filter(|r| matches!(r.status,
-                AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error))
+        let attention: Vec<_> = result
+            .results
+            .iter()
+            .filter(|r| {
+                matches!(
+                    r.status,
+                    AuditStatus::Failed | AuditStatus::Pending | AuditStatus::Error
+                )
+            })
             .collect();
         if !attention.is_empty() {
-            let counts = format!("Failed: {}, Pending: {}, Error: {}",
-                s.failed, s.pending, s.error);
+            let counts = format!(
+                "Failed: {}, Pending: {}, Error: {}",
+                s.failed, s.pending, s.error
+            );
             md.push_str(&format!("## ⚠ Action Required ({counts})\n\n"));
             for r in &attention {
                 Self::md_entry(&mut md, r, masking);
@@ -156,7 +201,9 @@ impl ReportGenerator {
         }
 
         // ── Zone 5: Passed entries ───────────────────────────────────
-        let ok_entries: Vec<_> = result.results.iter()
+        let ok_entries: Vec<_> = result
+            .results
+            .iter()
             .filter(|r| r.status == AuditStatus::Ok)
             .collect();
         if !ok_entries.is_empty() {
@@ -167,7 +214,9 @@ impl ReportGenerator {
         }
 
         // ── Zone 6: Ignored entries ──────────────────────────────────
-        let ignored: Vec<_> = result.results.iter()
+        let ignored: Vec<_> = result
+            .results
+            .iter()
             .filter(|r| r.status == AuditStatus::Ignored)
             .collect();
         if !ignored.is_empty() {
@@ -180,16 +229,12 @@ impl ReportGenerator {
         md
     }
 
-    fn md_entry(
-        md: &mut String,
-        r: &crate::audit::result::FileAuditResult,
-        masking: Masking<'_>,
-    ) {
+    fn md_entry(md: &mut String, r: &crate::audit::result::FileAuditResult, masking: Masking<'_>) {
         let sym = match r.status {
-            AuditStatus::Ok      => "✓",
+            AuditStatus::Ok => "✓",
             AuditStatus::Pending => "⚠",
-            AuditStatus::Failed  => "✗",
-            AuditStatus::Error   => "!",
+            AuditStatus::Failed => "✗",
+            AuditStatus::Error => "!",
             AuditStatus::Ignored => "—",
         };
         md.push_str(&format!("### `{}` — {} {}\n\n", r.diff.path, sym, r.status));
@@ -204,21 +249,36 @@ impl ReportGenerator {
             };
             md.push_str(&format!("- **Reason:** {}\n", reason));
             md.push_str(&format!("- **Strategy:** {}\n", entry.strategy.label()));
-            if let Some(t)  = &entry.ticket      { md.push_str(&format!("- **Ticket:** {}\n", masking.mask(t))); }
-            if let Some(ab) = &entry.approved_by { md.push_str(&format!("- **Approved by:** {ab}\n")); }
-            if let Some(at) = &entry.approved_at {
-                md.push_str(&format!("- **Approved at:** {}\n", at.format("%Y-%m-%d %H:%M UTC")));
+            if let Some(t) = &entry.ticket {
+                md.push_str(&format!("- **Ticket:** {}\n", masking.mask(t)));
             }
-            if let Some(exp) = &entry.expires_at { md.push_str(&format!("- **Expires:** {exp}\n")); }
-            if let Some(note) = &entry.note      { md.push_str(&format!("- **Note:** {note}\n")); }
+            if let Some(ab) = &entry.approved_by {
+                md.push_str(&format!("- **Approved by:** {ab}\n"));
+            }
+            if let Some(at) = &entry.approved_at {
+                md.push_str(&format!(
+                    "- **Approved at:** {}\n",
+                    at.format("%Y-%m-%d %H:%M UTC")
+                ));
+            }
+            if let Some(exp) = &entry.expires_at {
+                md.push_str(&format!("- **Expires:** {exp}\n"));
+            }
+            if let Some(note) = &entry.note {
+                md.push_str(&format!("- **Note:** {note}\n"));
+            }
         }
-        if r.diff.is_binary { md.push_str("- **Type:** Binary file\n"); }
+        if r.diff.is_binary {
+            md.push_str("- **Type:** Binary file\n");
+        }
         if let Some(label) = r.diff.size_change_label() {
             md.push_str(&format!("- **Size:** {label}\n"));
         }
         if let Some(stats) = &r.diff.stats {
-            md.push_str(&format!("- **Lines:** +{} −{}\n",
-                stats.lines_added, stats.lines_removed));
+            md.push_str(&format!(
+                "- **Lines:** +{} −{}\n",
+                stats.lines_added, stats.lines_removed
+            ));
         }
         // Audit check detail — shown as blockquote for visibility. Masked:
         // engine-generated free text that is rendered the same way `reason`
@@ -252,21 +312,25 @@ impl ReportGenerator {
         definition_path: Option<&Path>,
         masking: Masking<'_>,
     ) -> anyhow::Result<String> {
-        use serde_json::{json, Value};
+        use serde_json::{Value, json};
         let now = Local::now().format("%Y-%m-%dT%H:%M:%S").to_string();
         let s = &result.summary;
 
-        let entries: Vec<Value> = result.results.iter().map(|r| {
-            json!({
-                "path": r.diff.path,
-                "diff_type": r.diff.diff_type.to_string(),
-                "status": r.status.to_string(),
-                // F5 — this used to ignore its masker entirely.
-                "reason": r.entry.as_ref().map(|e| masking.mask(&e.reason)),
-                "strategy": r.entry.as_ref().map(|e| e.strategy.label()),
-                "detail": r.detail.as_ref().map(|d| masking.mask(d)),
+        let entries: Vec<Value> = result
+            .results
+            .iter()
+            .map(|r| {
+                json!({
+                    "path": r.diff.path,
+                    "diff_type": r.diff.diff_type.to_string(),
+                    "status": r.status.to_string(),
+                    // F5 — this used to ignore its masker entirely.
+                    "reason": r.entry.as_ref().map(|e| masking.mask(&e.reason)),
+                    "strategy": r.entry.as_ref().map(|e| e.strategy.label()),
+                    "detail": r.detail.as_ref().map(|d| masking.mask(d)),
+                })
             })
-        }).collect();
+            .collect();
 
         let doc = json!({
             "app": "aaai",

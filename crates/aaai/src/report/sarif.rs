@@ -12,7 +12,7 @@
 
 use std::path::Path;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::audit::result::{AuditResult, AuditStatus};
 use crate::masking::Masking;
@@ -24,30 +24,49 @@ pub fn build_sarif(
     masking: Masking<'_>,
 ) -> Value {
     let rules: Vec<Value> = vec![
-        sarif_rule("AAAI001", "AuditFailed",
+        sarif_rule(
+            "AAAI001",
+            "AuditFailed",
             "A diff entry did not match its expected audit rule.",
-            "error"),
-        sarif_rule("AAAI002", "AuditPending",
+            "error",
+        ),
+        sarif_rule(
+            "AAAI002",
+            "AuditPending",
             "A diff entry has no audit rule — human review required.",
-            "warning"),
-        sarif_rule("AAAI003", "AuditError",
+            "warning",
+        ),
+        sarif_rule(
+            "AAAI003",
+            "AuditError",
             "A file could not be read or compared.",
-            "error"),
+            "error",
+        ),
     ];
 
-    let results: Vec<Value> = result.results.iter()
+    let results: Vec<Value> = result
+        .results
+        .iter()
         .filter_map(|r| {
             let (rule_id, level) = match r.status {
-                AuditStatus::Failed  => ("AAAI001", "error"),
+                AuditStatus::Failed => ("AAAI001", "error"),
                 AuditStatus::Pending => ("AAAI002", "warning"),
-                AuditStatus::Error   => ("AAAI003", "error"),
-                _                    => return None,
+                AuditStatus::Error => ("AAAI003", "error"),
+                _ => return None,
             };
 
-            let message_raw = r.detail.as_deref()
-                .or_else(|| r.entry.as_ref().and_then(|e|
-                    if e.reason.is_empty() { None } else { Some(e.reason.as_str()) }
-                ))
+            let message_raw = r
+                .detail
+                .as_deref()
+                .or_else(|| {
+                    r.entry.as_ref().and_then(|e| {
+                        if e.reason.is_empty() {
+                            None
+                        } else {
+                            Some(e.reason.as_str())
+                        }
+                    })
+                })
                 .unwrap_or("Audit issue detected.");
             // F3 — SARIF never had a masker at all; both `message` (which
             // may carry `reason`) and `ticket` are §4 maskable fields.

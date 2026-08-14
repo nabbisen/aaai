@@ -138,7 +138,9 @@ fn regular_open_permission_failure_is_path_local_unreadable() {
     std::fs::write(root.path().join("blocked"), b"inside").unwrap();
     std::fs::write(root.path().join("safe"), b"safe").unwrap();
     let paths = collect(root.path()).unwrap();
-    let Node::File(file) = &paths.get(Path::new("blocked")).unwrap().node else { panic!() };
+    let Node::File(file) = &paths.get(Path::new("blocked")).unwrap().node else {
+        panic!()
+    };
 
     let result = read_file_with(file, || {
         Err(std::io::Error::new(
@@ -149,7 +151,10 @@ fn regular_open_permission_failure_is_path_local_unreadable() {
     let issue = result.expect_err("permission denial must be unreadable");
     assert_eq!(issue.code, "AAAI-PATH-READ");
     assert!(issue.unreadable);
-    assert!(matches!(paths.get(Path::new("safe")).unwrap().node, Node::File(_)));
+    assert!(matches!(
+        paths.get(Path::new("safe")).unwrap().node,
+        Node::File(_)
+    ));
 }
 
 #[test]
@@ -165,12 +170,18 @@ fn directory_open_permission_failure_preserves_unrelated_results() {
             ));
         }
         Ok(())
-    }).unwrap();
+    })
+    .unwrap();
 
-    let Node::Issue(issue) = &paths.get(Path::new("blocked-dir")).unwrap().node else { panic!() };
+    let Node::Issue(issue) = &paths.get(Path::new("blocked-dir")).unwrap().node else {
+        panic!()
+    };
     assert_eq!(issue.code, "AAAI-PATH-READ");
     assert!(issue.unreadable);
-    assert!(matches!(paths.get(Path::new("safe")).unwrap().node, Node::File(_)));
+    assert!(matches!(
+        paths.get(Path::new("safe")).unwrap().node,
+        Node::File(_)
+    ));
 }
 
 #[test]
@@ -187,13 +198,19 @@ fn descendant_enumeration_failure_is_path_local_unreadable() {
             ));
         }
         Ok(())
-    }).unwrap();
+    })
+    .unwrap();
 
-    let Node::Issue(issue) = &paths.get(Path::new("blocked-dir")).unwrap().node else { panic!() };
+    let Node::Issue(issue) = &paths.get(Path::new("blocked-dir")).unwrap().node else {
+        panic!()
+    };
     assert_eq!(issue.code, "AAAI-PATH-READ");
     assert!(issue.unreadable);
     assert!(!paths.contains_key(Path::new("blocked-dir/hidden")));
-    assert!(matches!(paths.get(Path::new("safe")).unwrap().node, Node::File(_)));
+    assert!(matches!(
+        paths.get(Path::new("safe")).unwrap().node,
+        Node::File(_)
+    ));
 }
 
 #[test]
@@ -204,7 +221,9 @@ fn removed_file_and_directory_are_races_not_unreadable_io() {
     std::fs::write(root.path().join("safe"), b"safe").unwrap();
 
     let paths = collect(root.path()).unwrap();
-    let Node::File(file) = &paths.get(Path::new("removed-file")).unwrap().node else { panic!() };
+    let Node::File(file) = &paths.get(Path::new("removed-file")).unwrap().node else {
+        panic!()
+    };
     let result = read_file_with(file, || {
         std::fs::remove_file(root.path().join("removed-file"))?;
         Ok(())
@@ -218,11 +237,17 @@ fn removed_file_and_directory_are_races_not_unreadable_io() {
             std::fs::remove_dir(root.path().join("removed-dir"))?;
         }
         Ok(())
-    }).unwrap();
-    let Node::Issue(issue) = &paths.get(Path::new("removed-dir")).unwrap().node else { panic!() };
+    })
+    .unwrap();
+    let Node::Issue(issue) = &paths.get(Path::new("removed-dir")).unwrap().node else {
+        panic!()
+    };
     assert_eq!(issue.code, "AAAI-PATH-RACE");
     assert!(!issue.unreadable);
-    assert!(matches!(paths.get(Path::new("safe")).unwrap().node, Node::File(_)));
+    assert!(matches!(
+        paths.get(Path::new("safe")).unwrap().node,
+        Node::File(_)
+    ));
 }
 
 #[cfg(windows)]
@@ -237,7 +262,9 @@ fn windows_final_file_to_outside_link_replacement_is_rejected() {
     std::fs::write(&canary, b"outside-secret-content").unwrap();
     let before_canary = std::fs::read(&canary).unwrap();
     let paths = collect(root.path()).unwrap();
-    let Node::File(file) = &paths.get(Path::new("item")).unwrap().node else { panic!() };
+    let Node::File(file) = &paths.get(Path::new("item")).unwrap().node else {
+        panic!()
+    };
     let result = read_file_with(file, || {
         std::fs::remove_file(root.path().join("item")).unwrap();
         symlink_file(&canary, root.path().join("item"))
@@ -262,7 +289,11 @@ fn windows_directory_to_outside_link_replacement_is_not_traversed() {
     let root = tempfile::tempdir().unwrap();
     let outside = tempfile::tempdir().unwrap();
     std::fs::create_dir(root.path().join("child")).unwrap();
-    std::fs::write(outside.path().join("outside-secret-name"), b"outside-secret-content").unwrap();
+    std::fs::write(
+        outside.path().join("outside-secret-name"),
+        b"outside-secret-content",
+    )
+    .unwrap();
     let result = collect_with_hook(root.path(), &|relative, phase| {
         if relative == Path::new("child") && phase == OpenPhase::Directory {
             std::fs::remove_dir(root.path().join("child")).unwrap();
@@ -270,10 +301,17 @@ fn windows_directory_to_outside_link_replacement_is_not_traversed() {
                 .expect("hosted Windows directory-symlink race fixture");
         }
         Ok(())
-    }).unwrap();
-    let Node::Issue(issue) = &result.get(Path::new("child")).unwrap().node else { panic!() };
+    })
+    .unwrap();
+    let Node::Issue(issue) = &result.get(Path::new("child")).unwrap().node else {
+        panic!()
+    };
     assert_eq!(issue.code, "AAAI-PATH-RACE");
-    assert_eq!(result.len(), 1, "the replacement target must not be enumerated");
+    assert_eq!(
+        result.len(),
+        1,
+        "the replacement target must not be enumerated"
+    );
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -308,8 +346,7 @@ fn real_mounted_child_is_rejected_through_production_xdev_check() {
         };
         let root_device = identity(&parent_metadata).device;
         let opened = open_directory_nofollow(&parent, &child_name);
-        if let Err(path_issue) =
-            classify_directory(&parent, &child_name, root_device, opened)
+        if let Err(path_issue) = classify_directory(&parent, &child_name, root_device, opened)
             && path_issue.code == "AAAI-PATH-XDEV"
         {
             observed = true;

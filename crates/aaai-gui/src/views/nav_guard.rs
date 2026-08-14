@@ -15,14 +15,17 @@ use iced::{
 use rust_i18n::t;
 
 use crate::app::Message;
-use crate::style::{btn_primary, btn_secondary, btn_ghost, btn_danger};
+use crate::style::{btn_danger, btn_ghost, btn_primary, btn_secondary};
 use snora::design::Tokens;
 
 pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> {
     let title = text(t!("nav_guard.title").to_string())
         .size(tokens.typography.title.size)
         .line_height(tokens.typography.title.line_height)
-        .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
+        .font(iced::Font {
+            weight: iced::font::Weight::Bold,
+            ..Default::default()
+        });
 
     let msg = text(t!("nav_guard.message").to_string())
         .size(tokens.typography.body.size)
@@ -45,9 +48,9 @@ pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> 
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height),
     )
-        .on_press(Message::NavGuardCancel)
-        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
-        .style(move |_theme, s| btn_secondary(&t1, s));
+    .on_press(Message::NavGuardCancel)
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
+    .style(move |_theme, s| btn_secondary(&t1, s));
 
     let t2 = tokens.clone();
     let save_btn = button(
@@ -55,9 +58,9 @@ pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> 
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height),
     )
-        .on_press(Message::NavGuardSaveAndLeave)
-        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
-        .style(move |_theme, s| btn_primary(&t2, s));
+    .on_press(Message::NavGuardSaveAndLeave)
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
+    .style(move |_theme, s| btn_primary(&t2, s));
 
     // The data-losing action: either a quiet "More choices" link (hidden
     // state) or the actual danger button once revealed.
@@ -68,10 +71,10 @@ pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> 
                 .size(tokens.typography.label.size)
                 .line_height(tokens.typography.label.line_height),
         )
-            .on_press(Message::NavGuardDiscardAndLeave)
-            .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
-            .style(move |_theme, s| btn_danger(&t3, s))
-            .into()
+        .on_press(Message::NavGuardDiscardAndLeave)
+        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]))
+        .style(move |_theme, s| btn_danger(&t3, s))
+        .into()
     } else {
         let t4 = tokens.clone();
         button(
@@ -79,20 +82,15 @@ pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> 
                 .size(tokens.typography.label.size)
                 .line_height(tokens.typography.label.line_height),
         )
-            .on_press(Message::NavGuardRevealDiscard)
-            .padding(Padding::from([tokens.spacing.sm, tokens.spacing.md]))
-            .style(move |_theme, s| btn_ghost(&t4, s))
-            .into()
+        .on_press(Message::NavGuardRevealDiscard)
+        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.md]))
+        .style(move |_theme, s| btn_ghost(&t4, s))
+        .into()
     };
 
-    let actions = row![
-        secondary,
-        space().width(Length::Fill),
-        cancel_btn,
-        save_btn,
-    ]
-    .spacing(tokens.spacing.sm)
-    .align_y(iced::Alignment::Center);
+    let actions = row![secondary, space().width(Length::Fill), cancel_btn, save_btn,]
+        .spacing(tokens.spacing.sm)
+        .align_y(iced::Alignment::Center);
 
     let body = column![title, separator, msg, actions]
         .spacing(tokens.spacing.lg)
@@ -106,14 +104,19 @@ pub fn view<'a>(show_discard: bool, tokens: &'a Tokens) -> Element<'a, Message> 
 
 fn dialog_style(tokens: &Tokens) -> container::Style {
     container::Style {
-        background: Some(iced::Background::Color(crate::style::to_iced(tokens.palette.surface_raised))),
+        background: Some(iced::Background::Color(crate::style::to_iced(
+            tokens.palette.surface_raised,
+        ))),
         border: iced::Border {
             color: crate::style::to_iced(tokens.palette.border),
             width: 1.0,
             radius: iced::border::Radius::from(8.0),
         },
         shadow: iced::Shadow {
-            color: Color { a: 0.18, ..Color::BLACK },
+            color: Color {
+                a: 0.18,
+                ..Color::BLACK
+            },
             offset: iced::Vector { x: 0.0, y: 4.0 },
             blur_radius: 16.0,
         },

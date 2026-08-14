@@ -1,10 +1,10 @@
 //! `aaai config` — show or initialise the project `.aaai.yaml`.
 
-use std::path::PathBuf;
 use clap::Args;
 use colored::Colorize;
+use std::path::PathBuf;
 
-use aaai::project::config::{ProjectConfig, CONFIG_FILENAME};
+use aaai::project::config::{CONFIG_FILENAME, ProjectConfig};
 
 const CONFIG_AFTER_HELP: &str = "\
 Next steps:
@@ -29,14 +29,19 @@ pub struct ConfigArgs {
 pub fn run(args: ConfigArgs) -> anyhow::Result<()> {
     println!("{}", "aaai config".bold());
 
-    let target_dir = args.dir.clone()
+    let target_dir = args
+        .dir
+        .clone()
         .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
 
     if args.init {
         let out = target_dir.join(CONFIG_FILENAME);
         if out.exists() {
             // Ask for confirmation in practice; for CI safety just report.
-            println!("{}", format!("⚠  {} already exists: {}", CONFIG_FILENAME, out.display()).yellow());
+            println!(
+                "{}",
+                format!("⚠  {} already exists: {}", CONFIG_FILENAME, out.display()).yellow()
+            );
             println!("   Delete it first if you want to re-initialise.");
             return Ok(());
         }
@@ -53,12 +58,18 @@ pub fn run(args: ConfigArgs) -> anyhow::Result<()> {
         Some((cfg, dir)) => {
             println!("Found: {}", dir.join(CONFIG_FILENAME).display());
             println!();
-            println!("  default_definition : {}",
-                cfg.default_definition.as_deref().unwrap_or("(not set)"));
-            println!("  default_ignore     : {}",
-                cfg.default_ignore.as_deref().unwrap_or("(not set)"));
-            println!("  approver_name      : {}",
-                cfg.approver_name.as_deref().unwrap_or("(not set)"));
+            println!(
+                "  default_definition : {}",
+                cfg.default_definition.as_deref().unwrap_or("(not set)")
+            );
+            println!(
+                "  default_ignore     : {}",
+                cfg.default_ignore.as_deref().unwrap_or("(not set)")
+            );
+            println!(
+                "  approver_name      : {}",
+                cfg.approver_name.as_deref().unwrap_or("(not set)")
+            );
             println!("  mask_secrets       : {}", cfg.mask_secrets);
             if !cfg.custom_mask_patterns.is_empty() {
                 println!("  custom_mask_patterns:");
@@ -68,7 +79,11 @@ pub fn run(args: ConfigArgs) -> anyhow::Result<()> {
             }
         }
         None => {
-            println!("No {} found (searched from {}).", CONFIG_FILENAME, target_dir.display());
+            println!(
+                "No {} found (searched from {}).",
+                CONFIG_FILENAME,
+                target_dir.display()
+            );
             println!("Run `aaai config --init` to create one.");
         }
     }

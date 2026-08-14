@@ -10,7 +10,11 @@ pub enum DiffProgress {
     /// Directory walk started; `total` is the approximate number of unique paths.
     Started { total: usize },
     /// One path has been processed.
-    File { path: String, processed: usize, total: usize },
+    File {
+        path: String,
+        processed: usize,
+        total: usize,
+    },
     /// All files have been processed; engine is sorting.
     Sorting,
     /// The diff is complete.

@@ -11,10 +11,10 @@ use anyhow::Context;
 use cap_fs_ext::DirExt;
 #[cfg(windows)]
 use cap_fs_ext::OpenOptionsMaybeDirExt;
-#[cfg(windows)]
-use cap_fs_ext::OsMetadataExt;
 #[cfg(unix)]
 use cap_fs_ext::OpenOptionsSyncExt;
+#[cfg(windows)]
+use cap_fs_ext::OsMetadataExt;
 use cap_fs_ext::{FileTypeExt, FollowSymlinks, MetadataExt, OpenOptionsFollowExt};
 use cap_std::ambient_authority;
 #[cfg(windows)]
@@ -116,9 +116,13 @@ fn walk(
             true,
         )
     })?;
-    let entries = dir
-        .entries()
-        .map_err(|_| issue("AAAI-PATH-READ", "The directory could not be enumerated.", true))?;
+    let entries = dir.entries().map_err(|_| {
+        issue(
+            "AAAI-PATH-READ",
+            "The directory could not be enumerated.",
+            true,
+        )
+    })?;
 
     for entry in entries {
         let entry = entry.map_err(|_| {
@@ -361,7 +365,6 @@ fn read_file_with(
     file: &FileRef,
     before_open: impl FnOnce() -> std::io::Result<()>,
 ) -> Result<Vec<u8>, PathIssue> {
-
     let mut options = OpenOptions::new();
     options.read(true).follow(FollowSymlinks::No);
     #[cfg(unix)]

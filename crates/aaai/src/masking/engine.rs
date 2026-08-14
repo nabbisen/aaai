@@ -76,6 +76,5 @@ fn mask_with_regex(text: &str, re: &Regex, group: Option<usize>) -> String {
     }
 }
 
-
 #[cfg(test)]
 mod tests;

@@ -7,28 +7,36 @@
 //! Required 2 folders are most prominent; optional settings are collapsed.
 
 use iced::{
-    Alignment::Center, Color, Element, Length, Padding,
+    Alignment::Center,
+    Color, Element, Length, Padding,
     widget::{button, column, container, row, scrollable, space, text, text_input},
 };
 use rust_i18n::t;
 
-use crate::style::{card_style, empty_state_panel_style};
 use crate::app::{App, Message};
+use crate::style::{card_style, empty_state_panel_style};
 
 pub fn view(app: &App) -> Element<'_, Message> {
     // ── Welcome section ─────────────────────────────────────────────
     let title = text(t!("opening.title").to_string())
         .size(app.design_tokens.typography.display.size)
         .line_height(app.design_tokens.typography.display.line_height)
-        .font(iced::Font { weight: iced::font::Weight::Bold, ..Default::default() });
+        .font(iced::Font {
+            weight: iced::font::Weight::Bold,
+            ..Default::default()
+        });
     let subtitle = text(t!("opening.subtitle").to_string())
         .size(app.design_tokens.typography.body.size)
         .line_height(app.design_tokens.typography.body.line_height)
-        .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
+        .color(crate::style::to_iced(
+            app.design_tokens.palette.text_secondary,
+        ));
     let guide = text(t!("opening.guide").to_string())
         .size(app.design_tokens.typography.body_small.size)
         .line_height(app.design_tokens.typography.body_small.line_height)
-        .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
+        .color(crate::style::to_iced(
+            app.design_tokens.palette.text_secondary,
+        ));
 
     // ── Required folder cards ───────────────────────────────────────
     let before_card = folder_picker_card(
@@ -58,7 +66,10 @@ pub fn view(app: &App) -> Element<'_, Message> {
                 .line_height(app.design_tokens.typography.body_small.line_height)
                 .color(crate::style::to_iced(app.design_tokens.palette.accent)),
         )
-        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
+        .padding(Padding::from([
+            app.design_tokens.spacing.md,
+            app.design_tokens.spacing.lg,
+        ]))
         .style(card_style(app.design_tokens.clone()))
         .width(Length::Fill)
         .into()
@@ -77,15 +88,17 @@ pub fn view(app: &App) -> Element<'_, Message> {
         let hint_line = text(err.hint.as_str())
             .size(app.design_tokens.typography.body_small.size)
             .line_height(app.design_tokens.typography.body_small.line_height)
-            .color(crate::style::to_iced(app.design_tokens.palette.text_secondary));
-        container(
-            column![msg_line, hint_line]
-                .spacing(app.design_tokens.spacing.xs),
-        )
-        .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.lg]))
-        .style(card_style(app.design_tokens.clone()))
-        .width(Length::Fill)
-        .into()
+            .color(crate::style::to_iced(
+                app.design_tokens.palette.text_secondary,
+            ));
+        container(column![msg_line, hint_line].spacing(app.design_tokens.spacing.xs))
+            .padding(Padding::from([
+                app.design_tokens.spacing.md,
+                app.design_tokens.spacing.lg,
+            ]))
+            .style(card_style(app.design_tokens.clone()))
+            .width(Length::Fill)
+            .into()
     } else {
         space().height(Length::Fixed(0.0)).into()
     };
@@ -99,10 +112,20 @@ pub fn view(app: &App) -> Element<'_, Message> {
         text(t!("opening.start_button").to_string())
             .size(app.design_tokens.typography.label.size)
             .line_height(app.design_tokens.typography.label.line_height)
-            .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() }),
+            .font(iced::Font {
+                weight: iced::font::Weight::Semibold,
+                ..Default::default()
+            }),
     )
-    .on_press_maybe(if can_start { Some(Message::StartAudit) } else { None })
-    .padding(Padding::from([app.design_tokens.spacing.md, app.design_tokens.spacing.xxl]))
+    .on_press_maybe(if can_start {
+        Some(Message::StartAudit)
+    } else {
+        None
+    })
+    .padding(Padding::from([
+        app.design_tokens.spacing.md,
+        app.design_tokens.spacing.xxl,
+    ]))
     .style({
         let t = app.design_tokens.clone();
         move |_theme, s| crate::style::btn_primary(&t, s)
@@ -113,7 +136,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
     // picked (most common first-time situation).
     let start_hint: Option<String> = if !can_start {
         let has_before = !app.before_path.trim().is_empty();
-        let has_after  = !app.after_path.trim().is_empty();
+        let has_after = !app.after_path.trim().is_empty();
         if !has_before && !has_after {
             Some(t!("opening.start_disabled_both").to_string())
         } else if !has_before {
@@ -162,7 +185,9 @@ pub fn view(app: &App) -> Element<'_, Message> {
         space().height(Length::Fixed(4.0)),
         error_banner,
         space().height(Length::Fixed(8.0)),
-        container(start_col).width(Length::Fill).center_x(Length::Fill),
+        container(start_col)
+            .width(Length::Fill)
+            .center_x(Length::Fill),
         space().height(Length::Fixed(32.0)),
         recent_section,
         space().height(Length::Fixed(32.0)),
@@ -170,7 +195,10 @@ pub fn view(app: &App) -> Element<'_, Message> {
     .spacing(0)
     .align_x(Center)
     .max_width(720)
-    .padding(Padding::from([app.design_tokens.spacing.lg, app.design_tokens.spacing.xxl]));
+    .padding(Padding::from([
+        app.design_tokens.spacing.lg,
+        app.design_tokens.spacing.xxl,
+    ]));
 
     scrollable(
         container(main_col)
@@ -242,25 +270,24 @@ fn folder_picker_card<'a>(
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height),
     )
-        .on_press(pick_msg)
-        .padding(Padding::from([tokens.spacing.md, tokens.spacing.xl]));
+    .on_press(pick_msg)
+    .padding(Padding::from([tokens.spacing.md, tokens.spacing.xl]));
 
     let card_label = text(format!("📁 {}", label))
         .size(tokens.typography.title.size)
         .line_height(tokens.typography.title.line_height)
-        .font(iced::Font { weight: iced::font::Weight::Semibold, ..Default::default() });
+        .font(iced::Font {
+            weight: iced::font::Weight::Semibold,
+            ..Default::default()
+        });
 
     let body = column![
         card_label,
         space().height(Length::Fixed(8.0)),
-        row![
-            status_line,
-            space().width(Length::Fill),
-            pick_btn,
-        ]
-        .spacing(tokens.spacing.md)
-        .align_y(Center)
-        .width(Length::Fill),
+        row![status_line, space().width(Length::Fill), pick_btn,]
+            .spacing(tokens.spacing.md)
+            .align_y(Center)
+            .width(Length::Fill),
     ]
     .spacing(0);
 
@@ -273,7 +300,8 @@ fn folder_picker_card<'a>(
                 .size(tokens.typography.body_small.size)
                 .line_height(tokens.typography.body_small.line_height)
                 .color(crate::style::to_iced(tokens.palette.warning)),
-        ].into()
+        ]
+        .into()
     } else {
         body.into()
     };
@@ -294,21 +322,28 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
             text(arrow)
                 .size(app.design_tokens.typography.label.size)
                 .line_height(app.design_tokens.typography.label.line_height)
-                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary)),
+                .color(crate::style::to_iced(
+                    app.design_tokens.palette.text_secondary
+                )),
             text(t!("opening.optional_section").to_string())
                 .size(app.design_tokens.typography.label.size)
                 .line_height(app.design_tokens.typography.label.line_height)
-                .color(crate::style::to_iced(app.design_tokens.palette.text_secondary)),
+                .color(crate::style::to_iced(
+                    app.design_tokens.palette.text_secondary
+                )),
         ]
         .spacing(app.design_tokens.spacing.sm)
-        .align_y(Center)
+        .align_y(Center),
     )
     .on_press(Message::ToggleOptionalSettings)
     .style({
-            let t = app.design_tokens.clone();
-            move |_theme, s| crate::style::btn_ghost(&t, s)
-        })
-    .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.xs]));
+        let t = app.design_tokens.clone();
+        move |_theme, s| crate::style::btn_ghost(&t, s)
+    })
+    .padding(Padding::from([
+        app.design_tokens.spacing.sm,
+        app.design_tokens.spacing.xs,
+    ]));
 
     // RFC 045 — hint text removed; .aaaiignore row removed
     // (global ignored dirs live in App Settings; per-project .aaaiignore
@@ -328,13 +363,9 @@ fn optional_settings_section(app: &App) -> Element<'_, Message> {
         &app.design_tokens,
     );
 
-    column![
-        header,
-        space().height(Length::Fixed(8.0)),
-        def_row,
-    ]
-    .spacing(app.design_tokens.spacing.xs)
-    .into()
+    column![header, space().height(Length::Fixed(8.0)), def_row,]
+        .spacing(app.design_tokens.spacing.xs)
+        .into()
 }
 
 fn file_picker_row<'a, F>(
@@ -363,12 +394,14 @@ where
             .size(tokens.typography.label.size)
             .line_height(tokens.typography.label.line_height),
     )
-        .on_press(pick_msg)
-        .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
+    .on_press(pick_msg)
+    .padding(Padding::from([tokens.spacing.sm, tokens.spacing.lg]));
 
     column![
         label_text,
-        row![input, pick_btn].spacing(tokens.spacing.sm).align_y(Center),
+        row![input, pick_btn]
+            .spacing(tokens.spacing.sm)
+            .align_y(Center),
     ]
     .spacing(tokens.spacing.xs)
     .into()
@@ -386,7 +419,8 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
         .line_height(app.design_tokens.typography.body_small.line_height)
         .color(crate::style::to_iced(app.design_tokens.palette.text_muted));
 
-    let mut col = column![header, space().height(Length::Fixed(6.0))].spacing(app.design_tokens.spacing.xs);
+    let mut col =
+        column![header, space().height(Length::Fixed(6.0))].spacing(app.design_tokens.spacing.xs);
 
     // RFC 023 FR-5: sort by last_used_at descending. Tracking the
     // original index lets us keep the existing `LoadProfile(usize)`
@@ -403,14 +437,15 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
         // RFC 023 §3.4: render the relative "time ago" alongside the
         // name. Legacy profiles (None) show nothing — the absence of
         // a timestamp is the cue that they predate the feature.
-        let when_text: Option<String> = prof
-            .last_used_at
-            .map(crate::util::humanize_since);
-        let detail = text(t!(
-            "opening.recent_project_paths",
-            before = prof.before.clone(),
-            after  = prof.after.clone(),
-        ).to_string())
+        let when_text: Option<String> = prof.last_used_at.map(crate::util::humanize_since);
+        let detail = text(
+            t!(
+                "opening.recent_project_paths",
+                before = prof.before.clone(),
+                after = prof.after.clone(),
+            )
+            .to_string(),
+        )
         .size(app.design_tokens.typography.body_small.size)
         .line_height(app.design_tokens.typography.body_small.line_height)
         .color(crate::style::to_iced(app.design_tokens.palette.text_muted))
@@ -420,18 +455,24 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
                 .size(app.design_tokens.typography.label.size)
                 .line_height(app.design_tokens.typography.label.line_height),
         )
-            .on_press(Message::LoadProfile(*orig_idx))
-            .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.lg]));
+        .on_press(Message::LoadProfile(*orig_idx))
+        .padding(Padding::from([
+            app.design_tokens.spacing.sm,
+            app.design_tokens.spacing.lg,
+        ]));
 
         let t_del = app.design_tokens.clone();
         let delete_btn = button(
             text("×")
                 .size(app.design_tokens.typography.label.size)
                 .line_height(app.design_tokens.typography.label.line_height)
-                .color(crate::style::to_iced(app.design_tokens.palette.text_muted))
+                .color(crate::style::to_iced(app.design_tokens.palette.text_muted)),
         )
         .on_press(Message::DeleteProfile(*orig_idx))
-        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
+        .padding(Padding::from([
+            app.design_tokens.spacing.sm,
+            app.design_tokens.spacing.md,
+        ]))
         .style(move |_theme, s| crate::style::btn_ghost(&t_del, s));
 
         let header_row: Element<'_, Message> = if let Some(when) = when_text {
@@ -461,7 +502,10 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
             .align_y(Center)
             .width(Length::Fill),
         )
-        .padding(Padding::from([app.design_tokens.spacing.sm, app.design_tokens.spacing.md]))
+        .padding(Padding::from([
+            app.design_tokens.spacing.sm,
+            app.design_tokens.spacing.md,
+        ]))
         .width(Length::Fill)
         .style(card_style(app.design_tokens.clone()));
 
@@ -480,7 +524,6 @@ fn recent_projects_section(app: &App) -> Element<'_, Message> {
 // stumbling point.
 
 fn onboarding_section<'a>(tokens: snora::design::Tokens) -> Element<'a, Message> {
-    
     let title = text(t!("empty_state.onboarding_title").to_string())
         .size(tokens.typography.title.size)
         .line_height(tokens.typography.title.line_height)

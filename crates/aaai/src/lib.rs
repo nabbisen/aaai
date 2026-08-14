@@ -43,7 +43,6 @@
 //! | 3 | ERROR — file-level errors |
 //! | 4 | CONFIG_ERROR — definition parse error |
 
-
 pub mod audit;
 pub mod config;
 pub mod diff;
@@ -61,7 +60,7 @@ pub use config::definition::{AuditDefinition, AuditEntry, AuditStrategy};
 pub use diff::engine::DiffEngine;
 pub use diff::entry::{DiffEntry, DiffStats, DiffType, LARGE_FILE_THRESHOLD};
 pub use diff::ignore::IgnoreRules;
-pub use diff::progress::{DiffProgress, ProgressSink, ChannelProgress, NullProgress};
+pub use diff::progress::{ChannelProgress, DiffProgress, NullProgress, ProgressSink};
 pub use masking::Masking;
 pub use masking::engine::MaskingEngine;
 pub use report::generator::ReportGenerator;

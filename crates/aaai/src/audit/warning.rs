@@ -8,8 +8,8 @@
 //! * [`AuditWarning::LargeFileStrategy`] — Exact or LineMatch strategy applied
 //!   to a file larger than [`LARGE_FILE_THRESHOLD`].
 
-use crate::diff::entry::{DiffEntry, LARGE_FILE_THRESHOLD, fmt_size};
 use crate::config::definition::{AuditEntry, AuditStrategy};
+use crate::diff::entry::{DiffEntry, LARGE_FILE_THRESHOLD, fmt_size};
 
 /// A non-fatal advisory raised during audit evaluation.
 #[derive(Debug, Clone)]
@@ -31,25 +31,30 @@ impl AuditWarning {
     /// Human-readable description.
     pub fn message(&self) -> String {
         match self {
-            AuditWarning::LargeFileStrategy { path, strategy, size_bytes } =>
-                format!(
-                    "{path}: {strategy} strategy applied to a large file ({}). \
+            AuditWarning::LargeFileStrategy {
+                path,
+                strategy,
+                size_bytes,
+            } => format!(
+                "{path}: {strategy} strategy applied to a large file ({}). \
                      Consider using Checksum instead.",
-                    fmt_size(*size_bytes)
-                ),
-            AuditWarning::NoStrategyOnModified { path } =>
-                format!("{path}: Modified file uses `None` strategy — content not verified."),
-            AuditWarning::NoApprover { path } =>
-                format!("{path}: Entry has no `approved_by` field — approver unknown."),
+                fmt_size(*size_bytes)
+            ),
+            AuditWarning::NoStrategyOnModified { path } => {
+                format!("{path}: Modified file uses `None` strategy — content not verified.")
+            }
+            AuditWarning::NoApprover { path } => {
+                format!("{path}: Entry has no `approved_by` field — approver unknown.")
+            }
         }
     }
 
     /// Severity label for CLI / report display.
     pub fn kind(&self) -> &'static str {
         match self {
-            AuditWarning::LargeFileStrategy { .. }  => "large-file",
+            AuditWarning::LargeFileStrategy { .. } => "large-file",
             AuditWarning::NoStrategyOnModified { .. } => "no-strategy",
-            AuditWarning::NoApprover { .. }          => "no-approver",
+            AuditWarning::NoApprover { .. } => "no-approver",
         }
     }
 }
@@ -78,13 +83,17 @@ pub fn collect(diff: &DiffEntry, entry: &AuditEntry) -> Vec<AuditWarning> {
     // No-strategy on Modified.
     if diff.diff_type == crate::diff::entry::DiffType::Modified {
         if let AuditStrategy::None = entry.strategy {
-            warns.push(AuditWarning::NoStrategyOnModified { path: diff.path.clone() });
+            warns.push(AuditWarning::NoStrategyOnModified {
+                path: diff.path.clone(),
+            });
         }
     }
 
     // No approver.
     if entry.approved_by.is_none() && !entry.reason.trim().is_empty() {
-        warns.push(AuditWarning::NoApprover { path: diff.path.clone() });
+        warns.push(AuditWarning::NoApprover {
+            path: diff.path.clone(),
+        });
     }
 
     warns

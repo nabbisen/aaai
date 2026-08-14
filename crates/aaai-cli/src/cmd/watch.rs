@@ -8,8 +8,7 @@ use clap::Args;
 use colored::Colorize;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use aaai::{AuditEngine, AuditStatus, DiffEngine, DiffType,
-                config::io as config_io};
+use aaai::{AuditEngine, AuditStatus, DiffEngine, DiffType, config::io as config_io};
 
 const WATCH_AFTER_HELP: &str = "\
 Next steps:
@@ -46,8 +45,8 @@ pub fn run(args: WatchArgs) -> anyhow::Result<()> {
     let mut watcher = RecommendedWatcher::new(tx, notify::Config::default())?;
 
     // Watch before dir, after dir, and config file.
-    watcher.watch(&args.left,   RecursiveMode::Recursive)?;
-    watcher.watch(&args.right,  RecursiveMode::Recursive)?;
+    watcher.watch(&args.left, RecursiveMode::Recursive)?;
+    watcher.watch(&args.right, RecursiveMode::Recursive)?;
     watcher.watch(&args.config, RecursiveMode::NonRecursive)?;
 
     let debounce = Duration::from_millis(args.debounce_ms);
@@ -57,9 +56,7 @@ pub fn run(args: WatchArgs) -> anyhow::Result<()> {
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(Ok(event)) => {
                 match event.kind {
-                    EventKind::Create(_)
-                    | EventKind::Modify(_)
-                    | EventKind::Remove(_) => {
+                    EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_) => {
                         // Debounce: only re-run if enough time passed since last run.
                         if last_run.elapsed() >= debounce {
                             println!();
@@ -101,23 +98,37 @@ fn run_audit(args: &WatchArgs) {
     // Compact one-line output for watch mode.
     let ts = chrono::Local::now().format("%H:%M:%S").to_string();
     let verdict = if s.is_passing() {
-        format!("[{ts}] {} — OK:{} Pend:{} Fail:{}", "PASSED".green().bold(), s.ok, s.pending, s.failed)
+        format!(
+            "[{ts}] {} — OK:{} Pend:{} Fail:{}",
+            "PASSED".green().bold(),
+            s.ok,
+            s.pending,
+            s.failed
+        )
     } else {
-        format!("[{ts}] {} — OK:{} Pend:{} Fail:{} Err:{}", "FAILED".red().bold(),
-            s.ok, s.pending, s.failed, s.error)
+        format!(
+            "[{ts}] {} — OK:{} Pend:{} Fail:{} Err:{}",
+            "FAILED".red().bold(),
+            s.ok,
+            s.pending,
+            s.failed,
+            s.error
+        )
     };
     println!("{verdict}");
 
     // Show failing entries.
     for r in &result.results {
-        if matches!(r.status, AuditStatus::Failed | AuditStatus::Error | AuditStatus::Pending)
-            && r.diff.diff_type != DiffType::Unchanged
+        if matches!(
+            r.status,
+            AuditStatus::Failed | AuditStatus::Error | AuditStatus::Pending
+        ) && r.diff.diff_type != DiffType::Unchanged
         {
             let icon = match r.status {
-                AuditStatus::Failed  => "✗".red().to_string(),
-                AuditStatus::Error   => "!".magenta().to_string(),
+                AuditStatus::Failed => "✗".red().to_string(),
+                AuditStatus::Error => "!".magenta().to_string(),
                 AuditStatus::Pending => "?".yellow().to_string(),
-                _                    => " ".to_string(),
+                _ => " ".to_string(),
             };
             println!("  {icon} {}", r.diff.path);
         }

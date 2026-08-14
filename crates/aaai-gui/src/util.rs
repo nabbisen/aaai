@@ -111,22 +111,29 @@ impl StrategyKind {
     /// that variant (e.g. an empty `expected_sha256`, no rules).
     pub fn to_default_strategy(self) -> AuditStrategy {
         match self {
-            StrategyKind::None      => AuditStrategy::None,
-            StrategyKind::Checksum  => AuditStrategy::Checksum { expected_sha256: String::new() },
+            StrategyKind::None => AuditStrategy::None,
+            StrategyKind::Checksum => AuditStrategy::Checksum {
+                expected_sha256: String::new(),
+            },
             StrategyKind::LineMatch => AuditStrategy::LineMatch { rules: Vec::new() },
-            StrategyKind::Regex     => AuditStrategy::Regex { pattern: String::new(), target: RegexTarget::AddedLines },
-            StrategyKind::Exact     => AuditStrategy::Exact { expected_content: String::new() },
+            StrategyKind::Regex => AuditStrategy::Regex {
+                pattern: String::new(),
+                target: RegexTarget::AddedLines,
+            },
+            StrategyKind::Exact => AuditStrategy::Exact {
+                expected_content: String::new(),
+            },
         }
     }
 
     /// Read the kind from an existing strategy.
     pub fn from_strategy(s: &AuditStrategy) -> StrategyKind {
         match s {
-            AuditStrategy::None          => StrategyKind::None,
-            AuditStrategy::Checksum {..} => StrategyKind::Checksum,
-            AuditStrategy::LineMatch{..} => StrategyKind::LineMatch,
-            AuditStrategy::Regex {..}    => StrategyKind::Regex,
-            AuditStrategy::Exact {..}    => StrategyKind::Exact,
+            AuditStrategy::None => StrategyKind::None,
+            AuditStrategy::Checksum { .. } => StrategyKind::Checksum,
+            AuditStrategy::LineMatch { .. } => StrategyKind::LineMatch,
+            AuditStrategy::Regex { .. } => StrategyKind::Regex,
+            AuditStrategy::Exact { .. } => StrategyKind::Exact,
         }
     }
 
@@ -134,12 +141,13 @@ impl StrategyKind {
     /// Resolves through `inspector.strategy_{none,checksum,linematch,regex,exact}`.
     pub fn label(self) -> String {
         match self {
-            StrategyKind::None      => t!("inspector.strategy_none"),
-            StrategyKind::Checksum  => t!("inspector.strategy_checksum"),
+            StrategyKind::None => t!("inspector.strategy_none"),
+            StrategyKind::Checksum => t!("inspector.strategy_checksum"),
             StrategyKind::LineMatch => t!("inspector.strategy_linematch"),
-            StrategyKind::Regex     => t!("inspector.strategy_regex"),
-            StrategyKind::Exact     => t!("inspector.strategy_exact"),
-        }.to_string()
+            StrategyKind::Regex => t!("inspector.strategy_regex"),
+            StrategyKind::Exact => t!("inspector.strategy_exact"),
+        }
+        .to_string()
     }
 }
 
@@ -161,7 +169,7 @@ mod tests {
     #[test]
     fn within_a_minute_is_just_now() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 5, 13, 11, 59);  // 60 s ago — boundary
+        let earlier = t(2026, 5, 13, 11, 59); // 60 s ago — boundary
         // Move 1 s into the "just now" side of the boundary (59 s ago,
         // not 61 s ago — the original `-1s` was a Phase 12 typo).
         let out = humanize_since_at(earlier + chrono::Duration::seconds(1), now);
@@ -174,7 +182,7 @@ mod tests {
     #[test]
     fn minutes_bucket() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 5, 13, 11, 55);  // 5 min ago
+        let earlier = t(2026, 5, 13, 11, 55); // 5 min ago
         let out = humanize_since_at(earlier, now);
         assert!(out.contains("5"), "expected '5' in output: {out}");
         // contains the "min" or Japanese-equivalent fragment via key resolution
@@ -183,7 +191,7 @@ mod tests {
     #[test]
     fn hours_bucket() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 5, 13, 9, 0);   // 3 h ago
+        let earlier = t(2026, 5, 13, 9, 0); // 3 h ago
         let out = humanize_since_at(earlier, now);
         assert!(out.contains("3"), "expected '3' in output: {out}");
     }
@@ -191,7 +199,7 @@ mod tests {
     #[test]
     fn days_bucket() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 5, 10, 12, 0);  // 3 d ago
+        let earlier = t(2026, 5, 10, 12, 0); // 3 d ago
         let out = humanize_since_at(earlier, now);
         assert!(out.contains("3"), "expected '3' in output: {out}");
     }
@@ -199,16 +207,18 @@ mod tests {
     #[test]
     fn beyond_a_week_falls_back_to_absolute_date() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 4, 1, 12, 0);   // 42 d ago — well past a week
+        let earlier = t(2026, 4, 1, 12, 0); // 42 d ago — well past a week
         let out = humanize_since_at(earlier, now);
-        assert_eq!(out, "2026-04-01",
-            "beyond 7 days should be an ISO date: {out}");
+        assert_eq!(
+            out, "2026-04-01",
+            "beyond 7 days should be an ISO date: {out}"
+        );
     }
 
     #[test]
     fn exactly_seven_days_is_already_absolute() {
         let now = t(2026, 5, 13, 12, 0);
-        let earlier = t(2026, 5,  6, 12, 0);  // 7 d ago exactly
+        let earlier = t(2026, 5, 6, 12, 0); // 7 d ago exactly
         let out = humanize_since_at(earlier, now);
         assert_eq!(out, "2026-05-06");
     }
@@ -216,7 +226,7 @@ mod tests {
     #[test]
     fn future_timestamp_does_not_panic() {
         let now = t(2026, 5, 13, 12, 0);
-        let later = t(2026, 5, 13, 12, 5);  // 5 min in the future
+        let later = t(2026, 5, 13, 12, 5); // 5 min in the future
         let out = humanize_since_at(later, now);
         // Just confirm we get some string back rather than panic.
         assert!(!out.is_empty());
@@ -225,7 +235,10 @@ mod tests {
     // ── LocalizedOption (RFC 033) ────────────────────────────────────
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    enum TestAction { A, B }
+    enum TestAction {
+        A,
+        B,
+    }
 
     /// RFC 033 — verify equality compares by `value` alone, not by
     /// `label`. This is the property that makes pick_list selection
@@ -233,9 +246,15 @@ mod tests {
     /// "currently selected" identity is preserved across translations.
     #[test]
     fn localized_option_equality_ignores_label() {
-        let a = LocalizedOption { value: TestAction::A, label: "Added".into() };
-        let b = LocalizedOption { value: TestAction::A, label: "追加".into() };
-        assert_eq!(a, b);  // same value, different label
+        let a = LocalizedOption {
+            value: TestAction::A,
+            label: "Added".into(),
+        };
+        let b = LocalizedOption {
+            value: TestAction::A,
+            label: "追加".into(),
+        };
+        assert_eq!(a, b); // same value, different label
     }
 
     /// RFC 033 — verify inequality when values differ even if labels
@@ -243,9 +262,15 @@ mod tests {
     /// usually distinct) but the contract is: value determines identity.
     #[test]
     fn localized_option_inequality_by_value() {
-        let a = LocalizedOption { value: TestAction::A, label: "X".into() };
-        let b = LocalizedOption { value: TestAction::B, label: "X".into() };
-        assert_ne!(a, b);  // different value, same label
+        let a = LocalizedOption {
+            value: TestAction::A,
+            label: "X".into(),
+        };
+        let b = LocalizedOption {
+            value: TestAction::B,
+            label: "X".into(),
+        };
+        assert_ne!(a, b); // different value, same label
     }
 
     // ── StrategyKind (RFC 035) ───────────────────────────────────────
@@ -256,12 +281,19 @@ mod tests {
     /// produces a strategy whose kind matches.
     #[test]
     fn strategy_kind_roundtrips_through_strategy() {
-        for kind in [StrategyKind::None, StrategyKind::Checksum,
-                     StrategyKind::LineMatch, StrategyKind::Regex,
-                     StrategyKind::Exact] {
+        for kind in [
+            StrategyKind::None,
+            StrategyKind::Checksum,
+            StrategyKind::LineMatch,
+            StrategyKind::Regex,
+            StrategyKind::Exact,
+        ] {
             let strategy = kind.to_default_strategy();
-            assert_eq!(StrategyKind::from_strategy(&strategy), kind,
-                "round-trip failed for {kind:?}");
+            assert_eq!(
+                StrategyKind::from_strategy(&strategy),
+                kind,
+                "round-trip failed for {kind:?}"
+            );
         }
     }
 
@@ -270,6 +302,9 @@ mod tests {
     #[test]
     fn strategy_kind_default_is_none() {
         let default_strategy = AuditStrategy::default();
-        assert_eq!(StrategyKind::from_strategy(&default_strategy), StrategyKind::None);
+        assert_eq!(
+            StrategyKind::from_strategy(&default_strategy),
+            StrategyKind::None
+        );
     }
 }

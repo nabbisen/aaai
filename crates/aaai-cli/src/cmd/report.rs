@@ -1,14 +1,12 @@
 //! `aaai report` — generate a Markdown or JSON audit report.
 
-use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use colored::Colorize;
+use std::path::PathBuf;
 
 use aaai::{
-    AuditEngine, DiffEngine, Masking, MaskingEngine,
-    config::io as config_io,
-    project::config::ProjectConfig,
-    report::generator::ReportGenerator,
+    AuditEngine, DiffEngine, Masking, MaskingEngine, config::io as config_io,
+    project::config::ProjectConfig, report::generator::ReportGenerator,
 };
 
 const REPORT_AFTER_HELP: &str = "\
@@ -66,29 +64,53 @@ pub fn run(args: ReportArgs) -> anyhow::Result<()> {
     match args.format {
         ReportFormat::Sarif => {
             aaai::report::generator::ReportGenerator::write_sarif(
-                &result, &args.left, &args.right, &args.out, masking,
+                &result,
+                &args.left,
+                &args.right,
+                &args.out,
+                masking,
             )?;
         }
         ReportFormat::Markdown => {
             if args.include_diff {
                 let md = aaai::report::generator::ReportGenerator::build_markdown_string(
-                    &result, &args.left, &args.right, Some(&args.config), masking, true,
+                    &result,
+                    &args.left,
+                    &args.right,
+                    Some(&args.config),
+                    masking,
+                    true,
                 );
                 std::fs::write(&args.out, md.as_bytes())?;
             } else {
                 ReportGenerator::write_markdown(
-                    &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
+                    &result,
+                    &args.left,
+                    &args.right,
+                    Some(&args.config),
+                    &args.out,
+                    masking,
                 )?;
             }
         }
         ReportFormat::Html => {
             aaai::report::generator::ReportGenerator::write_html(
-                &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
+                &result,
+                &args.left,
+                &args.right,
+                Some(&args.config),
+                &args.out,
+                masking,
             )?;
         }
         ReportFormat::Json => {
             ReportGenerator::write_json(
-                &result, &args.left, &args.right, Some(&args.config), &args.out, masking,
+                &result,
+                &args.left,
+                &args.right,
+                Some(&args.config),
+                &args.out,
+                masking,
             )?;
         }
     }

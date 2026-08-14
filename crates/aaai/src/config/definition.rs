@@ -40,17 +40,29 @@ pub struct AuditDefinition {
 
 impl AuditDefinition {
     pub fn new_empty() -> Self {
-        Self { version: "1".into(), meta: None, entries: Vec::new() }
+        Self {
+            version: "1".into(),
+            meta: None,
+            entries: Vec::new(),
+        }
     }
 
     /// Find by exact path first, then by first matching glob.
     pub fn find_entry(&self, path: &str) -> Option<&AuditEntry> {
-        self.entries.iter().find(|e| !e.is_glob() && e.path == path)
-            .or_else(|| self.entries.iter().find(|e| e.is_glob() && e.glob_matches(path)))
+        self.entries
+            .iter()
+            .find(|e| !e.is_glob() && e.path == path)
+            .or_else(|| {
+                self.entries
+                    .iter()
+                    .find(|e| e.is_glob() && e.glob_matches(path))
+            })
     }
 
     pub fn find_entry_mut(&mut self, path: &str) -> Option<&mut AuditEntry> {
-        self.entries.iter_mut().find(|e| !e.is_glob() && e.path == path)
+        self.entries
+            .iter_mut()
+            .find(|e| !e.is_glob() && e.path == path)
     }
 
     pub fn upsert_entry(&mut self, entry: AuditEntry) {
@@ -64,7 +76,8 @@ impl AuditDefinition {
     /// Return all entries whose `expires_at` is today or in the past.
     pub fn expired_entries(&self) -> Vec<&AuditEntry> {
         let today = Utc::now().date_naive();
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|e| e.expires_at.map_or(false, |d| d <= today))
             .collect()
     }
@@ -73,7 +86,8 @@ impl AuditDefinition {
     pub fn expiring_soon(&self, days: i64) -> Vec<&AuditEntry> {
         let today = Utc::now().date_naive();
         let threshold = today + chrono::Duration::days(days);
-        self.entries.iter()
+        self.entries
+            .iter()
             .filter(|e| e.expires_at.map_or(false, |d| d > today && d <= threshold))
             .collect()
     }
@@ -132,7 +146,9 @@ pub struct AuditEntry {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 impl AuditEntry {
     pub fn is_glob(&self) -> bool {
@@ -140,7 +156,9 @@ impl AuditEntry {
     }
 
     pub fn glob_matches(&self, candidate: &str) -> bool {
-        if !self.is_glob() { return self.path == candidate; }
+        if !self.is_glob() {
+            return self.path == candidate;
+        }
         glob::Pattern::new(&self.path)
             .map(|p| p.matches(candidate))
             .unwrap_or(false)
@@ -148,14 +166,16 @@ impl AuditEntry {
 
     /// True if `expires_at` is today or in the past.
     pub fn is_expired(&self) -> bool {
-        self.expires_at.map_or(false, |d| d <= Utc::now().date_naive())
+        self.expires_at
+            .map_or(false, |d| d <= Utc::now().date_naive())
     }
 
     /// True if expiring within `days` days but not yet expired.
     pub fn expires_soon(&self, days: i64) -> bool {
         let today = Utc::now().date_naive();
         let threshold = today + chrono::Duration::days(days);
-        self.expires_at.map_or(false, |d| d > today && d <= threshold)
+        self.expires_at
+            .map_or(false, |d| d > today && d <= threshold)
     }
 
     /// Stamp created_at (first time) and updated_at (always) with the current UTC time.
@@ -185,39 +205,56 @@ impl AuditEntry {
 #[serde(tag = "type")]
 pub enum AuditStrategy {
     None,
-    Checksum { expected_sha256: String },
-    LineMatch { rules: Vec<LineRule> },
-    Regex { pattern: String, #[serde(default)] target: RegexTarget },
-    Exact { expected_content: String },
+    Checksum {
+        expected_sha256: String,
+    },
+    LineMatch {
+        rules: Vec<LineRule>,
+    },
+    Regex {
+        pattern: String,
+        #[serde(default)]
+        target: RegexTarget,
+    },
+    Exact {
+        expected_content: String,
+    },
 }
 
 impl Default for AuditStrategy {
-    fn default() -> Self { AuditStrategy::None }
+    fn default() -> Self {
+        AuditStrategy::None
+    }
 }
 
 impl AuditStrategy {
     pub fn label(&self) -> &'static str {
         match self {
-            AuditStrategy::None           => "None",
+            AuditStrategy::None => "None",
             AuditStrategy::Checksum { .. } => "Checksum",
             AuditStrategy::LineMatch { .. } => "LineMatch",
-            AuditStrategy::Regex { .. }    => "Regex",
-            AuditStrategy::Exact { .. }    => "Exact",
+            AuditStrategy::Regex { .. } => "Regex",
+            AuditStrategy::Exact { .. } => "Exact",
         }
     }
 
     pub fn description(&self) -> &'static str {
         match self {
-            AuditStrategy::None =>
-                "Only checks that the expected change happened — no content inspection.",
-            AuditStrategy::Checksum { .. } =>
-                "Verifies the file is byte-for-byte identical to when you approved it. Good for images, ZIPs, or any binary.",
-            AuditStrategy::LineMatch { .. } =>
-                "Verifies specific lines were added or removed. Best choice for config file changes.",
-            AuditStrategy::Regex { .. } =>
-                "Verifies changed lines match a text pattern. Good for values that vary by environment (URLs, ports, version numbers).",
-            AuditStrategy::Exact { .. } =>
-                "Verifies the entire file content matches exactly. Use only for small, critical files.",
+            AuditStrategy::None => {
+                "Only checks that the expected change happened — no content inspection."
+            }
+            AuditStrategy::Checksum { .. } => {
+                "Verifies the file is byte-for-byte identical to when you approved it. Good for images, ZIPs, or any binary."
+            }
+            AuditStrategy::LineMatch { .. } => {
+                "Verifies specific lines were added or removed. Best choice for config file changes."
+            }
+            AuditStrategy::Regex { .. } => {
+                "Verifies changed lines match a text pattern. Good for values that vary by environment (URLs, ports, version numbers)."
+            }
+            AuditStrategy::Exact { .. } => {
+                "Verifies the entire file content matches exactly. Use only for small, critical files."
+            }
         }
     }
 
@@ -274,12 +311,15 @@ pub struct LineRule {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LineAction { Added, Removed }
+pub enum LineAction {
+    Added,
+    Removed,
+}
 
 impl std::fmt::Display for LineAction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LineAction::Added   => write!(f, "Added"),
+            LineAction::Added => write!(f, "Added"),
             LineAction::Removed => write!(f, "Removed"),
         }
     }
@@ -289,7 +329,8 @@ impl std::fmt::Display for LineAction {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RegexTarget {
-    #[default] AddedLines,
+    #[default]
+    AddedLines,
     RemovedLines,
     AllChangedLines,
 }
@@ -297,8 +338,8 @@ pub enum RegexTarget {
 impl std::fmt::Display for RegexTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegexTarget::AddedLines      => write!(f, "Added lines"),
-            RegexTarget::RemovedLines    => write!(f, "Removed lines"),
+            RegexTarget::AddedLines => write!(f, "Added lines"),
+            RegexTarget::RemovedLines => write!(f, "Removed lines"),
             RegexTarget::AllChangedLines => write!(f, "All changed lines"),
         }
     }
