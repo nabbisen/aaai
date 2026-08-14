@@ -759,6 +759,89 @@ fn windows_link_matrix_remains_metadata_only() {
     assert!(!diffs.iter().any(|entry| entry.path == "inside-dir-link/inside-descendant"));
 }
 
+/// Windows twin of `cross_root_links_are_not_followed_into_the_other_selected_root`.
+/// Per the handoff's §10 (added 2026-08-10), the Windows reparse decision is
+/// tag-agnostic — it never inspects the link target, so this closes no
+/// substantive gap. It exists for RFC 098 §9.1's every-hosted-OS symmetry and
+/// as the same regression guard on this platform: "reject every reparse
+/// point" is what a future inside-root-follow optimisation would relax.
+#[cfg(windows)]
+#[test]
+fn windows_cross_root_links_are_not_followed_into_the_other_selected_root() {
+    use std::os::windows::fs::{symlink_dir, symlink_file};
+
+    let before = tmp_dir();
+    let after = tmp_dir();
+
+    // A canary that exists ONLY in `before`, reachable from `after` solely
+    // through the cross-root link under test.
+    write(before.path(), "secret.txt", "cross-root-secret-canary");
+    fs::create_dir(before.path().join("folder")).unwrap();
+    write(
+        before.path(),
+        "folder/nested.txt",
+        "cross-root-nested-canary",
+    );
+
+    // after/ -> before/  (file and directory)
+    symlink_file(
+        before.path().join("secret.txt"),
+        after.path().join("to-other-file"),
+    )
+    .expect("Windows cross-root file symlink fixture");
+    symlink_dir(
+        before.path().join("folder"),
+        after.path().join("to-other-dir"),
+    )
+    .expect("Windows cross-root directory symlink fixture");
+
+    let diffs = DiffEngine::compare(before.path(), after.path()).unwrap();
+
+    for name in ["to-other-file", "to-other-dir"] {
+        let entry = find(&diffs, name);
+        assert_eq!(
+            entry.diff_type,
+            DiffType::Incomparable,
+            "{name}: a cross-root link must be Incomparable, not followed"
+        );
+        assert!(
+            entry
+                .error_detail
+                .as_deref()
+                .unwrap()
+                .starts_with("[AAAI-PATH-REPARSE]"),
+            "{name}: Windows classifies by reparse point, not the Unix link code"
+        );
+        assert!(entry.before_sha256.is_none() && entry.after_sha256.is_none());
+    }
+
+    // The directory link must not have been enumerated: nothing under it.
+    assert!(
+        !diffs
+            .iter()
+            .any(|entry| entry.path.starts_with("to-other-dir/")),
+        "descendants of a cross-root directory link must never be enumerated"
+    );
+
+    // `before`'s content legitimately appears as a Removed entry for
+    // `secret.txt` itself — that is the comparison working. What must not
+    // appear is that content reached through the link, or the other root's
+    // absolute path.
+    let via_link = diffs
+        .iter()
+        .filter(|entry| entry.path.starts_with("to-other-"))
+        .map(|entry| {
+            format!(
+                "{}{:?}{:?}{:?}",
+                entry.path, entry.before_text, entry.after_text, entry.error_detail
+            )
+        })
+        .collect::<String>();
+    assert!(!via_link.contains("cross-root-secret-canary"));
+    assert!(!via_link.contains("cross-root-nested-canary"));
+    assert!(!via_link.contains(&before.path().display().to_string()));
+}
+
 #[cfg(windows)]
 #[test]
 fn windows_link_audit_preserves_namespace_content_and_stable_metadata() {
