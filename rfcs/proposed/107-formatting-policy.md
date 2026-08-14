@@ -18,9 +18,23 @@ rustfmt.**
 
 **Evidence location.** `.git-exclude/evidence/107-formatting-policy/`
 
-**Touches.** Every `.rs` file in the workspace, mechanically. `docs/src/` and
-its Japanese counterpart for the policy statement. No behaviour change, no
-dependency, no i18n key, no workflow change.
+**Touches.** Every `.rs` file in the workspace, mechanically, in one commit. A
+new root `CONTRIBUTING.md` and `.git-blame-ignore-revs` in a second. No
+behaviour change, no dependency, no i18n key, no workflow change.
+
+> **Corrected 2026-08-10, before implementation.** This line and §5 item 6
+> originally put the policy statement in `docs/src/` and its Japanese
+> counterpart. Wrong on two counts, both found while writing the handoff.
+> `docs/` is the **user manual** — overview, CLI usage, GUI, FAQ — and has no
+> contributor-facing page; adding one would mean a new chapter plus `SUMMARY.md`
+> entries in two languages, to tell users something only contributors need. The
+> existing pattern for a root-level, English-only process document is
+> `RELEASING.md`, and `CONTRIBUTING.md` is its natural sibling.
+>
+> §5 also had a self-contradiction: item 2 required a formatting-only commit
+> while item 6 required a docs change in it, which would have broken item 3's
+> regenerability — the property the whole review method rests on. Split into
+> two commits.
 
 **Handoff.** Required, after acceptance.
 
@@ -121,9 +135,12 @@ evidence for promoting the check, and M4C is where it belongs.
 
 ## 5. Acceptance contract
 
-1. `cargo fmt --all` applied; **no manual edits** in the same commit.
-2. The commit contains **only** formatting changes — no `.rs` file gains or
-   loses a statement, and no non-`.rs` file changes except as item 6 requires.
+**Two commits, in this order.** Items 1–5 and 8 apply to the first; item 6 to
+the second.
+
+1. `cargo fmt --all` applied; **no manual edits**.
+2. The reformat commit contains **only** what `cargo fmt --all` produced —
+   nothing else, of any kind.
 3. **Regenerable:** `git checkout <parent> && cargo fmt --all && git diff` is
    empty against the reformat commit. This is the reviewability property and
    the item most worth checking.
@@ -131,8 +148,9 @@ evidence for promoting the check, and M4C is where it belongs.
 5. `cargo +1.91 test --workspace --locked` — counts **exactly**
    146 / 13 / 97 / 27 / 3 on Linux, unchanged. A formatting change that moves a
    test count has done something other than formatting.
-6. `docs/src/` and its Japanese counterpart state the policy: rustfmt defaults,
-   no configuration file, run before committing.
+6. **Second commit:** a root `CONTRIBUTING.md` stating the policy — rustfmt
+   defaults, no configuration file, run before committing — plus a
+   `.git-blame-ignore-revs` naming the reformat commit's SHA.
 7. No `rustfmt.toml` is added.
 8. RFC 099's V1 greps still return nothing (`.size(N)` literals,
    `Color::from_rgb` outside `design_tokens.rs`) — rustfmt does not change
