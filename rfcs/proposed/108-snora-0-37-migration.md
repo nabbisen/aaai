@@ -23,7 +23,7 @@ approval
 whichever §6 items are adopted — `crates/aaai-gui/src/`. Re-captures RFC 099's
 T7 screenshot set. No engine, CLI, persisted-format, or i18n change.
 
-**Handoff.** Required, after acceptance.
+**Handoff.** [`rfcs/handoffs/108-snora-0-38-migration/README.md`](../handoffs/108-snora-0-38-migration/README.md) — written 2026-08-19.
 
 **Source material.** `.git-exclude/tmp/snora-0.25-to-0.37/` — seven release
 recaps from the snora team, read in full.
