@@ -63,6 +63,10 @@ Three rendered changes reach us because we consume `snora::design::render`,
 | **0.34.0** | `text_muted` on `light` repaired `#6B7280`→`#6A717E` (4.46:1 → ≥4.5:1) | Sub-perceptual; see §3 for why it matters anyway |
 | **0.37.0** | Modal dim `DIM_ALPHA` 0.40 → 0.44 | Our sheets and dialogs dim their backdrop ~10% more strongly |
 
+**0.37.1 and 0.37.2 contain no rendered change** — confirmed by snora directly;
+the only `crates/` diff in either is inside `#[cfg(test)]`. Requiring `"0.37"`
+picks them up and the three changes above remain the complete set.
+
 The direction is one-way: **contrast increases, nothing becomes harder to see.**
 snora filed all three as accessibility repairs rather than restyles.
 
@@ -196,23 +200,41 @@ costs the same one i18n key.
 (Header / SideBar / Body / Footer) and ours is three panes. **Take the key
 binding and the principle; do not force our panes into their zone enum.**
 
-### 6.3 In-process keyboard testing — **investigate, high value**
+### 6.3 In-process keyboard testing — **investigate `Simulator`, decline `snapshot`**
 
-snora's 0.37.1 note records that another consumer hit our exact niri
-input-synthesis problem, and that snora pointed them at **`iced_test`'s
-in-process route — `tap_key` plus `snapshot`, no compositor involved.**
+> **Revised 2026-08-19** after snora's reply. The original recommendation rested
+> on snora having pointed another consumer at `iced_test`'s `tap_key` plus
+> `snapshot`. Asked directly whether a worked example existed, they answered:
+> **"No. There is not, and we have never used `snapshot` ourselves."** They
+> vouch for `iced_test::Simulator` — `render_semantics` drives it with
+> `simulate(click())` — but the `snapshot` half was recommended from reading the
+> API. Their recommendation was weaker evidence than I treated it as.
 
-If that works, it changes two things materially:
+The two halves now separate cleanly, and only one is worth having:
 
-- **RFC 106's acceptance item 5** — asserting keyboard traversal in a test —
-  becomes achievable rather than "escalate if not testable";
-- **RFC 105's assertion-versus-screenshot split** gains a whole category:
-  keyboard behaviour moves from "needs a human" to "assertable".
+**`Simulator` + `tap_key` — investigate.** The simulator is a working dependency
+in snora's own suite, so the mechanism is real even if key injection
+specifically is unexercised. If `tap_key` drives our update loop in-process,
+**RFC 106's acceptance item 5** — asserting keyboard traversal — becomes
+achievable rather than "escalate if not testable", and keyboard behaviour moves
+from "needs a human" to "assertable" in **RFC 105's** split.
 
-Note the limit snora also records: `focusable::find_focused()` — *querying*
-where focus is — needs iced's `advanced` feature, which snora does not enable.
-So moving focus is testable; asserting where it landed may not be. **Worth one
-timeboxed investigation before RFC 106's handoff is written.**
+**`snapshot` — decline.** Snapshot tests hold reference images, and snora has
+shipped an appearance change **three times in eleven releases**. Every one would
+invalidate every baseline. They asked us how we would handle exactly that; the
+honest answer is that we would not, and adopting reference images would rebuild
+the problem RFC 105 exists to remove — evidence that rots silently and gets
+ignored rather than maintained. **Our screenshots stay few, human-judged, and
+outside CI.**
+
+The limit snora recorded still stands: `focusable::find_focused()` — *querying*
+where focus is — needs iced's `advanced` feature. So moving focus is testable;
+asserting where it landed may not be, whichever route we take.
+
+**Timebox it before RFC 106's handoff**, and report the two things snora asked
+for if we get that far: whether `snapshot` needs a real GPU in CI, and how
+reference images survive an upstream appearance change. Our answer to the second
+is already "they do not", which is itself worth sending.
 
 ### 6.4 `responsive_render` — **defer to RFC 101, but record it now**
 
@@ -311,14 +333,51 @@ Recorded because reciprocity here is cheap and we are a direct beneficiary:
 §8 item 8 produces the first two as a side effect of the re-capture. Sending
 them is the owner's call.
 
-## 11. Open decisions for the owner
+## 11. Owner decisions — all four approved 2026-08-19
 
-1. **Adopt the bump** — recommend yes.
-2. **6.3 in-process keyboard testing** — timeboxed investigation before
-   RFC 106's handoff? Recommend yes; it may change two RFCs.
-3. **6.5 pointer target size** — decline here and fold into the RFC 106 group?
-   Recommend yes.
-4. **Reply to snora** with the visual judgement from §8 item 8? Recommend yes.
+1. **Adopt the bump** — approved.
+2. **6.3 in-process keyboard testing** — approved as a timeboxed investigation.
+   Scope narrowed after snora's reply: `Simulator` + `tap_key` only,
+   `snapshot` declined.
+3. **6.5 pointer target size** — approved: declined here, folded into the
+   RFC 106 group.
+4. **Reply to snora** — approved and sent 2026-08-19
+   (`.git-exclude/outbox/aaai-to-snora-2026-08-19.md`). Their reply is in
+   `.git-exclude/tmp/reply-aaai-2026-08-19.tar.gz`; §6.3 and §2 revised from it.
+
+### 11.1 What their reply changed here
+
+- **§6.3 narrowed** — `snapshot` is unproven by its recommender and declined.
+- **§2** — 0.37.1 and 0.37.2 confirmed free of rendered change.
+- **`text_muted` was the third instance.** orbok's WCAG conformance record and
+  knotra's WCAG AA suite both excluded the role citing the same withdrawn doc
+  comment, none of the three teams aware of the others. snora shipped **RFC-067**
+  in 0.37.2 requiring release notes to name the *re-check*, not only the
+  correction. It passes on their surfaces against all three backgrounds; ours
+  may differ, which is why §8 item 3 forbids exempting a failure away.
+- **One open item back to them**, cheap and unresolved: **arama reports the
+  XWayland path delivering pointer motion but not button press/release** — the
+  opposite of our result on the same path. See §11.2.
+
+### 11.2 The XWayland divergence
+
+arama reports pointer motion working but **button press/release not** under
+forced XWayland. We verified clicks working. snora will not adjudicate and asks
+which `xdotool` subcommand each team used and whether the target had focus.
+
+Our answer, from the record:
+
+- **Combined form, single invocation** — `xdotool mousemove <x> <y> click 1`
+  (`.git-exclude/rules/gui-automation-niri-xdotool.md:208`), never separate
+  `mousedown`/`mouseup`.
+- The dev team's captures used the same combined form with `--window $XID`
+  added. **Both variants delivered clicks.**
+- **Focus was always established first** — `xdotool windowactivate --sync $XID`,
+  and in later runs `niri msg action focus-window --id` as well.
+
+If arama used `mousedown`/`mouseup` separately, or clicked without activating
+the window, that is the likeliest difference. Worth one line back to snora; not
+worth an investigation on our side, since nobody is blocked.
 
 ## 12. Sources
 
