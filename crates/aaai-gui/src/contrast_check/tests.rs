@@ -15,10 +15,6 @@
 //! at the measured ratios above; it passes now because the call sites read
 //! the token instead of a hardcoded literal.
 //!
-//! `text_muted` is intentionally excluded: `Palette` documents it as "exempt
-//! from mandatory contrast checks", used deliberately for non-essential
-//! content (hints, timestamps, decorative labels) throughout the views.
-//!
 //! Status-role text-on-status-background pairs (e.g. white text on a
 //! `danger` badge) are not repeated here — `crate::theme::tests` already
 //! covers those. This module covers the complementary case introduced by
@@ -60,10 +56,11 @@ fn presets() -> [Preset; 4] {
 }
 
 /// Foreground roles the views apply directly as plain text colour.
-fn foreground_roles(tokens: &Tokens) -> [(&'static str, Color); 7] {
+fn foreground_roles(tokens: &Tokens) -> [(&'static str, Color); 8] {
     [
         ("text_primary", tokens.palette.text_primary),
         ("text_secondary", tokens.palette.text_secondary),
+        ("text_muted", tokens.palette.text_muted),
         ("accent", tokens.palette.accent),
         ("success", tokens.palette.success),
         ("warning", tokens.palette.warning),

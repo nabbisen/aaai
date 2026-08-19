@@ -212,7 +212,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -223,7 +223,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -605,7 +605,7 @@ dependencies = [
  "cap-primitives",
  "cap-std",
  "io-lifetimes 3.0.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -622,7 +622,7 @@ dependencies = [
  "maybe-owned",
  "rustix 1.1.4",
  "rustix-linux-procfs",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
  "winx",
 ]
 
@@ -826,7 +826,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1116,7 +1116,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1248,7 +1248,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3714,7 +3714,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4080,37 +4080,49 @@ dependencies = [
 
 [[package]]
 name = "snora"
-version = "0.25.1"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce4f3482d328cf6fd784d15cc74f1a511fec219dd01e9f8800bd1a865637b862"
+checksum = "61faeb56a24ce80792b7938a0b974e71e161114dc3f0adb95a77ba8d00cd179e"
 dependencies = [
  "iced",
  "snora-core",
  "snora-design",
+ "snora-style",
  "snora-widgets",
 ]
 
 [[package]]
 name = "snora-core"
-version = "0.25.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b814c3b433fb45f9803ab83ee0baebfaa7813fcf0aca54a5e1251289ea565bee"
+checksum = "0247483fddf72670529dfe3d70d74a53e05a4795435910405596aacca75d67f0"
 
 [[package]]
 name = "snora-design"
-version = "0.25.1"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e0b777bca6033eab199c755b3a76140dde85bda41babe2558b8e750bc08516e"
+checksum = "465bb3f2c99739b5695e540111e4ebd4f6b80ec4899f8bc1ee93d7e6d9be0d6e"
+
+[[package]]
+name = "snora-style"
+version = "0.38.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98ca0bdb1cd266d5f1f3ecd627d08941bc4970798277364ad937fc6a0d9f07fe"
+dependencies = [
+ "iced",
+ "snora-design",
+]
 
 [[package]]
 name = "snora-widgets"
-version = "0.25.0"
+version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80d5a64cc6c03a010954efc9df0f99faf30a68aefc57731a48a5a0527d5c52c8"
+checksum = "201d197c0877216e8ef2f9d68523e1e4cda2d6559a21c9e31a89abfd12aa158e"
 dependencies = [
  "iced",
  "snora-core",
  "snora-design",
+ "snora-style",
 ]
 
 [[package]]
@@ -4120,7 +4132,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52d1cfed4120b4d927bf7c0f86d2087a4a7d6027c906d9f9d525a80573b9be51"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4247,7 +4259,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4528,7 +4540,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5096,7 +5108,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

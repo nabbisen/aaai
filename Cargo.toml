@@ -26,7 +26,7 @@ aaai                = { version = "0.41.0", path = "crates/aaai" }
 
 # GUI
 iced                = { version = "0.14", features = ["tokio"] }
-snora               = { version = "0.25.1", features = ["design"] }
+snora               = { version = "0.38", features = ["design"] }
 rfd                 = { version = "0.17" }
 
 # Diff algorithm
