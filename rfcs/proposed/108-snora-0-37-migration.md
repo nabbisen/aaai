@@ -1,4 +1,4 @@
-# RFC 108 — snora 0.25.1 → 0.37.1: accessibility repairs and typography completion
+# RFC 108 — snora 0.25.1 → 0.38.0: accessibility repairs and typography completion
 
 **Status.** Proposed
 
@@ -32,7 +32,7 @@ recaps from the snora team, read in full.
 
 ## 1. Summary
 
-**The upgrade is one line.** `snora = "0.25.1"` → `"0.37"`. No public item was
+**The upgrade is one line.** `snora = "0.25.1"` → `"0.38"`. No public item was
 removed or renamed across the entire span; the surface went 153 items → 157,
 compared as sets at both tags. `rustc ≥ 1.88` is the only prerequisite and our
 MSRV is 1.91.
@@ -63,9 +63,10 @@ Three rendered changes reach us because we consume `snora::design::render`,
 | **0.34.0** | `text_muted` on `light` repaired `#6B7280`→`#6A717E` (4.46:1 → ≥4.5:1) | Sub-perceptual; see §3 for why it matters anyway |
 | **0.37.0** | Modal dim `DIM_ALPHA` 0.40 → 0.44 | Our sheets and dialogs dim their backdrop ~10% more strongly |
 
-**0.37.1 and 0.37.2 contain no rendered change** — confirmed by snora directly;
-the only `crates/` diff in either is inside `#[cfg(test)]`. Requiring `"0.37"`
-picks them up and the three changes above remain the complete set.
+**0.37.1, 0.37.2 and 0.38.0 contain no rendered change** — each confirmed by
+snora directly, under the commitment they made to state it in every note.
+Requiring `"0.38"` picks all of them up and the three changes above remain the
+complete set for the span.
 
 The direction is one-way: **contrast increases, nothing becomes harder to see.**
 snora filed all three as accessibility repairs rather than restyles.
@@ -250,6 +251,24 @@ threshold.
 **Not in this RFC** — that is a behaviour and layout decision belonging to
 RFC 101. Recorded so RFC 101 does not conclude the capability is missing.
 
+### 6.4a Line-height helpers (0.38.0, RFC-068) — **decline**
+
+Six helpers in `snora-style::text`, one per role, returning
+`LineHeight::Relative`. Purely additive. snora notes that if we built a local
+wrapper because their old docs said line-height was not wrapped, the helpers
+replace it.
+
+**We built no wrapper.** We read `tokens.typography.<role>.line_height`
+directly at roughly 170 sites, which is what their old page advised and what
+RFC 099 implemented. iced's `.line_height()` takes `impl Into<LineHeight>`, so
+we are already passing the same thing the helper returns.
+
+**Declining.** Swapping ~170 call sites for stylistic parity buys nothing
+functional, and the insulation argument does not apply either: snora's
+additive-only covenant freezes `Typography` and `TextRole` **by name**, so
+`tokens.typography.body.line_height` is contractually stable. New GUI code may
+use whichever reads better; converting existing sites is not worth a diff.
+
 ### 6.5 Pointer target size — **decline for now, record the gap**
 
 snora's checklist mandates 24×24 logical pixels minimum for interactive
@@ -287,7 +306,7 @@ is correct. Doing them in the other order would put a count change inside a
 
 ## 8. Acceptance contract
 
-1. `snora = "0.37"` in the workspace manifest; `cargo update -p snora` reflected
+1. `snora = "0.38"` in the workspace manifest; `cargo update -p snora` reflected
    in `Cargo.lock`.
 2. `text_muted`'s exemption is **removed** from
    `crates/aaai-gui/src/contrast_check/tests.rs`, and the role is asserted
@@ -378,6 +397,37 @@ Our answer, from the record:
 If arama used `mousedown`/`mouseup` separately, or clicked without activating
 the window, that is the likeliest difference. Worth one line back to snora; not
 worth an investigation on our side, since nobody is blocked.
+
+## 11.3 Their doc-test finding, and our self-check
+
+0.38.0's letter reports that **all 111 Rust examples in snora's book were
+`rust,ignore` and none compiled**, with one page carrying *"Compile-checked
+against the pinned iced 0.14"* directly above an uncompiled block. RFC-069
+moved twelve onto a compiled workspace crate; **99 remain unverified**, and they
+told us the number rather than the improvement because we copy their snippets.
+
+**Treat any snora book snippet as illustrative unless it is one of the twelve.**
+Ours works — the line-height pattern we took from that page compiles in our
+tree because our compiler checks it, not because their fence said so.
+
+**We checked ourselves for the same failure.** Result:
+
+- `docs/` — our user-facing book — contains **no Rust code blocks at all**, so
+  their exact failure mode cannot occur there;
+- `rfcs/` and `rfcs/handoffs/` do carry Rust blocks that implementers copy, but
+  **none claims to be compiled or verified**. A specification block that an
+  implementer adapts is honest; the defect is claiming verification you do not
+  have.
+
+Nothing to fix. Recorded because the check was cheap and the answer could have
+gone the other way.
+
+**One principle worth keeping**, theirs: three blocks showing a *type's shape*
+rather than usage were deliberately left as prose, because compiling them would
+have stripped the field types from a block whose only job is showing field
+types. **Compile what is code; leave what is a diagram alone.** That is
+RFC 105's assertable-versus-judgemental distinction applied to documentation,
+and it argues against ever mechanically compiling every block in `rfcs/`.
 
 ## 12. Sources
 
