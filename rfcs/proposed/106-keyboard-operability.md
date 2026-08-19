@@ -18,8 +18,9 @@ approval
 **Evidence location.** `.git-exclude/evidence/106-keyboard-operability/`
 
 **Touches.** `crates/aaai-gui/src/app.rs`'s keyboard subscription and focus
-handling, or its post-RFC-100 successor, plus a test sibling. No engine, CLI,
-persisted-format, or i18n change.
+handling, or its post-RFC-100 successor, plus a test sibling, plus
+`iced_test = "0.14"` as a **dev-dependency** of `crates/aaai-gui`. No engine,
+CLI, persisted-format, or i18n change; no runtime dependency added.
 
 **Handoff.** Required, after acceptance.
 
@@ -129,12 +130,28 @@ implementation:
 | Option | Consequence |
 |---|---|
 | Drop pane cycling entirely | Simplest. RFC 005's stated behaviour is lost, and `focus_target` and its handlers can be deleted — but RFC 005 is `done/` and its behaviour was deliberate |
-| Move pane cycling to `Ctrl+Tab` | Keeps both. Costs one shortcut and a help-overlay entry, so it touches i18n, which §3.2 otherwise avoids |
+| **Move pane cycling to `F6` / `Shift+F6`** | Keeps both. Costs one shortcut and a help-overlay entry, so it touches i18n, which §3.2 otherwise avoids |
 | Keep `Tab` cycling panes **only on `Main`**, delegate elsewhere | Preserves RFC 005 exactly where it applies. But `Main` is where the most controls are, so the screen with the greatest need keeps the broken behaviour |
 
-**My recommendation is the second.** It is the only one that leaves both
-behaviours correct, and one new i18n key against a whole screen being
-keyboard-inoperable is a good trade.
+**Recommendation: the second, bound to `F6` / `Shift+F6`.** It is the only
+option that leaves both behaviours correct, and one i18n key against a whole
+screen being keyboard-inoperable is a good trade.
+
+> **Key corrected 2026-08-19.** This recommended `Ctrl+Tab`, chosen without
+> knowing a convention existed. **snora independently reached this RFC's whole
+> finding** and recommends `F6` / `Shift+F6`:
+>
+> > snora does not take Tab or Shift+Tab. Tab means "next control" to iced and
+> > to your users; a framework claiming it for region cycling would break
+> > in-pane navigation for every application with a form or a text input.
+>
+> That is §2.2's defect, described by a different party from first principles,
+> before seeing our code. `F6` is the established desktop idiom for pane
+> cycling and costs the same single key. RFC 108 §6.2 records the exchange.
+>
+> Their `snora_core::focus::next_zone` helper is **not** adopted: its model is
+> `AppLayout`'s four zones (Header / SideBar / Body / Footer) and ours is three
+> panes. Take the binding and the principle, not the enum.
 
 ## 6. Acceptance contract
 
@@ -145,12 +162,48 @@ keyboard-inoperable is a good trade.
 3. The same holds on `Main` for the toolbar, filter bar, file tree, inspector
    fields, and bottom bar.
 4. Whichever §5 option is chosen is implemented and its behaviour tested.
-5. A test asserts traversal order — not that `Message::FocusNext` fires, but
-   that focus lands where expected. If iced cannot assert focus in a unit test,
-   this becomes a real-display check and the acceptance item says so explicitly
-   rather than being quietly downgraded.
+5. **A headless `iced_test` test asserts traversal behaviourally** — see §6a.
+   Not that `Message::FocusNext` fires, and not an internal focus flag: that
+   pressing `Tab` the expected number of times and then `Enter` produces the
+   activation message of the expected control. **Written before the fix, it must
+   fail.**
 6. No new shortcut beyond §5's choice; existing bindings unchanged.
 7. RFC 099's V1 greps still pass; GUI test count grows only by the named tests.
+
+## 6a. How traversal is asserted (added 2026-08-19)
+
+Investigation: `.git-exclude/reviewed/069-iced-test-simulator-investigation-2026-08-19.md`.
+
+`iced_test` **0.14.0** matches our iced 0.14.0 exactly and runs **headless — no
+compositor, no display, no GPU dependency of ours**. Add it as a dev-dependency
+of `crates/aaai-gui` and report the build-time delta.
+
+Two calls carry the test:
+
+- **`tap_key(key) -> event::Status`** — `Captured` or `Ignored`, so "did anything
+  handle this key?" is directly answerable;
+- **`into_messages()`** — the messages an input produced, so "what did it do?"
+  is directly answerable.
+
+**What is not available:** querying which widget holds focus. There is no
+`find_focused` equivalent without iced's `advanced` feature, which we do not
+enable. So do not try to assert a focus position.
+
+**Assert the effect instead**, which is what a user experiences anyway:
+
+```
+tap_key(Tab); tap_key(Tab); tap_key(Enter)
+  → assert the activation message of the control expected at that position
+```
+
+**This fails today**, which is the point: `Tab` produces `Message::FocusNext`,
+which cycles a pane enum and moves no widget focus, so the `Enter` that follows
+activates nothing. The guard is red before the fix and green after — the
+standard this project has arrived at repeatedly.
+
+`snapshot` / `matches_image` / `matches_hash` also exist and are **declined** —
+golden values that invalidate whenever snora ships an appearance change, three
+times in eleven releases. RFC 108 §6.3 records the reasoning.
 
 ## 7. Verification note
 

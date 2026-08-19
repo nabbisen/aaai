@@ -143,12 +143,37 @@ Some visual properties do not need a human at all:
 | Is the Japanese text awkward at this width | **No** | Judgement |
 
 `contrast_check` is the proof this works. It asserts a property across all four
-themes, documents its exemptions (`text_muted`, by token contract), and traces
-each assertion back to the measured figures in the RFC 099 gap analysis. It runs
+themes and traces each assertion back to the measured figures in the RFC 099 gap
+analysis. Its one exemption — `text_muted` — turned out to rest on a snora doc
+comment that snora has since withdrawn as invented, and **RFC 108 removes it**;
+an exemption is only as good as the authority it cites. It runs
 in CI, needs no display, and cannot rot silently.
 
 **The rule this RFC adopts:** if a property can be asserted, it must be a test.
 Screenshots are reserved for judgement, and there should be few of them.
+
+> **Classifying a property as assertable is not the same as having a mechanism
+> (added 2026-08-19).** The table above already places keyboard focus order in
+> the **Yes** column — correctly, since it is application logic. But RFC 106,
+> written afterwards, could not say *how*: its acceptance item 5 carried a
+> fallback reading "if iced cannot assert focus in a unit test, this becomes a
+> real-display check".
+>
+> A timeboxed look supplied the missing mechanism. `iced_test::Simulator` runs
+> headless; `tap_key` returns an `event::Status` and `into_messages()` reports
+> what an input produced, so "press Tab twice then Enter and the expected
+> control activates" is a unit test. See
+> `.git-exclude/reviewed/069-iced-test-simulator-investigation-2026-08-19.md`.
+>
+> **The lesson for this RFC:** a "Yes" in that table is a claim that something
+> *should* be assertable. It becomes real only when someone finds the mechanism,
+> and until then the RFC relying on it quietly carries a fallback to a
+> screenshot. Worth checking, for each Yes, whether a mechanism actually exists.
+>
+> **When capability arrives upstream, things move from screenshot to
+> assertion — never the reverse.** A property that becomes assertable and stays
+> a screenshot is a regression in this RFC's terms, so the split is worth
+> re-examining whenever a toolkit or design-system upgrade lands.
 
 Eight PNGs that nobody diffs are theatre. One test that goes red when content
 overflows at 800×550 is a gate.
