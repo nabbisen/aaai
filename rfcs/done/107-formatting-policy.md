@@ -1,6 +1,21 @@
 # RFC 107 — Formatting Policy: adopt rustfmt
 
-**Status.** Proposed
+**Status.** Implemented (2026-08-10) — reformat `706f8a7`, policy record
+`b981f19`, both on `main`. Hosted B0 green at
+`b981f19736ac207282f7b005012aca5f76556f23` with every test count unchanged, and
+`cargo +1.91 fmt --check --all` exits 0 for the first time in the project's
+history. Review of record:
+`.git-exclude/reviewed/067-rfc107-formatting-policy-review-2026-08-10.md`.
+
+**Not yet released** — lands in the next version cut after `v0.41.0`.
+
+Review 067 §4's one finding is closed: `CONTRIBUTING.md` told contributors to
+run an unpinned `cargo fmt --all` while the verification command was pinned to
+`+1.91`. The two agree on this codebase today, so the policy worked by luck
+rather than design; both are now pinned, with the reason stated so nobody
+un-pins it as noise.
+
+**C2 does not close with this RFC** — its Clippy half remains, per §8.
 
 **Tracks.** `ROADMAP.md` M4B / gate C2 (formatting and lint policy settled and
 passing) — the formatting half. Clippy is the other half and is **not** in this

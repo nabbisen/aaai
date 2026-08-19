@@ -1,6 +1,9 @@
 # RFC 107 — Formatting policy: developer handoff
 
-Companion to [`RFC 107`](../../proposed/107-formatting-policy.md). The RFC
+**Historical — RFC 107 is implemented and in `main`** (reformat `706f8a7`,
+policy record `b981f19`). Nothing here is outstanding.
+
+Companion to [`RFC 107`](../../done/107-formatting-policy.md). The RFC
 records what was decided and why; this records how to do it. It must not
 override the RFC.
 

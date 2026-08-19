@@ -15,7 +15,6 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
 | [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD（RFC 100 の後）|
-| [107](proposed/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | M4B / C2（今すぐ実施可能）|
 | [108](proposed/108-snora-0-37-migration.md) | snora 0.25.1 → 0.37.1 移行：アクセシビリティ修復とタイポグラフィ | V1（RFC 100 の前）|
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
@@ -125,6 +124,7 @@ RFC 106 §8.
 | [098](done/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | v0.41.0（リリースユニット 1） |
 | [099](done/099-gui-visual-foundation.md) | GUI Visual Foundation — *partial*, acceptance item 7 deferred to RFC 101 | v0.41.0（リリースユニット 1） |
 | [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | v0.41.0（リリースユニット 1） |
+| [107](done/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | 未リリース（v0.41.0 の次）|
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
