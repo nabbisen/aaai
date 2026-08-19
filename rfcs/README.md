@@ -15,7 +15,8 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
 | [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD（RFC 100 の後）|
-| [108](proposed/108-snora-0-37-migration.md) | snora 0.25.1 → 0.37.1 移行：アクセシビリティ修復とタイポグラフィ | V1（RFC 100 の前）|
+| [108](proposed/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | V1（RFC 100 の前）|
+| [109](proposed/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | プロジェクト運営 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0**, so the remaining order is 100 → 104 →
