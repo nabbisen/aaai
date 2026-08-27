@@ -16,12 +16,11 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [109](proposed/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | プロジェクト運営 |
 | [110](proposed/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 106 の後）|
-| [111](proposed/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | MG2/V2 の前段（RFC 101 の前）|
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
-order is **111 → 104 → 106 → 110 → 101**. RFC 111 leads because it deletes
-unreachable code the later RFCs would otherwise carry.
+order is **104 → 106 → 110 → 101**. RFC 111 led and is done — it deleted the
+unreachable code the later RFCs would otherwise have carried.
 Each one's handoff states its entry conditions. See
 `.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
 
@@ -130,6 +129,7 @@ RFC 110 §8.
 | [107](done/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | v0.42.0 |
 | [100](done/100-gui-module-boundaries.md) | GUI Module Boundaries | v0.42.0 |
 | [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | v0.42.0 |
+| [111](done/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | 未リリース（v0.42.0 の次）|
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |

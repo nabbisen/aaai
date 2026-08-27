@@ -2,7 +2,7 @@
 
 **RFC.** [`rfcs/proposed/104-gui-report-export-masking.md`](../../proposed/104-gui-report-export-masking.md)
 
-**Status.** Awaiting owner approval to implement. Design is settled.
+**Status.** **Accepted by the owner 2026-08-27.** Ready to implement.
 
 **Baseline.** `main` at `cee1d74` (RFC 111 landed, B0 green). **Re-measure
 before relying on any line number here** — see §6.

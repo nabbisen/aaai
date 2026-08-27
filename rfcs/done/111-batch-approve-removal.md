@@ -1,6 +1,8 @@
 # RFC 111 — Remove the Batch Approve Feature
 
-**Status.** Proposed
+**Status.** **Implemented on `main` at `cee1d74`, 2026-08-27** — B0 green on
+all three platforms. Accepted by the owner 2026-08-27. Not yet in a release;
+v0.42.0 was cut before it landed.
 
 **Tracks.** Precursor to MG2 / V2 (GUI files split below the size limit). Not a
 milestone item of its own — see §7.
