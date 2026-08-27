@@ -109,6 +109,35 @@ let masking = Masking::Enabled(&masker);
 Build it **once** before the format branch and pass it to both arms, rather than
 inlining it twice — the shape review 053 §4 Q1 accepted for `report.rs`.
 
+### 4.3 Extract the write so the test needs no `App` (added 2026-08-27)
+
+`report_path_picked` (`app/update/save.rs:124`) reads five things off `self` —
+`audit_result`, `before_path`, `after_path`, `definition_path`, and the chosen
+output path — then branches on format and writes. **None of that is
+prefs-derived.**
+
+Extract the write into an associated function taking exactly those inputs:
+
+```rust
+fn write_report(
+    result: &AuditResult,
+    before: &Path,
+    after: &Path,
+    def_path: Option<&Path>,
+    out: &Path,
+    masking: Masking<'_>,
+) -> std::io::Result<()>
+```
+
+`report_path_picked` keeps the `self` reads, the format derivation, and the
+toast handling, and calls it. **Acceptance item 3's test then calls
+`write_report` directly** with a canary in a `reason`, a `tempfile` output path,
+and `Masking::Enabled` — no `App`, no `UserPrefs::load`, nothing that touches
+the operator's machine.
+
+This is why §7's second sequencing reason is withdrawn: the test does not need
+the GUI to be hermetic, because it does not need the GUI.
+
 ### 4.2 Masking is unconditional, matching `report.rs`
 
 `cmd/audit.rs` gates masking on `--mask-secrets` or the project config's
@@ -171,11 +200,22 @@ GUI the *less* safe surface.
 1. RFC 100 restructures `crates/aaai-gui/src/` module boundaries and is
    explicitly about breaking up `app.rs`. Wiring masking into `app.rs` first
    means moving it again during RFC 100, for no benefit.
-2. Acceptance item 3 needs a test that can drive the export path and read the
+2. ~~Acceptance item 3 needs a test that can drive the export path and read the
    written file. The GUI's current tests are non-hermetic — they read the
    operator's real `prefs.yaml` through `App::default()`. Writing a file-writing
    test on that foundation would either inherit the non-hermeticity or require
-   fixing it here, which is RFC 100's job.
+   fixing it here, which is RFC 100's job.~~
+
+   > **Withdrawn 2026-08-27. RFC 100 did not fix this and could not have** — it
+   > was a pure move under a byte-identical-body check, so it relocated
+   > `App::default()`'s three `UserPrefs::load()` calls (`app.rs:192`, `:199`,
+   > `:200`) without changing them. Two tests in `app/tests.rs` still construct
+   > `App::default()` and therefore still read the operator's real
+   > `prefs.yaml`.
+   >
+   > **This no longer blocks RFC 104**, because §4.3 removes the need for the
+   > test to build an `App` at all. The hermeticity gap is real and is recorded
+   > separately — see §7a — rather than being dragged into this RFC.
 
 **Order:** RFC 099 (V1) → RFC 100 (V2) → **RFC 104** → RFC 101.
 
@@ -183,6 +223,26 @@ The gap stays open in the meantime. That is an accepted cost: the alternative is
 doing the work twice and building a test on a foundation already scheduled for
 replacement. It is recorded in RFC 103 §12.3 and in `ROADMAP.md`'s S2 row so it
 does not depend on anyone remembering.
+
+## 7a. The S1 gap this RFC declines to fix (added 2026-08-27)
+
+Gate **S1** reads *"tests never touch the operator's real config"*
+(`ROADMAP.md:184`). What M1 actually delivered and verified was narrower:
+*"Every **CLI subprocess** test uses isolated home/config directories"*
+(`ROADMAP.md:201`). **GUI tests were never in that scope.**
+
+Today, `app/tests.rs:22` and `:40` construct `App::default()`, which calls
+`UserPrefs::load()` three times and reads
+`$XDG_CONFIG_HOME/aaai/prefs.yaml`. The exposure is **read-only** —
+`UserPrefs::load` returns defaults on any failure and never writes — so nothing
+of the operator's is corrupted. But a test's behaviour can depend on the
+machine it runs on, which is what the gate exists to prevent.
+
+**Not this RFC's to fix**, and §4.3 means it does not have to be. Recorded so
+that S1's one-line summary is not read as covering more than it does. It wants
+its own small change: `UserPrefs::load_from(&paths)` already exists and is what
+`prefs/tests.rs` uses, so the fix is an injection point on `App`, not new
+machinery.
 
 ## 8. Risks
 
@@ -197,5 +257,6 @@ does not depend on anyone remembering.
 
 - RFC 103 §5.1a, §12.3 residual 1, and `.git-exclude/reviewed/052-rfc103-clarification-review-result-2026-07-29.md` §5
 - `.git-exclude/reviewed/055-rfc102-rfc103-disposition-checkpoint-2026-07-31.md` §5, which recorded this as the one residual that is a real gap
-- `crates/aaai-gui/src/app.rs` report-export handler; `crates/aaai-cli/src/cmd/report.rs`
+- `crates/aaai-gui/src/app/update/save.rs:124-180` — the export handler after
+  RFC 100; `crates/aaai-cli/src/cmd/report.rs:57-62` — the pattern to mirror
 - NF-14 / SEC-3 and `docs/src/overview.md:45`
