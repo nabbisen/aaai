@@ -1,6 +1,8 @@
 # RFC 108 — snora 0.25.1 → 0.38.0: accessibility repairs and typography completion
 
-**Status.** Proposed
+**Status.** Proposed — **accepted for implementation by the owner,
+2026-08-20.** Under the 4-folder lifecycle an accepted RFC stays in
+`proposed/` until it ships; RFC 109 moves it to `accepted/`.
 
 **Tracks.** `ROADMAP.md` MG-series (GUI) and gate **V1** (GUI draws from design
 tokens; contrast verified). Touches **U1** (guided GUI workflow accepted) only
@@ -61,7 +63,7 @@ Three rendered changes reach us because we consume `snora::design::render`,
 |---|---|---|
 | **0.34.0** | `border` contrast repaired — `light` `#D7DBE0`→`#898C8F` (1.28:1 → **3.12:1**), `dark` `#2B313A`→`#69717D` (1.19:1 → **3.17:1**) | Card, dialog-card and chrome borders become visibly more present. High-contrast presets unchanged — already 19.8–21:1 |
 | **0.34.0** | `text_muted` on `light` repaired `#6B7280`→`#6A717E` (4.46:1 → ≥4.5:1) | Sub-perceptual; see §3 for why it matters anyway |
-| **0.37.0** | Modal dim `DIM_ALPHA` 0.40 → 0.44 | Our sheets and dialogs dim their backdrop ~10% more strongly |
+| **0.37.0** | Modal dim `DIM_ALPHA` 0.40 → 0.44 | **Our batch sheet only.** The three dialog overlays paint their own hard-coded backdrop outside snora and are unaffected — see RFC 110 |
 
 **0.37.1, 0.37.2 and 0.38.0 contain no rendered change** — each confirmed by
 snora directly, under the commitment they made to state it in every note.

@@ -96,6 +96,33 @@ The GUI references `line_height` **zero times**. Every text block renders at
 the toolkit default rather than a designed ratio. This is a substantial part of
 "difficult to read" that is independent of font size.
 
+> **Correction, 2026-08-20 — the rationale above overstates the case for half
+> the roles.** The decision and the implementation are unchanged and remain
+> correct; only this stated reason is wrong, and it is corrected here because
+> this project quotes its own RFCs as evidence.
+>
+> iced's default is not "no ratio" — it is `LineHeight::Relative(1.3)`
+> (`iced_core-0.14.0/src/text.rs:215-219`). Measured against that baseline
+> rather than against each other, snora's roles divide three ways:
+>
+> | Role | Value | vs iced's 1.3 |
+> |---|---:|---|
+> | `body` | 1.4 | +0.10 — looser, a real improvement |
+> | `body_small` | 1.35 | +0.05 — looser, a real improvement |
+> | `title` | 1.3 | **identical — setting it changes nothing observable** |
+> | `heading` | 1.25 | −0.05 — deliberately *tighter* than doing nothing |
+> | `label` | 1.2 | −0.10 — deliberately tighter |
+> | `display` | 1.2 | −0.10 — deliberately tighter |
+>
+> So "every text block renders at the toolkit default" was true, but "this is a
+> substantial part of difficult-to-read" holds only for `body` and
+> `body_small`. For `title` it is null, and for `heading` / `label` /
+> `display` the tokens are tighter *by design* — not a repair of a defect.
+>
+> Found by snora (RFC-070, credited to orbok) and reported by the dev team;
+> verified against `iced_core` and `snora-design-0.39.1/src/typography.rs:66-86`
+> in `.git-exclude/reviewed/072-snora-0-39-1-review-2026-08-20.md` §7.
+
 ### 2.4 Colour bypasses the token system, and NF-4 is not met
 
 `design_tokens.rs` is 23 lines and resolves only a palette, while the views
