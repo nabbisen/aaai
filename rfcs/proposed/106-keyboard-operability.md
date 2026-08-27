@@ -153,6 +153,117 @@ screen being keyboard-inoperable is a good trade.
 > `AppLayout`'s four zones (Header / SideBar / Body / Footer) and ours is three
 > panes. Take the binding and the principle, not the enum.
 
+> **snora 0.39 addendum, 2026-08-20.** The rejection of `next_zone` stands
+> unchanged — it is a rejection of the zone *model*, not of reachability, and
+> 0.39 changes nothing about that model.
+>
+> But `snora::keyboard::cycle_zones(key, modifiers)` is a separate function and
+> is worth taking. It is a pure key decoder — `F6` → `Cycle::Forward`,
+> `Shift+F6` → `Cycle::Backward`, `None` for everything else
+> (`snora/src/keyboard.rs:122-131`). It never mentions `FocusZone` or
+> `AppLayout`, so adopting it is literally "the binding and the principle, not
+> the enum", with the convention owned upstream instead of hand-written here.
+>
+> **This needs snora 0.39.** `Cycle` was reachable in 0.38 only through a direct
+> `snora-core` dependency, which we do not have; 0.39 re-exports it as
+> `snora::focus::Cycle` (`snora/src/lib.rs:108`). Our manifest pins
+> `snora = "0.38"`, and `^0.38` does not admit 0.39, so this costs one manifest
+> line — see §5a.
+
+## 5a. The snora 0.39 bump this implies (added 2026-08-20)
+
+§5's addendum needs `snora = "0.39"` in the workspace manifest. Recorded here
+rather than assumed, because a dependency bump costs a B0 matrix run and is the
+owner's call.
+
+**The bump is as small as a bump gets.** The entire 0.38.0 → 0.39.1 source delta
+is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
+(`cycle_zones`), and `design/render/tests.rs` (test-only). No palette value, no
+`DIM_ALPHA`, no `render.rs`, no rendered output changes; snora's own guide
+states no public item was renamed, removed, or retyped, and the file-level diff
+confirms it.
+
+### 5a.1 Two corrections to the same manifest line (added 2026-08-21)
+
+Found while checking whether snora 0.40.0's `advanced`-feature change affects
+us. It does not — we call `iced::advanced` nowhere, `lucide-icons` is absent
+from `Cargo.lock`, and snora's `lucide-icons` feature is opt-in and we do not
+opt in. But looking cost nothing and turned up two things about the same line.
+
+**We build `snora-widgets` and never use it.** Our manifest reads
+`snora = { version = "0.38", features = ["design"] }` and never disables
+default features. snora's `default = ["widgets"]` and `widgets =
+["dep:snora-widgets"]`, so the whole widget subcrate compiles into every
+build.
+
+Nothing in `crates/` imports from it. Our entire snora surface is:
+
+| Import | Gate |
+|---|---|
+| `snora::design::{Tokens, Color, style, contrast}` | `design` |
+| `snora::{AppLayout, Sheet, SheetEdge, SheetSize, Toast, ToastIntent, ToastPosition}` | engine, ungated |
+| `snora::render`, `snora::toast::{sweep_expired, subscription}` | engine, ungated |
+
+Only `snora::widget`, `snora::style`, and `snora::direction` sit behind
+`widgets` (`snora-0.38.0/src/lib.rs:112-126`), and we import none of the three.
+Note `snora::design::style` — which we *do* use — is the `design` facade's own
+path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
+
+**So the line should become:**
+
+```toml
+snora = { version = "0.39", default-features = false, features = ["design"] }
+```
+
+Two changes, one line, one B0 run. The version bump §5a already argued for, and
+`default-features = false` dropping a subcrate from compile time and binary
+size.
+
+**This also makes the manifest true.** RFC 108 and RFC 110 both describe our
+dependency as "the `design` feature only". That has never been accurate, and
+both were reasoning about a build shape we did not have. The conclusions in
+each survive — they turn on what the `design` facade exports, which is
+unaffected — but the premise was wrong and is worth not repeating.
+
+**Verify at build, not on this analysis:** if anything fails to compile with
+`default-features = false`, report it rather than restoring the default. That
+would mean we depend on `widgets` somewhere this inventory missed, which is
+itself the finding.
+
+**Recommendation: bump here, in RFC 106, rather than as its own change.** RFC
+106 is the first consumer of anything 0.39 adds. Bumping it earlier buys
+nothing and spends a matrix run; bumping it later means RFC 106 either
+hand-writes the F6 decode or waits. If the owner prefers the bump to travel
+with RFC 110 instead, that works equally well — RFC 110 §6b cites 0.39's
+corrected figures — but then RFC 106 must land after it, not alongside.
+
+## 5b. Modal focus trapping — inherited, upstream-owned (added 2026-08-20)
+
+**A keyboard user can Tab out of an open dialog or sheet.** This is latent
+today only because §2.2's defect means `Tab` moves no widget focus at all. **§4
+makes it observable**: the moment `Tab` delegates to iced's traversal, focus
+will escape every modal this application has.
+
+**Do not build a focus trap here.** snora's position as of 0.39.1 is *staged,
+not shipped*: moving focus between zones already works without iced's
+`advanced` feature, but trapping needs the *query* half — "which widget has
+focus" — which does need `advanced`, and whether to enable it is an open
+decision on their side. A downstream app has already demonstrated the need, so
+the trigger to build it has fired.
+
+A bespoke trap in aaai would duplicate the exact mechanism snora is deciding
+whether to ship, and RFC 105's own logic applies: a workaround that gets
+superseded is worse than a documented wait.
+
+**Required of this RFC instead:** record the gap where a user meets it. The
+keyboard help overlay (RFC 038) should not claim modal focus containment, and
+§3.2's screen-reader exclusion is not the same statement. If §4 lands before
+snora ships trapping, that is an accepted, recorded limitation — not a silent
+one.
+
+Source: `.git-exclude/review-requests/072-snora-0-39-1-review-2026-08-20.md`
+§4.3, accepted in `.git-exclude/reviewed/072-snora-0-39-1-review-2026-08-20.md`.
+
 ## 6. Acceptance contract
 
 1. On the Opening screen, `Tab` reaches every interactive control in visual
