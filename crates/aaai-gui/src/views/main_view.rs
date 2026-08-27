@@ -551,7 +551,6 @@ fn build_file_row<'a>(
     indent: f32,
 ) -> Element<'a, Message> {
     let is_selected = app.selected_index == Some(idx);
-    let _is_batch = app.batch.selected.contains(&idx); // batch UI removed from toolbar (RFC 007)
 
     // RFC 013: row layout — left: status_icon, middle: path, right: diff_type_tag
     let warn_badge: Option<Element<'_, Message>> = if !far.warnings.is_empty() {

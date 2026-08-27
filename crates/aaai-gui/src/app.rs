@@ -3,7 +3,6 @@
 //! Changes from Phase 1:
 //! * Toast subscription properly wired (`App::subscription`).
 //! * `FilterMode` for file-tree filtering.
-//! * `BatchApproveState` for bulk approval.
 //! * `locale` field + `SwitchLocale` message.
 //! * `Instant` passed to `sweep_expired` correctly.
 
@@ -12,7 +11,7 @@ use std::time::Instant;
 
 use iced::widget::pane_grid;
 use iced::{Element, Subscription, Task};
-use snora::{AppLayout, Sheet, SheetEdge, SheetSize, Toast, ToastIntent, ToastPosition, render};
+use snora::{AppLayout, Toast, ToastIntent, ToastPosition, render};
 
 use aaai::{
     AuditDefinition, AuditEngine, AuditResult, AuditStatus, DiffEngine, DiffType, IgnoreRules,
@@ -33,8 +32,8 @@ use rust_i18n::t;
 
 mod state;
 pub use state::{
-    BatchApproveState, DiffViewMode, FieldError, FilterMode, FocusTarget, InspectorState,
-    InspectorValidation, OpeningValidation, PaneKind, Screen,
+    DiffViewMode, FieldError, FilterMode, FocusTarget, InspectorState, InspectorValidation,
+    OpeningValidation, PaneKind, Screen,
 };
 
 // ── App state ─────────────────────────────────────────────────────────────
@@ -70,10 +69,6 @@ pub struct App {
 
     // Inspector
     pub inspector: InspectorState,
-
-    // Batch
-    pub batch: BatchApproveState,
-    pub batch_sheet_open: bool,
 
     // Unsaved
     pub dirty: bool,
@@ -186,8 +181,6 @@ impl Default for App {
             selected_index: None,
             filter_mode: FilterMode::ChangedOnly,
             inspector: InspectorState::default(),
-            batch: BatchApproveState::default(),
-            batch_sheet_open: false,
             dirty: false,
             audit_dirty: false,
             last_saved_at: None,

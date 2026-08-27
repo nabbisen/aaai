@@ -48,14 +48,6 @@ impl App {
 
             Message::ApproveEntry => return self.approve_entry(),
 
-            // ── Batch ─────────────────────────────────────────────────
-            Message::ToggleBatchSelect(idx) => self.toggle_batch_select(idx),
-            Message::BatchReasonChanged(s) => self.batch_reason_changed(s),
-            Message::BatchStrategySelected(kind) => self.batch_strategy_selected(kind),
-            Message::OpenBatchSheet => self.open_batch_sheet(),
-            Message::CloseBatchSheet => self.close_batch_sheet(),
-            Message::CommitBatchApprove => return self.commit_batch_approve(),
-
             // ── Re-run / save / report ────────────────────────────────
             Message::RerunAudit => return self.rerun_audit(),
 

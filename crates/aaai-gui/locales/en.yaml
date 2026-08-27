@@ -1,13 +1,5 @@
 app:
   title: aaai — audit for asset integrity
-batch:
-  approve_button: Approve All
-  cancel: Cancel
-  reason_label: Shared reason for all selected entries
-  reason_placeholder: Why are these changes allowed?
-  selected: selected entries
-  title: Batch Approve
-  content_audit_strategy: How should aaai check these?
 diff:
   no_changes: No changed lines.
   no_text_content: No text content available.
@@ -130,7 +122,6 @@ status:
   result_failed: FAILED
 toast:
   approved: Approved
-  batch_approved: Batch approved
   export_failed: Export failed
   export_ok: Report exported
   rerun: Re-run
@@ -144,7 +135,6 @@ toast:
   profile_name_empty: Profile name must not be empty.
   profile_loaded: Profile loaded.
   rerun_complete: Audit re-evaluated.
-  batch_approved_count: '%{count} entries approved.'
   reverted: Reverted to Pending
   reverted_path: 'Reverted: %{path}'
   no_audit_result: Run an audit first before exporting a report.
@@ -213,9 +203,6 @@ error:
       message: Couldn't write the audit definition file.
       hint: Check the file isn't open in another application, or pick a different
         output location.
-  batch:
-    reason_required:
-      message: Reason must not be empty.
 relative:
   just_now: Just now
   minutes_ago: '%{n} min ago'

@@ -1,4 +1,3 @@
-pub mod batch;
 pub mod dashboard;
 pub mod diff_view;
 pub mod help_overlay;

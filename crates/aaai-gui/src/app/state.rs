@@ -76,16 +76,6 @@ impl FilterMode {
     }
 }
 
-// ── Batch approve state ──────────────────────────────────────────────────
-
-#[derive(Debug, Clone, Default)]
-pub struct BatchApproveState {
-    pub selected: std::collections::HashSet<usize>,
-    pub shared_reason: String,
-    pub shared_strategy: AuditStrategy,
-    pub validation_error: Option<String>,
-}
-
 // ── Inspector validation (RFC 002) ────────────────────────────────────────
 
 #[derive(Debug, Clone)]

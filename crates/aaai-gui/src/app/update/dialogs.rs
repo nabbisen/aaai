@@ -163,7 +163,9 @@ impl App {
     }
 
     pub(in crate::app) fn close_modals(&mut self) {
-        self.batch_sheet_open = false;
+        // RFC 111 removed the only state this closed (the multi-select
+        // approval sheet). RFC 110 §4.1 makes this the single dismissal
+        // path for the three real overlays instead.
     }
 
     pub(in crate::app) fn close_menus(&mut self) {

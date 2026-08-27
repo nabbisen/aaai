@@ -9,22 +9,12 @@ impl App {
 
         let footer = self.view_footer();
 
-        let mut layout = AppLayout::new(body)
+        let layout = AppLayout::new(body)
             .footer(footer)
             .toasts(self.toasts.clone())
             .toast_position(ToastPosition::BottomEnd)
             .on_close_modals(Message::CloseModals)
             .on_close_menus(Message::CloseMenus);
-
-        // Batch approve sheet
-        if self.batch_sheet_open {
-            let sheet_content = crate::views::batch::view(self);
-            layout = layout.sheet(
-                Sheet::new(sheet_content)
-                    .at(SheetEdge::End)
-                    .with_size(SheetSize::Pixels(380.0)),
-            );
-        }
 
         let base: Element<'_, Message> = render(layout);
 

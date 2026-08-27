@@ -1,13 +1,5 @@
 app:
   title: aaai — 資産整合性監査
-batch:
-  approve_button: すべて承認
-  cancel: キャンセル
-  reason_label: 選択したエントリに共通の理由
-  reason_placeholder: これらの変更を許容する根拠
-  selected: 件を選択中
-  title: 一括承認
-  content_audit_strategy: aaai はこれらをどうチェックしますか？
 diff:
   no_changes: 変更行がありません。
   no_text_content: テキストコンテンツがありません。
@@ -128,7 +120,6 @@ status:
   result_failed: 不合格
 toast:
   approved: 承認しました
-  batch_approved: 一括承認しました
   export_failed: 出力失敗
   export_ok: レポートを出力しました
   rerun: 再実行
@@ -142,7 +133,6 @@ toast:
   profile_name_empty: プロファイル名を入力してください。
   profile_loaded: プロファイルを読み込みました。
   rerun_complete: 再評価完了。
-  batch_approved_count: '%{count} 件を承認しました。'
   reverted: Pending に戻しました
   reverted_path: '取り消し: %{path}'
   no_audit_result: レポートを出力する前に監査を実行してください。
@@ -209,9 +199,6 @@ error:
     failed:
       message: 監査定義ファイルを書き込めませんでした。
       hint: 別のアプリで開いていないか、または別の出力先を指定してください。
-  batch:
-    reason_required:
-      message: 理由を入力してください。
 relative:
   just_now: たった今
   minutes_ago: '%{n} 分前'

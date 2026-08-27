@@ -94,7 +94,7 @@ pub enum Message {
     NavGuardCancel,
 
     // Actions
-    /// Internal approval step used by [`Message::ApproveAndSave`] and batch approval.
+    /// Internal approval step used by [`Message::ApproveAndSave`].
     /// Prefer `ApproveAndSave` for direct user actions.
     ApproveEntry,
     ApproveAndSave, // RFC 002: approve + save in one action
@@ -106,15 +106,6 @@ pub enum Message {
 
     /// RFC 046 — result of the save-file dialog opened when `definition_path` is empty.
     DefinitionSavePathPicked(Option<std::path::PathBuf>),
-
-    // Batch
-    ToggleBatchSelect(usize),
-    BatchReasonChanged(String),
-    /// RFC 035 — payload changed from `String` to `StrategyKind`.
-    BatchStrategySelected(StrategyKind),
-    OpenBatchSheet,
-    CloseBatchSheet,
-    CommitBatchApprove,
 
     // Phase 5: search
     SearchQueryChanged(String),

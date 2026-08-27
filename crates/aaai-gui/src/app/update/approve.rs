@@ -4,8 +4,8 @@ impl App {
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn approve_and_save(&mut self) -> Task<Message> {
         // RFC 002: approve + save in one action.
-        // Both sub-handlers currently return Task::none(); batch them
-        // so that if either is ever made async the chain stays correct.
+        // Both sub-handlers currently return Task::none(); combine them into
+        // one Task so that if either is ever made async the chain stays correct.
         let t1 = self.update(Message::ApproveEntry);
         let t2 = self.update(Message::SaveDefinition);
         return Task::batch([t1, t2]);
@@ -114,83 +114,6 @@ impl App {
             }
         }
         Task::none()
-    }
-
-    pub(in crate::app) fn toggle_batch_select(&mut self, idx: usize) {
-        if self.batch.selected.contains(&idx) {
-            self.batch.selected.remove(&idx);
-        } else {
-            self.batch.selected.insert(idx);
-        }
-    }
-
-    pub(in crate::app) fn batch_reason_changed(&mut self, s: String) {
-        self.batch.shared_reason = s;
-    }
-
-    pub(in crate::app) fn batch_strategy_selected(&mut self, kind: StrategyKind) {
-        // RFC 035 — payload is already `StrategyKind`.
-        self.batch.shared_strategy = kind.to_default_strategy();
-    }
-
-    pub(in crate::app) fn open_batch_sheet(&mut self) {
-        self.batch_sheet_open = true;
-    }
-
-    pub(in crate::app) fn close_batch_sheet(&mut self) {
-        self.batch_sheet_open = false;
-    }
-
-    #[allow(clippy::needless_return)]
-    pub(in crate::app) fn commit_batch_approve(&mut self) -> Task<Message> {
-        if self.batch.shared_reason.trim().is_empty() {
-            // RFC 031 — i18n'd.
-            self.batch.validation_error =
-                Some(t!("error.batch.reason_required.message").to_string());
-            return Task::none();
-        }
-        let indices: Vec<usize> = self.batch.selected.iter().copied().collect();
-        let mut count = 0usize;
-
-        if let Some(result) = &self.audit_result {
-            let entries: Vec<AuditEntry> = indices
-                .iter()
-                .filter_map(|&i| result.results.get(i))
-                .map(|far| AuditEntry {
-                    path: far.diff.path.clone(),
-                    diff_type: far.diff.diff_type,
-                    reason: self.batch.shared_reason.trim().to_string(),
-                    strategy: self.batch.shared_strategy.clone(),
-                    enabled: true,
-                    ticket: None,
-                    approved_by: None,
-                    approved_at: Some(chrono::Utc::now()),
-                    expires_at: None,
-                    note: None,
-                    created_at: None,
-                    updated_at: None,
-                })
-                .collect();
-            count = entries.len();
-            if let Some(def) = &mut self.definition {
-                for entry in entries {
-                    def.upsert_entry(entry);
-                }
-            }
-        }
-
-        self.dirty = true;
-        self.audit_dirty = true;
-        self.batch.selected.clear();
-        self.batch.shared_reason.clear();
-        self.batch_sheet_open = false;
-        self.push_toast(
-            ToastIntent::Success,
-            t!("toast.batch_approved").as_ref(),
-            t!("toast.batch_approved_count", count = count.to_string()).as_ref(),
-        );
-        // RFC 037 — async rerun.
-        return self.start_async_rerun();
     }
 
     #[allow(clippy::collapsible_if)]
