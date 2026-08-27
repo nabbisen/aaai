@@ -253,4 +253,89 @@ impl App {
         self.validate_opening();
         Task::none()
     }
+
+    pub(in crate::app) fn validate_opening(&mut self) {
+        let mut v = OpeningValidation::default();
+        let before_s = self.before_path.trim().to_string();
+        let after_s = self.after_path.trim().to_string();
+
+        // RFC 031 — all 6 inline validation messages migrated to t!().
+        // Distinct from the RFC 020 banner path's
+        // error.opening.{before,after}_not_found.* keys, which carry
+        // path interpolation. Inline versions are terse.
+        if before_s.is_empty() {
+            v.before_error = Some(t!("error.opening.before_required.message").to_string());
+        } else {
+            let p = std::path::Path::new(&before_s);
+            if !p.exists() {
+                v.before_error = Some(t!("error.opening.folder_missing.message").to_string());
+            } else if !p.is_dir() {
+                v.before_error = Some(t!("error.opening.not_a_directory.message").to_string());
+            }
+        }
+
+        if after_s.is_empty() {
+            v.after_error = Some(t!("error.opening.after_required.message").to_string());
+        } else {
+            let p = std::path::Path::new(&after_s);
+            if !p.exists() {
+                v.after_error = Some(t!("error.opening.folder_missing.message").to_string());
+            } else if !p.is_dir() {
+                v.after_error = Some(t!("error.opening.not_a_directory.message").to_string());
+            }
+        }
+        self.opening_validation = v;
+    }
+
+    /// RFC 042 — silently upsert a profile for the current paths.
+    ///
+    /// Called at audit start so the Recent Projects list stays current
+    /// without requiring explicit "Save Profile" actions. Profile name is
+    /// derived from the definition file stem or before-folder name.
+    /// I/O errors are swallowed — a failing auto-save must never block the audit.
+    pub(in crate::app) fn auto_save_profile(&mut self) {
+        let name = {
+            let from_def = (!self.definition_path.is_empty())
+                .then(|| {
+                    std::path::Path::new(&self.definition_path)
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                })
+                .flatten();
+
+            let from_before = (!self.before_path.is_empty())
+                .then(|| {
+                    std::path::Path::new(&self.before_path)
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.to_string())
+                })
+                .flatten();
+
+            from_def
+                .or(from_before)
+                .unwrap_or_else(|| "untitled".to_string())
+        };
+
+        let profile = aaai::profile::store::AuditProfile {
+            name,
+            before: self.before_path.clone(),
+            after: self.after_path.clone(),
+            definition: if self.definition_path.is_empty() {
+                None
+            } else {
+                Some(self.definition_path.clone())
+            },
+            ignore_file: if self.ignore_path.is_empty() {
+                None
+            } else {
+                Some(self.ignore_path.clone())
+            },
+            last_used_at: Some(chrono::Utc::now()),
+        };
+
+        self.profiles.add(profile);
+        let _ = self.profiles.save();
+    }
 }

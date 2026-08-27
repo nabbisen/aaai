@@ -148,4 +148,18 @@ impl App {
             },
         );
     }
+
+    /// RFC 041 — centralised navigation to the Opening screen.
+    /// Clears all main-screen state and closes any open overlays.
+    pub(in crate::app) fn do_leave_to_opening(&mut self) {
+        self.screen = Screen::Opening;
+        self.audit_result = None;
+        self.diffs.clear();
+        self.definition = None;
+        self.selected_index = None;
+        self.inspector = InspectorState::default();
+        self.audit_dirty = false;
+        self.help_open = false;
+        self.nav_guard_open = false;
+    }
 }

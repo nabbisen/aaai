@@ -103,4 +103,31 @@ impl App {
             }
         }
     }
+
+    /// RFC 037 — Non-blocking rerun helper.
+    /// Sets `is_loading = true`, `audit_dirty` stays true until the background
+    /// diff completes and `RerunDiffReady` fires.  Callers should push any
+    /// "what just happened" toast *before* returning this task so that the
+    /// toast is immediately visible while the diff runs.
+    pub(in crate::app) fn start_async_rerun(&mut self) -> Task<Message> {
+        let before = std::path::PathBuf::from(&self.before_path);
+        let after = std::path::PathBuf::from(&self.after_path);
+        let ignore = self.active_ignore.clone();
+
+        self.is_loading = true;
+        self.load_progress = Some(t!("progress.rerunning").to_string());
+
+        Task::perform(
+            async move {
+                tokio::task::spawn_blocking(move || {
+                    DiffEngine::compare_with_ignore(&before, &after, &ignore)
+                        .map_err(|e| e.to_string())
+                })
+                .await
+                .map_err(|e| e.to_string())
+                .and_then(|r| r)
+            },
+            Message::RerunDiffReady,
+        )
+    }
 }
