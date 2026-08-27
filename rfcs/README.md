@@ -10,28 +10,26 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 
 | ID | タイトル | Tracks |
 |---|---|---|
-| [100](proposed/100-gui-module-boundaries.md) | GUI Module Boundaries | MG2 / WS-15 / V2 |
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
-| [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2（RFC 100 の後） |
+| [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
-| [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD（RFC 100 の後）|
-| [108](proposed/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | V1（RFC 100 の前）|
+| [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [109](proposed/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | プロジェクト運営 |
-| [110](proposed/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 100・106 の後）|
-| [111](proposed/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | MG2/V2 の前段（RFC 100 の前）|
+| [110](proposed/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 106 の後）|
+| [111](proposed/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | MG2/V2 の前段（RFC 101 の前）|
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
-order; **RFC 099 shipped in v0.41.0**, so the remaining order is 100 → 104 →
-106 → 101. **RFC 111 goes ahead of all of them** — it deletes unreachable code
-that RFC 100 would otherwise extract, move, and byte-compare (RFC 111 §7).
+order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
+order is **111 → 104 → 106 → 110 → 101**. RFC 111 leads because it deletes
+unreachable code the later RFCs would otherwise carry.
 Each one's handoff states its entry conditions. See
 `.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
 
-RFC 104 and RFC 106 slot into that sequence between 100 and 101 — both rewire
-`crates/aaai-gui/`, so both must follow RFC 100's module restructure rather
-than be undone by it. RFC 110 joins them, last of the four because it touches
-both `view()` and `update()` which RFC 106 also rewires. Order:
-**100 → 104 → 106 → 110 → 101**. See RFC 104 §7, RFC 106 §8, and RFC 110 §8.
+RFC 104 and RFC 106 rewire `crates/aaai-gui/`, so both had to follow RFC 100's
+module restructure rather than be undone by it — that restructure shipped in
+v0.42.0. RFC 110 comes after them, because it touches both `view()` and
+`update()` which RFC 106 also rewires. See RFC 104 §7, RFC 106 §8, and
+RFC 110 §8.
 
 ---
 
@@ -129,7 +127,9 @@ both `view()` and `update()` which RFC 106 also rewires. Order:
 | [098](done/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | v0.41.0（リリースユニット 1） |
 | [099](done/099-gui-visual-foundation.md) | GUI Visual Foundation — *partial*, acceptance item 7 deferred to RFC 101 | v0.41.0（リリースユニット 1） |
 | [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | v0.41.0（リリースユニット 1） |
-| [107](done/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | 未リリース（v0.41.0 の次）|
+| [107](done/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | v0.42.0 |
+| [100](done/100-gui-module-boundaries.md) | GUI Module Boundaries | v0.42.0 |
+| [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | v0.42.0 |
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |

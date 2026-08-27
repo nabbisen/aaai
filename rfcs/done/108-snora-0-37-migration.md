@@ -1,8 +1,7 @@
 # RFC 108 — snora 0.25.1 → 0.38.0: accessibility repairs and typography completion
 
-**Status.** Proposed — **accepted for implementation by the owner,
-2026-08-20.** Under the 4-folder lifecycle an accepted RFC stays in
-`proposed/` until it ships; RFC 109 moves it to `accepted/`.
+**Status.** **Implemented in v0.42.0.** S1 and S2 shipped in `b7ceeeb`; S3 and
+S4 were evidence-only and are complete.
 
 **Tracks.** `ROADMAP.md` MG-series (GUI) and gate **V1** (GUI draws from design
 tokens; contrast verified). Touches **U1** (guided GUI workflow accepted) only

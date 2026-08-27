@@ -8,6 +8,75 @@ Format: `## [version] — description`
 
 ---
 
+## [0.42.0] — Accessibility: borders are visible, muted text meets AA (2026-08-27)
+
+The design system moves from snora 0.25.1 to 0.38.0 — thirteen minor versions
+carrying two accessibility repairs. Both change what the application looks
+like, and both move in one direction: **contrast increases, nothing becomes
+harder to see.**
+
+### Borders are drawn, not suggested
+
+Card, dialog and chrome borders were previously rendered at **1.28:1** (light
+preset) and **1.19:1** (dark) against the surface behind them — close enough in
+tone to read as a hint of an edge rather than an edge. WCAG 2.1 SC 1.4.11 asks
+for **3:1** on boundaries that carry meaning without text.
+
+| Preset | Before | After | Ratio |
+|---|---|---|---|
+| light | `#D7DBE0` | `#898C8F` | 1.28:1 → **3.12:1** |
+| dark | `#2B313A` | `#69717D` | 1.19:1 → **3.17:1** |
+
+In practice the toolbar, the filter bar and the pane dividers go from a
+near-invisible hairline to a drawn line. The two high-contrast presets are
+unchanged — they were already 19.8–21:1.
+
+### Muted text is held to the same standard as every other text role
+
+`text_muted` carries hints, timestamps and secondary labels. It was excluded
+from this project's contrast checks on the strength of a documented exemption
+saying the role was "exempt from mandatory contrast checks". **The author of
+that documentation has since withdrawn it as never having been true**, and
+three separate projects had excluded the role citing it, none aware of the
+others.
+
+It is now asserted against `background`, `surface` and `surface_raised` in all
+four presets, exactly like the other seven text roles — and it passes
+everywhere, with no exemption re-added:
+
+| Preset | vs `background` | vs `surface` | vs `surface_raised` | Floor |
+|---|---:|---:|---:|---|
+| light | 4.931 | **4.552** | 4.931 | ≥ 4.5 |
+| dark | 5.444 | 5.011 | **4.526** | ≥ 4.5 |
+| high_contrast_light | 11.375 | 11.375 | 11.375 | ≥ 7.0 |
+| high_contrast_dark | 11.542 | 11.542 | **10.882** | ≥ 7.0 |
+
+The margin is thin in two places and the assertion still passes; thin is not
+treated as a reason to hedge the result.
+
+### Public API
+
+**No change.** Nothing in `aaai` or `aaai-cli` was added, removed, or renamed.
+The upgrade required no source change beyond one manifest line — snora's public
+surface went from 153 items to 157 across the whole span, with nothing removed
+or renamed.
+
+### Internal
+
+- **GUI module boundaries** — `crates/aaai-gui/src/app.rs` went from 2,168 to
+  148 effective lines, its 107-arm `update()` loop extracted into named methods
+  and distributed by message family across `app/update/*.rs`. Behaviour is
+  unchanged and proven so: every extracted body is byte-identical to the arm it
+  replaced, and no test name or count moved. No file outside `views/` now
+  exceeds 280 effective lines.
+- **rustfmt adopted** as the formatting policy, with a repository-wide reformat
+  and the exact command pinned in `CONTRIBUTING.md`.
+- **Windows twin** of the cross-root-link test added, so the link-traversal
+  guarantee shipped in 0.41.0 is now asserted on Windows reparse points as well
+  as Unix symlinks.
+
+---
+
 ## [0.41.0] — Safety foundations: links are never followed, reports are always masked (2026-07-31)
 
 A security-focused release. Two long-standing gaps between what the

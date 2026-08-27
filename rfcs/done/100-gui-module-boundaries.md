@@ -1,13 +1,7 @@
 # RFC 100 — GUI Module Boundaries
 
-**Status.** Proposed — **revised 2026-08-10** after design review
-`.git-exclude/reviewed/068-rfc100-gui-module-boundaries-design-review-2026-08-10.md`
-returned Needs changes / No-Go. Three blocking findings corrected: the update
-loop's split mechanism (§3.1), stale figures throughout, and the review method
-(§6a). Re-reviewed and accepted 2026-08-19
-(`.git-exclude/reviewed/070-rfc100-design-rereview-2026-08-19.md`).
-**Implementation authorized by the owner, 2026-08-21.** Stays in `proposed/`
-until it ships, per the 4-folder lifecycle.
+**Status.** **Implemented in v0.42.0.** Gate V2 certified in
+`.git-exclude/reviewed/075-rfc100-t8-gate-v2-signoff-2026-08-21.md`.
 
 **Tracks.** `ROADMAP.md` MG2 / WS-15 / gate V2
 
