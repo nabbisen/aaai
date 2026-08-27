@@ -122,24 +122,58 @@ strings in two languages have been maintained for a screen no user can open.**
 
 ### 4.1 Exact removal list
 
+> **Regenerated 2026-08-27 against `f5385a4`.** The first draft cited
+> pre-RFC-100 line numbers in a monolithic `app.rs`. RFC 100 shipped in v0.42.0
+> and distributed all of this across eight files, so every one of those
+> references was stale. **Two i18n keys were also missing** — see the note below
+> the table.
+
 | Item | Location |
 |---|---|
-| `BatchApproveState` struct | `app.rs:112-117` |
-| `batch` field on `App` | `app.rs:235` |
-| Field initialiser | `app.rs:349` |
-| 6 `Message` variants + `// Batch` comment | `app.rs:495-502` |
-| Handler arms | `app.rs:974-1035` |
-| Sheet render branch | `app.rs:2065-2072` |
-| `Sheet`, `SheetEdge`, `SheetSize` from the import | `app.rs:15` — **used nowhere else**; the import becomes `use snora::{AppLayout, Toast, ToastIntent, ToastPosition, render};` |
-| Whole view module | `views/batch.rs` (202 lines), deleted |
-| Module declaration | `views/mod.rs:1` `pub mod batch;` |
-| Dead marker | `main_view.rs:554` `let _is_batch = …` |
-| 7 keys under top-level `batch:` | `locales/en.yaml:3-10`, `locales/ja.yaml` |
-| `error.batch.reason_required.message` | both locale files |
+| `BatchApproveState` struct + section comment | `app/state.rs:79-88` |
+| `batch` and `batch_sheet_open` fields | `app.rs:74-76` |
+| Field initialisers | `app.rs:189-190` |
+| `BatchApproveState` in the `state::` import | `app.rs:36` |
+| Module doc bullet | `app.rs:6` |
+| 6 `Message` variants + `// Batch` comment | `app/message.rs:110-117` |
+| 6 dispatcher arms + section comment | `app/update.rs:51-57` |
+| 6 handler methods | `app/update/approve.rs:119-194` |
+| Sheet render branch | `app/view.rs:19-27` |
+| `Sheet`, `SheetEdge`, `SheetSize` from the import | `app.rs:15` — **used nowhere else**; becomes `use snora::{AppLayout, Toast, ToastIntent, ToastPosition, render};` |
+| Whole view module | `views/batch.rs` (177 ELOC), deleted |
+| Module declaration | `views.rs:1` `pub mod batch;` |
+| Dead marker | `views/main_view.rs:554` `let _is_batch = …` |
+| **10** i18n keys, both locales | see below |
+
+**The i18n list is 10 keys, not 8.** The first draft counted only the 7 under
+top-level `batch:` plus `error.batch.reason_required.message`. Two more exist:
+
+| Key | Only use |
+|---|---|
+| `batch.{approve_button, cancel, reason_label, reason_placeholder, selected, title, content_audit_strategy}` | `views/batch.rs` |
+| `error.batch.reason_required.message` | `app/update/approve.rs:149` |
+| **`toast.batch_approved`** | `app/update/approve.rs:189` |
+| **`toast.batch_approved_count`** | `app/update/approve.rs:190` |
+
+All ten exist in both `en.yaml` and `ja.yaml` and are used nowhere else.
 
 **Keep `AuditStrategy` and `StrategyKind`** — used throughout the live
 inspector. **Keep `error.inspector.reason_required.message`** — a different,
-live key.
+live key. **`start_async_rerun` survives**: deleting `commit_batch_approve`
+removes one of its five callers; four remain in `audit.rs:7` and
+`approve.rs:95/210/298`.
+
+### 4.1a Three `batch` matches that are iced's API, not this feature
+
+A `grep -rn batch` sweep hits these. **They must not be touched:**
+
+- `app/update/approve.rs:11` — `Task::batch([t1, t2])`
+- `app/update/approve.rs:97` — `Task::batch([...])`
+- `app/subscription.rs:96` — `Subscription::batch([...])`
+
+`Task::batch` and `Subscription::batch` combine iced tasks and subscriptions
+and have nothing to do with batch approval. This is why §5's acceptance items
+grep for capital `Batch` and name these three explicitly.
 
 ### 4.2 The one item that is not a deletion
 
@@ -156,12 +190,15 @@ This is the one place where the two RFCs touch, and it is deliberate.
 
 ## 5. Acceptance contract
 
-1. `grep -rn "batch" crates/aaai-gui/src/` returns nothing but unrelated
-   matches, none referring to this feature.
-2. `grep -rn "Batch" crates/aaai-gui/src/` returns nothing.
+1. `grep -rn "Batch" crates/aaai-gui/src/` returns nothing.
+2. `grep -rn "batch" crates/aaai-gui/src/` returns **exactly the three iced-API
+   matches named in §4.1a** and nothing else.
 3. `crates/aaai-gui/src/views/batch.rs` does not exist.
-4. `python3 scripts/check-i18n-keys.py` is clean, and `en.yaml` and `ja.yaml`
-   lost the **same** keys — 7 under `batch:` plus `error.batch.reason_required`.
+4. `en.yaml` and `ja.yaml` lost the **same 10 keys** — the 7 under `batch:`,
+   `error.batch.reason_required.message`, `toast.batch_approved`, and
+   `toast.batch_approved_count`. Run `python3 scripts/check-i18n-keys.py` if
+   `PyYAML` is available; if it is not, **do not install it** — compare the two
+   files' key sets directly and say which method you used.
 5. `cargo +1.91 clippy --workspace --all-targets -- -D warnings` clean; in
    particular **no new `dead_code` warning appears**, which would mean something
    was reachable only through the deleted code and is now orphaned.
