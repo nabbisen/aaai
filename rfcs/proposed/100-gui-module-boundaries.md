@@ -4,7 +4,10 @@
 `.git-exclude/reviewed/068-rfc100-gui-module-boundaries-design-review-2026-08-10.md`
 returned Needs changes / No-Go. Three blocking findings corrected: the update
 loop's split mechanism (§3.1), stale figures throughout, and the review method
-(§6a). **Awaiting re-review before implementation.**
+(§6a). Re-reviewed and accepted 2026-08-19
+(`.git-exclude/reviewed/070-rfc100-design-rereview-2026-08-19.md`).
+**Implementation authorized by the owner, 2026-08-21.** Stays in `proposed/`
+until it ships, per the 4-folder lifecycle.
 
 **Tracks.** `ROADMAP.md` MG2 / WS-15 / gate V2
 
@@ -119,6 +122,58 @@ Not an obstacle — a dispatcher handles them — but §7's mitigation *"a famil
 stays whole"* addresses fragmentation **within** a family and says nothing about
 recursion **between** families. Named here so they are not discovered mid-move.
 
+### 3.4 Phase C — the rest of `impl App` (added 2026-08-21)
+
+**Phases A and B route the 105 arm-methods and nothing else.** `update()`'s
+dispatcher, `subscription()`, `view()`/`view_footer()`, and nine helper methods
+are also members of the same `impl App` block, and §3's line-range table lumps
+them into one row while §3.1 and §3.2 discuss only the match arms. Following the
+mechanism alone leaves `app.rs` at **753 ELOC**, over §6's bar; following §5
+step 6's end-state means inventing file boundaries the RFC never named.
+
+Found by the dev team on completing T5b
+(`.git-exclude/review-requests/073-rfc100-t5b-eloc-gate-destination-request.md`),
+decided in
+`.git-exclude/reviewed/073-rfc100-t5b-eloc-gate-destination-decision-2026-08-21.md`.
+
+**Destinations, assigned from measured call sites:**
+
+| Item | ~ELOC | Destination | Visibility |
+|---|---:|---|---|
+| `update()` dispatcher | 199 | `app/update.rs` (exists) | `pub(crate)` |
+| `subscription()` | 79 | `app/subscription.rs` (exists) | `pub(crate)` |
+| `view()`, `view_footer()` | 216 | **`app/view.rs` (new)** | `pub(crate)` / `pub(in crate::app)` |
+| `validate_inspector`, `validate_pattern`, `suggest_patterns` | 144 | `app/update/inspector.rs` | `pub(in crate::app)` |
+| `validate_opening`, `auto_save_profile` | 88 | `app/update/opening.rs` | `pub(in crate::app)` |
+| `do_leave_to_opening` | 17 | `app/update/navigation.rs` | `pub(in crate::app)` |
+| `start_async_rerun` | 22 | `app/update/audit.rs` | `pub(in crate::app)` |
+| `push_toast`, `push_toast_with_hint`, `push_user_error_toast` | 50 | **`app/toast.rs` (new)** | `pub(in crate::app)` |
+| `recommended_strategy` | 8 | `app/update/inspector.rs` | `pub(crate)` |
+
+`update`, `view` and `subscription` become `pub(crate)` because `main.rs:28-29`
+passes them to `iced::application` — narrower than today's `pub`.
+
+**Two new files only.** `app/view.rs` completes the set `app/` already holds:
+the `impl App` surface split by iced's three entry points. It is not `views.rs`
+— that file and the `views/` directory hold free functions taking `&App`, a
+different calling convention, and merging the two would make one name mean two
+things.
+
+`app/toast.rs` exists because `push_toast*` has **no owning family**: measured
+callers are `save.rs` (9), `approve.rs` (5) and `audit.rs` (2).
+`do_leave_to_opening` and `start_async_rerun` are called cross-family but still
+go to one file each, because each is that family's own operation invoked by
+others.
+
+**Phase C is a pure move, like A and B.** `recommended_strategy` stays an
+associated function on `impl App` even though a free function in `util.rs` would
+be tidier; that is a design change and §10 forbids mixing one into this RFC.
+
+**`views.rs` is not covered by §4.1's `views/*.rs` exemption** — it is the module
+file beside the directory, in the same relationship `app.rs` has to `app/`, and
+is subject to the 500-ELOC bar. At 9 ELOC this binds nothing, and no Phase C
+item goes there.
+
 ## 4. Goals and non-goals
 
 ### 4.1 Goals
@@ -168,11 +223,18 @@ One commit per step, in this order.
    methods, leaving `update()` a dispatcher. **Still one file.**
 5. **Phase B** — move those methods into `app/update/*.rs` by family, using the
    §3.2 section comments as the grouping. **No body changes.**
-6. `app.rs` retains the `App` struct, its `Default`, and the module
-   declarations.
+6. **Phase C** — move the remaining `impl App` members to the destinations in
+   §3.4: `update()`'s dispatcher, `subscription()`, `view()`/`view_footer()`,
+   and the nine helpers. **No body changes.**
+7. `app.rs` retains the `App` struct, its `Default`, and the module
+   declarations — roughly **230 ELOC**.
 
 Each step is independently compilable and independently revertible. **Steps 4
 and 5 must not be combined** — §3.1.
+
+**Step 6 was missing from this plan until 2026-08-21.** Steps 4 and 5 alone
+leave `app.rs` at 753 ELOC, so §6 item 3's bar is **expected to fail** between
+step 5 and step 6. That is recorded state, not a finding — see §3.4.
 
 ## 6. Acceptance contract — gate V2
 
@@ -188,7 +250,29 @@ and 5 must not be combined** — §3.1.
 5. **Phase A bodies are byte-identical.** Each extracted method's body must
    match the arm body it replaced, modulo indentation, demonstrated by a
    scripted diff in the evidence package. See §6a.
-6. `cargo +1.91 clippy -p aaai-gui --all-targets -- -D warnings` passes.
+6. **`cargo +1.91 clippy -p aaai-gui --all-targets --no-deps` introduces no
+   new finding** — the pre-existing set is unchanged, item by item.
+
+   > **Amended 2026-08-21, at sign-off.** This item read *"`cargo +1.91 clippy
+   > -p aaai-gui --all-targets -- -D warnings` passes"*, and **no
+   > implementation of this RFC could ever have satisfied it**, before or
+   > after:
+   >
+   > - it **contradicts item 7** — the engine findings it trips on live in
+   >   `crates/aaai/src/`, and item 7 forbids any diff outside
+   >   `crates/aaai-gui/src/`;
+   > - **10 of the 13 in-crate findings are in `views/inspector.rs` and
+   >   `views/main_view.rs`**, files §4.2 exempts and defers to RFC 101, and
+   >   which this RFC's diff never touches;
+   > - the remaining 3 are pre-existing shapes relocated verbatim, proven
+   >   unchanged by item 5's body check.
+   >
+   > A behaviour-neutral restructure can honestly promise "no new findings".
+   > It cannot promise a clean absolute run on code it is forbidden to edit.
+   > The absolute goal is real and is recorded as **gate C2 debt** — see
+   > `.git-exclude/reviewed/075-rfc100-t8-gate-v2-signoff-2026-08-21.md` §5.
+   > This is the third acceptance item in this RFC written wider than the
+   > RFC's own scope, after item 2 and §3's missing Phase C destinations.
 7. No diff outside `crates/aaai-gui/src/`.
 8. No `Message` variant added, removed, or renamed.
 

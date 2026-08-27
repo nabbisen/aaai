@@ -113,16 +113,84 @@ its file ends up larger than a sibling — coherence beats evenness. After T5b
 the four recursive calls in T5a become **cross-family**; that is expected.
 
 `app.rs` keeps `struct App`, `impl Default for App`, and the module
-declarations.
+declarations — but **T5b alone does not get you there.** See T5c.
 
 **Do not combine T5a and T5b.** In one diff a reviewer cannot tell a moved body
 from a modified one, which is exactly the failure §3's rule exists to prevent.
+
+#### T5c — the rest of `impl App` (commit 7). **No body changes.**
+
+Added 2026-08-21. T5a and T5b route the 105 arm-methods and nothing else, so
+after T5b `app.rs` sits at **753 ELOC** and the ELOC gate is **expected to
+fail** — that is recorded state, not a finding.
+
+Move the remaining `impl App` members. Destinations, from RFC 100 §3.4:
+
+| Item | Destination | Visibility |
+|---|---|---|
+| `update()` dispatcher | `app/update.rs` (exists) | `pub(crate)` |
+| `subscription()` | `app/subscription.rs` (exists) | `pub(crate)` |
+| `view()`, `view_footer()` | **`app/view.rs` (new)** | `pub(crate)` / `pub(in crate::app)` |
+| `validate_inspector`, `validate_pattern`, `suggest_patterns` | `app/update/inspector.rs` | `pub(in crate::app)` |
+| `validate_opening`, `auto_save_profile` | `app/update/opening.rs` | `pub(in crate::app)` |
+| `do_leave_to_opening` | `app/update/navigation.rs` | `pub(in crate::app)` |
+| `start_async_rerun` | `app/update/audit.rs` | `pub(in crate::app)` |
+| `push_toast`, `push_toast_with_hint`, `push_user_error_toast` | **`app/toast.rs` (new)** | `pub(in crate::app)` |
+| `recommended_strategy` | `app/update/inspector.rs` | `pub(crate)` |
+
+**Two new files, no others.** `update`, `view` and `subscription` become
+`pub(crate)` — narrower than today's `pub` — because `main.rs:28-29` passes them
+to `iced::application`.
+
+**Same discipline as T5a/T5b:** pure move, bodies token-identical, the same
+scripted comparison, every deviation disclosed. `recommended_strategy` stays an
+associated function on `impl App` even though a free function in `util.rs` would
+be tidier — that is a design change and this RFC forbids mixing one in.
+
+**`push_user_error_toast` has no callers anywhere in the workspace.** Move it
+with its siblings anyway; do not delete it. Deleting during a move breaks the
+byte-identity method. Record it in T6 — see below.
+
+After T5c, `app.rs` should land near **230 ELOC**. Report the measured figure.
 
 ### T6 — Visibility audit
 
 List every item whose visibility you widened to make the split compile. Prefer
 `pub(crate)` or `pub(super)` over `pub`. Anything that had to become `pub` goes
 in the evidence with a one-line reason.
+
+**Also report any `pub` item with no callers at all.** `push_user_error_toast`
+(`app.rs:1056` pre-T5c) is one: it survives only because `pub` suppresses the
+dead-code lint. Report it; do not act on it here. Deletion is somebody else's
+RFC — RFC 111 §3.2 deliberately makes unrelated dead-code sweeps a non-goal, and
+that is worth honouring.
+
+### T8 — Extract the remaining inline test modules
+
+Added 2026-08-21 after the T1–T5c review
+(`.git-exclude/reviewed/074-rfc100-t1-t5c-implementation-review-2026-08-21.md` §5).
+
+RFC 100 §6 item 2 forbids inline `#[cfg(test)]` modules **anywhere** under
+`crates/aaai-gui/src/`, not only in `app.rs`. Three files still have one, all
+pre-existing and all outside this RFC's original scope:
+
+| File | Line | Test module |
+|---|---:|---:|
+| `crates/aaai-gui/src/util.rs` | 155 | 157 lines |
+| `crates/aaai-gui/src/theme.rs` | 128 | 126 lines |
+| `crates/aaai-gui/src/error.rs` | 65 | 29 lines |
+
+Extract each to `util/tests.rs`, `theme/tests.rs`, `error/tests.rs`, leaving
+`#[cfg(test)] mod tests;` behind — the form `app.rs:244` and
+`contrast_check.rs:6` already use. **Same operation as T2**, which you have
+already done once here.
+
+Pure move: test names unchanged, counts unchanged at 146/13/97/27/3, bodies
+unedited. One commit.
+
+**Gate V2 is not certifiable until this lands.** T1–T5c are accepted
+independently and need no rework — this is an acceptance item the RFC wrote
+crate-wide while scoping itself to `app.rs`, not a defect in your work.
 
 ### T7 — Verification
 
@@ -208,7 +276,8 @@ Stop and request an RFC amendment when:
 
 Recorded so a reader who saw the earlier version is not confused:
 
-- **T5 was one step; it is now two** (T5a, T5b) and they must not be combined.
+- **T5 was one step; it is now three** (T5a, T5b, T5c). T5a and T5b must not
+  be combined; T5c was added 2026-08-21 after T5b left `app.rs` at 753 ELOC.
 - **The test-name diff was the primary proof; it is now secondary.** Nine tests
   in `app.rs`, two touching `update()` — see §6 item 1a.
 - **`views/*.rs` was "≤ 500 ELOC or a rationale"; it is now exempt.** Three of
