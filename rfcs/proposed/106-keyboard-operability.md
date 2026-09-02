@@ -170,7 +170,7 @@ screen being keyboard-inoperable is a good trade.
 > `snora = "0.38"`, and `^0.38` does not admit 0.39, so this costs one manifest
 > line — see §5a.
 
-## 5a. The snora 0.39 bump this implies (added 2026-08-20)
+## 5a. The snora bump this implies (added 2026-08-20; retargeted 2026-09-02)
 
 §5's addendum needs `snora = "0.39"` in the workspace manifest. Recorded here
 rather than assumed, because a dependency bump costs a B0 matrix run and is the
@@ -182,6 +182,58 @@ is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
 `DIM_ALPHA`, no `render.rs`, no rendered output changes; snora's own guide
 states no public item was renamed, removed, or retyped, and the file-level diff
 confirms it.
+
+### 5a.2 Retarget to `"0.42"` (added 2026-09-02)
+
+snora shipped 0.40, 0.41, 0.41.1 and 0.42 since §5a was written. **The target
+becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
+
+| Release | What it gives us | Affected? |
+|---|---|---|
+| **0.41.0** | **Overlays now contain pointer events.** Before it, a click or scroll on a dialog, toast or modal dim could reach what was rendered beneath — including a dialog dismissing itself when its own content was clicked | **Yes** — see §5a.3 |
+| **0.42.0** | Toast `Warning` text white → black (3.18:1 → 6.60:1), `Info` 4.43:1 → 5.63:1, dismiss `×` fully opaque at every state | **Yes** — we raise toasts at ten call sites |
+| **0.42.0** | Drops transitively-enabled `iced` `canvas`/`svg`; **−1.83 MiB binary, −43 packages** | **Benefit only.** We use neither: `grep` for `widget::canvas`/`Svg` across `crates/` returns nothing, and we already declare `iced`'s `tokio` feature ourselves |
+| **0.41.1** | Withdrew a WCAG 1.4.1 conformance claim about prefab toasts | Documentation — see §5a.4 |
+
+**No API break reaches us.** 0.42's break is for consumers relying on `canvas`
+or `svg` arriving transitively; 0.41's is a behaviour fix with no flag to
+restore the old behaviour, because the old behaviour was the bug.
+
+### 5a.3 The pointer fix matters most to the navigation guard
+
+Our three modal overlays are **hand-rolled** — `stack![base, backdrop, dialog]`
+with a `mouse_area` backdrop — so snora's 0.41.0 containment fix does not reach
+them at any version. **RFC 110 routing them through `AppLayout::dialog` is what
+collects it**, which is a second reason for that RFC beyond the backdrop colour.
+
+The stakes are highest for the navigation guard, which gates RFC 086's
+data-losing discard. snora's own framing: *"a dialog could be bypassed by
+clicking through it to the control it was meant to be guarding."*
+
+**Not asserted as a live defect here** — our overlays are our own code and I
+have not tested click-through against them. **RFC 110's acceptance should
+verify it**, and that is recorded there rather than assumed.
+
+### 5a.4 What the 1.4.1 withdrawal costs us: nothing cited, one gap found
+
+snora withdrew a published claim that their prefab toasts and notices
+distinguish intent by more than colour. They do not — same text, no icon, no
+prefix; colour is the only channel.
+
+**We cite no snora accessibility documentation anywhere** — `grep` for `1.4.1`
+and "use of colour" across `docs/`, `rfcs/` and `crates/` finds only SC 1.4.11
+(non-text contrast) references, which are a different criterion.
+
+**But we use their prefab toasts at ten call sites**, and the correction found a
+real hole on our side: `docs/src/abdd-audit.md` §2 "Status is distinguishable
+without colour" lists four rows — file-tree icons, toolbar badge, diff-view
+lines, inspector rule blocks — and **toasts are not one of them**, even though
+the same document commits v1.0.0 to "colour-independent status display" and
+toasts are how the application reports the outcome of every save, export and
+re-run. A row has been added.
+
+Not RFC 106's to fix beyond that row; recorded here because this is the RFC that
+carries the snora version decision.
 
 ### 5a.1 Two corrections to the same manifest line (added 2026-08-21)
 
@@ -212,7 +264,7 @@ path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
 **So the line should become:**
 
 ```toml
-snora = { version = "0.39", default-features = false, features = ["design"] }
+snora = { version = "0.42", default-features = false, features = ["design"] }
 ```
 
 Two changes, one line, one B0 run. The version bump §5a already argued for, and

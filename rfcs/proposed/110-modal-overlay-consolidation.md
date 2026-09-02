@@ -214,7 +214,7 @@ already routes through `AppLayout::sheet`.**
 | Raise the alphas to 0.44 | **Rejected.** Copies snora's number without its reasoning. Still pure black, still preset-blind, still invisible to the gate — and §2.2's point is that a fixed color is wrong on a dark preset at *any* alpha |
 | Add a `backdrop` token to our own `Tokens` and style locally | Rejected. Duplicates a derivation snora has already measured and tested, and we would own keeping it correct across every future preset snora ships |
 | Reach `snora_design::surfaces::{DIM_ALPHA, modal_dim}` directly | **Rejected as unavailable.** `snora::design` enumerates its re-exports (`src/design.rs:2-5`) and `surfaces` is not among them. Using it means a direct `snora-design` dependency or an upstream ask — both unnecessary given the option below |
-| **Pass each overlay to `layout.dialog(Dialog::new(content))` before `render()`** | **Selected.** snora paints the dim, applies `modal_dim`'s preset-aware derivation, styles the dialog card, and installs the outside-click capture. No new dependency, no upstream ask, and it deletes the `stack!` composition rather than adding to it |
+| **Pass each overlay to `layout.dialog(Dialog::new(content))` before `render()`** | **Selected.** snora paints the dim, applies `modal_dim`'s preset-aware derivation, styles the dialog card, and installs the outside-click capture. No new dependency, no upstream ask, and it deletes the `stack!` composition rather than adding to it. **At snora ≥ 0.41 it also inherits pointer containment** — see below |
 
 The API is already available to us and needs nothing new:
 
@@ -235,6 +235,28 @@ chain, so at most one is ever composited.
 
 `on_close_modals(Message::CloseModals)` is **already wired** at `:2061` for the
 batch sheet, so outside-click arrives with no new plumbing.
+
+### 4.0a A second reason, from snora 0.41.0 (added 2026-09-02)
+
+snora 0.41.0 fixed a real input bug: **overlays did not contain pointer
+events.** A click or scroll on a dialog, toast, or modal dim could reach
+whatever was rendered beneath it — including, for a dialog, dismissing itself
+when its own content was clicked. Four surfaces should have contained pointer
+input; only the sheet did.
+
+**Our three overlays are hand-rolled, so that fix reaches them at no version.**
+`stack![base, backdrop, dialog]` composes them outside snora entirely. Routing
+through `AppLayout::dialog` is what collects the fix, and it applies to the
+navigation guard — a confirm-before-discard flow — where snora's own framing is
+that *"a dialog could be bypassed by clicking through it to the control it was
+meant to be guarding."*
+
+This needs **snora ≥ 0.41**; RFC 106 §5a.2 carries the manifest bump to
+`"0.42"`. If RFC 106 lands first, as the sequence has it, this RFC inherits the
+version and needs no manifest change of its own.
+
+Whether the defect is observable in our overlays today is **untested** — §6
+item 3a requires checking before and after rather than assuming either way.
 
 ### 4.1 What this forces, and why that is the point
 
@@ -314,6 +336,14 @@ decision" through something snora *does* model, not by keeping a literal.
    high-contrast presets — shows a backdrop that visibly changes with the
    preset. Evidence: one screenshot per overlay per preset, per RFC 105's
    scope rules.
+3a. **Pointer events are contained** (added 2026-09-02). With each overlay
+   open, a click on the dialog's own padding or plain text does **not** dismiss
+   it, and a click or scroll over the backdrop does not reach the content
+   beneath. Test the **navigation guard** specifically: it gates RFC 086's
+   data-losing discard, and a modal that does not block input can be bypassed by
+   clicking through to the control it guards. **Check this before the change as
+   well as after** — our overlays are hand-rolled, so if the defect is present
+   today that is a finding worth recording, not just a box to tick afterwards.
 4. **D1 is fixed and tested:** open the nav guard, reveal discard, dismiss with
    `Escape`, reopen — the discard action is hidden again. **Written before the
    fix, this test must fail.**

@@ -50,6 +50,7 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 | Toolbar audit-status badge | "All set" / "Needs attention" text remains the deciding signal, not its colour | | | |
 | Diff-view added/removed lines | `+` / `−` line-start characters remain present and used by readers | | | |
 | Inspector LineMatch rule blocks | leading `+` / `−` and the `action:` label persist | | | |
+| **Toasts** (success / error / info) | The **title and body text** are the deciding signal. snora's prefab toasts vary only background and accent colour by intent — no icon, no textual prefix — so colour carries no information a greyscale user can lose, *provided* each toast's own wording states the outcome | | | |
 
 ## 3. Primary action vs destructive action distance (design doc p.8)
 
