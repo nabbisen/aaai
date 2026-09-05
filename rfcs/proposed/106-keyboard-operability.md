@@ -137,6 +137,12 @@ implementation:
 option that leaves both behaviours correct, and one i18n key against a whole
 screen being keyboard-inoperable is a good trade.
 
+> **Settled 2026-09-05: `F6` / `Shift+F6` approved by the owner.** §5 is closed.
+> RFC 005's pane cycling survives, moved off `Tab`; `Tab` and `Shift+Tab`
+> delegate to iced's traversal per §4. One i18n key is added for the help
+> overlay's entry, which §3.2 otherwise avoids — that cost is accepted as part
+> of this decision.
+
 > **Key corrected 2026-08-19.** This recommended `Ctrl+Tab`, chosen without
 > knowing a convention existed. **snora independently reached this RFC's whole
 > finding** and recommends `F6` / `Shift+F6`:
@@ -183,7 +189,7 @@ is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
 states no public item was renamed, removed, or retyped, and the file-level diff
 confirms it.
 
-### 5a.2 Retarget to `"0.42"` (added 2026-09-02)
+### 5a.2 Retarget to `"0.44"` (added 2026-09-02; 0.44 on 2026-09-05)
 
 snora shipped 0.40, 0.41, 0.41.1 and 0.42 since §5a was written. **The target
 becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
@@ -198,6 +204,13 @@ becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
 **No API break reaches us.** 0.42's break is for consumers relying on `canvas`
 or `svg` arriving transitively; 0.41's is a behaviour fix with no flag to
 restore the old behaviour, because the old behaviour was the bug.
+
+**0.43.0 and 0.44.0 add nothing we compile against** — snora states no API,
+appearance, or feature-resolution change, and the file-level story is tests, CI
+and their own readiness register. But `^0.42` does not admit them, so targeting
+`"0.44"` costs the same single B0 run and leaves a smaller gap to the next bump.
+**0.45.0 will be breaking** — it removes `Emphasis` and `Size`, which §5a.4
+confirms we do not use.
 
 ### 5a.3 The pointer fix matters most to the navigation guard
 
@@ -264,12 +277,24 @@ path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
 **So the line should become:**
 
 ```toml
-snora = { version = "0.42", default-features = false, features = ["design"] }
+snora = { version = "0.44", default-features = false, features = ["design"] }
 ```
 
 Two changes, one line, one B0 run. The version bump §5a already argued for, and
-`default-features = false` dropping a subcrate from compile time and binary
-size.
+`default-features = false` dropping a subcrate from the build.
+
+> **Correction, 2026-09-05 — the binary-size half of that claim is wrong.**
+> Another snora consumer ran exactly this configuration and measured the
+> `widgets` delta at **exactly zero: byte-identical binaries either way.** The
+> linker removes code nothing calls. snora has since pinned the distinction in
+> their own budget — the published figure is the cost of *using* a feature, not
+> of enabling it.
+>
+> **The change is still worth making**, on two remaining grounds: compile time
+> and dependency surface (the subcrate is still built), and that the manifest
+> should state what we actually depend on — RFC 108 and RFC 110 both describe
+> our dependency as "design only", which is currently untrue. Do not justify it
+> on binary size, and do not expect the release artifacts to shrink.
 
 **This also makes the manifest true.** RFC 108 and RFC 110 both describe our
 dependency as "the `design` feature only". That has never been accurate, and

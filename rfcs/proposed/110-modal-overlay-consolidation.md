@@ -258,6 +258,28 @@ version and needs no manifest change of its own.
 Whether the defect is observable in our overlays today is **untested** — §6
 item 3a requires checking before and after rather than assuming either way.
 
+### 4.0b Our dialogs already reimplement snora's card (added 2026-09-05)
+
+All three views define a private `dialog_style()` that paints
+`surface_raised` fill, a `border`-coloured edge at width 1.0, radius 8.0 —
+**and a shadow** (`nav_guard.rs:105-125` and its two twins).
+
+That is snora's dialog card, reimplemented, plus one thing snora deliberately
+omits. snora zeroes its card's drop shadow on purpose: *"shadows are close to
+meaningless in the high-contrast presets"* — `high_contrast_light`'s shadow
+colour and background are both near-white, `high_contrast_dark`'s near-black
+against near-black.
+
+**So §4 must delete the three `dialog_style()` functions, not keep them.**
+Routing content through `AppLayout::dialog` while it still paints its own card
+nests a card inside a card: two borders, two radii, two fills. The three
+hardcoded shadow colours in §6a's table disappear with them.
+
+snora made the general form of this point after a downstream team found the
+inverse — a consumer whose own container drew *no* border, so snora's card sat
+invisibly behind it and their 0.34.0 border repair never reached them. Ours
+draws a border, so we get doubling rather than disappearance. Same cause.
+
 ### 4.1 What this forces, and why that is the point
 
 One dialog slot and one close message mean the three overlays must agree on a
@@ -328,10 +350,12 @@ decision" through something snora *does* model, not by keeping a literal.
 
 ## 6. Acceptance contract
 
-1. No `Color {` struct literal remains in `crates/aaai-gui/src/`, except where
-   a recorded rationale accompanies it.
+1. The **six** hardcoded colour sites named in §6a are gone — three backdrops
+   and three dialog shadows. Checked by name, not by pattern; §6a.1 says why.
 2. All three overlays render through `AppLayout::dialog`; the `stack![base,
-   backdrop, dialog]` composition is gone from `view()`.
+   backdrop, dialog]` composition is gone from `view()`, **and the three
+   `dialog_style()` functions are deleted** so snora's card is the only card
+   (§4.0b).
 3. Opening each of the three overlays under each preset — including both
    high-contrast presets — shows a backdrop that visibly changes with the
    preset. Evidence: one screenshot per overlay per preset, per RFC 105's
@@ -359,22 +383,39 @@ decision" through something snora *does* model, not by keeping a literal.
 9. Test counts change only by the named tests, and the delta is reported as a
    measured figure, not a predicted one.
 
-## 6a. The V1 grep extension
+## 6a. Delete the six sites; stop trying to grep for colours
 
-RFC 099's V1 greps gain a pattern for the construction that slipped through:
+> **Rewritten 2026-09-05.** Earlier revisions proposed adding `Color\s*\{` to
+> RFC 099's greps. Measured against the tree, that pattern flags **21 sites, of
+> which 15 are legitimate** — and a refined pattern still misses the three that
+> matter. §6a.1 records why, because this is the third failed attempt.
 
-```
-Color\s*\{
-```
+**Six sites are hardcoded colour, and all six are this RFC's to remove:**
 
-Run against `crates/aaai-gui/src/`, excluding `design_tokens/` where token
-definitions legitimately construct colors, and excluding test modules. This is
-the hole §2.4 identifies; closing it is the durable half of this RFC, and it is
-worth landing **whether or not** §4 is accepted.
+| Site | What |
+|---|---|
+| `app/view.rs:35`, `:68`, `:98` | the three modal backdrops — pure black, `r`/`g`/`b`/`a` literals |
+| `views/nav_guard.rs:116-119` | dialog shadow, `Color { a: 0.18, ..Color::BLACK }` |
+| `views/settings_dialog.rs:263-266` | the same |
+| `views/help_overlay.rs:126-129` | the same |
 
-Note the limit honestly: this catches one more spelling, not all of them. A
-grep enumerates known bypasses and will always trail the ways there are to
-write a color. §6b is the check that does not depend on spelling.
+**Acceptance is that these six are gone**, checked by name. Not by a general
+pattern.
+
+### 6a.1 Why no grep works here
+
+| Attempt | Result |
+|---|---|
+| RFC 099's `Color::from_rgb` | Missed all six — they are struct literals |
+| `Color\s*\{` (this RFC's first draft) | **21 hits, 15 false positives.** `Color { a: 0.18, ..accent }`, `Color { a: 0.30, ..removed }`, `Color { a: 0.15, ..added_color(tokens) }` and eleven more are **token-derived** — they take a token colour and adjust alpha, which is exactly what we want people to do |
+| `Color \{[^}]*\br:` plus `\.\.Color::(BLACK\|WHITE)`, excluding the colour-definition layer | Catches the three shadows. **Misses all three backdrops**, because those spell `Color {` and `r:` on separate lines and the grep is line-oriented |
+
+A pattern that flags fifteen correct usages would be suppressed with rationales
+— which is the hollow-gate failure this project rejected for RFC 100's views
+exemption. A pattern narrow enough to avoid that misses the multi-line form.
+
+**The durable check is §6b**, which asserts that snora painted the backdrop and
+depends on no spelling at all. That is where the effort belongs.
 
 ## 6b. The assertion that does not depend on spelling
 

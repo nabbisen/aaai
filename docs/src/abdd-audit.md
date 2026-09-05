@@ -50,7 +50,7 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 | Toolbar audit-status badge | "All set" / "Needs attention" text remains the deciding signal, not its colour | | | |
 | Diff-view added/removed lines | `+` / `−` line-start characters remain present and used by readers | | | |
 | Inspector LineMatch rule blocks | leading `+` / `−` and the `action:` label persist | | | |
-| **Toasts** (success / error / info) | The **title and body text** are the deciding signal. snora's prefab toasts vary only background and accent colour by intent — no icon, no textual prefix — so colour carries no information a greyscale user can lose, *provided* each toast's own wording states the outcome | | | |
+| **Toasts** (success / error / info) | The **title and body text** are the deciding signal. snora's prefab toasts vary only background and accent colour by intent — no icon, no textual prefix — so colour carries no information a greyscale user can lose, *provided* each toast's own wording states the outcome | | | Checked 2026-09-05: no toast pair shares both title and body, so the text always distinguishes. But **three titles are reused across two intents** — `toast.rerun` (Info/Error), `toast.export_failed` (Info/Error), `toast.profile` (Info/Error) — so only the *body* carries the outcome for those. Separately, `toast.export_failed` is used as the title of an **Info** toast for the "no audit result yet" case, which is not a failure; that wording is wrong independent of colour |
 
 ## 3. Primary action vs destructive action distance (design doc p.8)
 
