@@ -189,7 +189,7 @@ is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
 states no public item was renamed, removed, or retyped, and the file-level diff
 confirms it.
 
-### 5a.2 Retarget to `"0.44"` (added 2026-09-02; 0.44 on 2026-09-05)
+### 5a.2 Retarget to `"0.46"` (added 2026-09-02; retimed 09-05, 09-06)
 
 snora shipped 0.40, 0.41, 0.41.1 and 0.42 since §5a was written. **The target
 becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
@@ -205,12 +205,20 @@ becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
 or `svg` arriving transitively; 0.41's is a behaviour fix with no flag to
 restore the old behaviour, because the old behaviour was the bug.
 
-**0.43.0 and 0.44.0 add nothing we compile against** — snora states no API,
-appearance, or feature-resolution change, and the file-level story is tests, CI
-and their own readiness register. But `^0.42` does not admit them, so targeting
-`"0.44"` costs the same single B0 run and leaves a smaller gap to the next bump.
-**0.45.0 will be breaking** — it removes `Emphasis` and `Size`, which §5a.4
-confirms we do not use.
+**0.43.0, 0.44.0 and 0.46.0 add nothing we compile against** — no API,
+appearance, or feature-resolution change between them. **0.45.0 is breaking**:
+it removed `Emphasis` and `Size`, and snora shipped that removal partly on our
+confirmation that we use neither (§5a.4). We are provably immune, and taking it
+now — while that confirmation is fresh and the removal is the only breaking
+change in the span — is better than absorbing it later inside a larger jump.
+
+`^0.44` does not admit 0.45 or 0.46, so this is one more one-line edit and the
+same single B0 run.
+
+**This target has moved three times in five days** (0.39 → 0.42 → 0.44 → 0.46).
+snora ships roughly every other day. **Re-check for a newer release at
+implementation time** and report it rather than silently taking or not taking
+it; if one has landed, its migration guide is the first thing to read.
 
 ### 5a.3 The pointer fix matters most to the navigation guard
 
@@ -277,7 +285,7 @@ path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
 **So the line should become:**
 
 ```toml
-snora = { version = "0.44", default-features = false, features = ["design"] }
+snora = { version = "0.46", default-features = false, features = ["design"] }
 ```
 
 Two changes, one line, one B0 run. The version bump §5a already argued for, and

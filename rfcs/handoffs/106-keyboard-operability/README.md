@@ -57,14 +57,17 @@ and the decoder, not the enum. This was decided in RFC §5 and is unchanged.
 Per RFC §5a, the manifest line becomes:
 
 ```toml
-snora = { version = "0.44", default-features = false, features = ["design"] }
+snora = { version = "0.46", default-features = false, features = ["design"] }
 ```
 
 **Two changes in one line, one B0 run.**
 
-- **`"0.44"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
-  0.42 for toast `Warning`/`Info` contrast repairs on the default path. 0.43 and
-  0.44 add nothing we compile against but `^0.42` would not admit them.
+- **`"0.46"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
+  0.42 for toast `Warning`/`Info` contrast repairs on the default path. 0.43,
+  0.44 and 0.46 add nothing we compile against; 0.45 removed `Emphasis` and
+  `Size`, which we do not use. **Check whether a newer release has landed** —
+  snora ships every other day and this target has moved three times in five
+  days. Report what you find either way.
 - **`default-features = false`** — snora's default enables `widgets`, and we
   import nothing from it. **Do not justify this on binary size:** another
   consumer measured that delta at exactly zero, byte-identical either way. The
@@ -74,6 +77,27 @@ snora = { version = "0.44", default-features = false, features = ["design"] }
 **If anything fails to compile with `default-features = false`, report it rather
 than restoring the default.** That would mean we depend on `widgets` somewhere
 the inventory missed, which is itself the finding.
+
+### 3.1 A Windows-only trap in this upgrade — check for it explicitly
+
+Another snora consumer hit ten compile errors on **Windows only, invisible on
+Linux**, upgrading across this span. Cause: when a lockfile *shrinks*, a
+transitive dependency can re-resolve **downward**. For them `gpu-allocator`
+pulled `windows` 0.56 while `wgpu-hal` held 0.58.
+
+**Our current state is the aligned one** — verified on `aa834ec`:
+
+| Crate | Version | `windows` dep |
+|---|---|---|
+| `gpu-allocator` | 0.27.0 | `windows 0.58.0` |
+| `wgpu-hal` | 27.0.4 | `windows 0.58.0` |
+
+**After bumping snora, diff `Cargo.lock` and confirm those two still agree.**
+If a `windows 0.56` appears, the fix is `cargo update -p gpu-allocator`.
+
+**A green local build proves nothing here.** We develop on Linux; this surfaces
+only in B0's Windows job. Check the lockfile rather than waiting for CI to tell
+you, and record the before/after `windows` versions in the evidence either way.
 
 Expect the toast appearance to change — `Warning` text white → black, `Info`
 fill and text. Both are contrast repairs. We hold no visual baselines, so
