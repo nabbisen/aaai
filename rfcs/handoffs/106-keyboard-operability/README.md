@@ -57,17 +57,18 @@ and the decoder, not the enum. This was decided in RFC §5 and is unchanged.
 Per RFC §5a, the manifest line becomes:
 
 ```toml
-snora = { version = "0.46", default-features = false, features = ["design"] }
+snora = { version = "0.51", default-features = false, features = ["design"] }
 ```
 
 **Two changes in one line, one B0 run.**
 
-- **`"0.46"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
-  0.42 for toast `Warning`/`Info` contrast repairs on the default path. 0.43,
-  0.44 and 0.46 add nothing we compile against; 0.45 removed `Emphasis` and
-  `Size`, which we do not use. **Check whether a newer release has landed** —
-  snora ships every other day and this target has moved three times in five
-  days. Report what you find either way.
+- **`"0.51"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
+  0.42 for toast `Warning`/`Info` contrast repairs, 0.51 for the toast close
+  button reaching 24 × 24. 0.43, 0.44, 0.46 and the rest add nothing we compile
+  against; 0.45 removed `Emphasis` and `Size`, which we do not use.
+  **This number is a tested floor, not a claim about what is current** — it has
+  moved five times in three weeks. **Check for a newer release, read its
+  migration guide, and report what you find either way.**
 - **`default-features = false`** — snora's default enables `widgets`, and we
   import nothing from it. **Do not justify this on binary size:** another
   consumer measured that delta at exactly zero, byte-identical either way. The

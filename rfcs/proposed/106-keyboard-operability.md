@@ -189,7 +189,7 @@ is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
 states no public item was renamed, removed, or retyped, and the file-level diff
 confirms it.
 
-### 5a.2 Retarget to `"0.46"` (added 2026-09-02; retimed 09-05, 09-06)
+### 5a.2 Retarget to `"0.51"` (added 2026-09-02; retimed 09-05, 09-06, 09-26)
 
 snora shipped 0.40, 0.41, 0.41.1 and 0.42 since §5a was written. **The target
 becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
@@ -215,10 +215,25 @@ change in the span — is better than absorbing it later inside a larger jump.
 `^0.44` does not admit 0.45 or 0.46, so this is one more one-line edit and the
 same single B0 run.
 
-**This target has moved three times in five days** (0.39 → 0.42 → 0.44 → 0.46).
-snora ships roughly every other day. **Re-check for a newer release at
-implementation time** and report it rather than silently taking or not taking
-it; if one has landed, its migration guide is the first thing to read.
+**0.51.0 adds one reason that touches a surface we use.** From 0.41 to 0.50 the
+toast close button measured **25.00 × 23.40**, failing snora's own 24 × 24
+minimum on the height axis; 0.51.0 makes it exactly 24 × 24, asserted by a test.
+We raise toasts at ten call sites, so that control is in our UI. **It still does
+not meet the 44 px bar `docs/src/abdd-audit.md` §6 sets** — see that file's
+`Toast dismiss ×` row, which needs an owner decision of its own.
+
+0.51.0's other two findings — the active-tab indicator and its label — **do not
+reach us.** We use neither snora's `TabBar` nor its tooltips; `app.rs:14` imports
+only `AppLayout`, `Toast`, `ToastIntent`, `ToastPosition` and `render`.
+
+**This target has now moved five times** (0.39 → 0.42 → 0.44 → 0.46 → 0.51) in
+three weeks, because snora ships every few days. **The version written here is a
+tested floor, not a claim about what is current.** What governs is the standing
+instruction: **re-check at implementation time, read the migration guide of
+anything newer, and report what you find either way.** I will stop recording
+each release against this section individually — snora has stopped sending
+per-release letters for the same reason, and a number revised five times informs
+less than the instruction to go and look.
 
 ### 5a.3 The pointer fix matters most to the navigation guard
 
@@ -285,7 +300,7 @@ path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
 **So the line should become:**
 
 ```toml
-snora = { version = "0.46", default-features = false, features = ["design"] }
+snora = { version = "0.51", default-features = false, features = ["design"] }
 ```
 
 Two changes, one line, one B0 run. The version bump §5a already argued for, and

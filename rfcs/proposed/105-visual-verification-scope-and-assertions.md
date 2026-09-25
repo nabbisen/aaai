@@ -352,3 +352,45 @@ an evidence file.
 - `scripts/list-unverified-rfcs.sh` — current output, 99 / 101
 - `.git-exclude/evidence/099-gui-visual-foundation/` — the competing location
 - RFC 099 §6 (gate V1) and its T6 screenshots
+
+## Renderer scope — every capture so far covers one of two (added 2026-09-26)
+
+**iced has two renderers and our evidence covers one.** `iced_renderer` carries
+both `iced_wgpu` and `iced_tiny_skia`. iced falls back to **tiny-skia** when the
+GPU renderer cannot start — virtual machines, remote desktops, missing or
+broken drivers — or when `ICED_BACKEND` selects it.
+
+**Nothing in this repository mentions `tiny-skia` or `ICED_BACKEND`.** All 39
+captures under `.git-exclude/evidence/` were taken on whichever renderer the
+capture machine chose, which is wgpu, and no artifact records that as a
+limitation. A reader of that evidence would reasonably believe it covers the
+application.
+
+**This is not hypothetical.** snora's 0.51.0 found an active-tab label measuring
+**1.79:1 to 2.66:1 on tiny-skia** and passing on wgpu, from 0.41 through 0.50 —
+a shadow behind a transparent button that the two renderers composite
+differently. A 2.7-point swing, flipping a clear AA pass into a clear fail,
+invisible to any amount of care on one renderer.
+
+**What this RFC should settle:**
+
+1. **Is the software renderer in scope for aaai's v1.0.0 accessibility claims?**
+   If our users can reach it — and on VMs and remote desktops they can — then a
+   contrast or layout result measured only on wgpu does not support a claim about
+   the application.
+2. **If yes**, every capture set needs both renderers, which doubles the
+   evidence cost. `ICED_BACKEND=tiny-skia` makes it selectable, so the mechanism
+   is cheap even if the volume is not.
+3. **If no**, that exclusion must be stated where the claims are made —
+   `docs/src/abdd-audit.md` and this RFC — rather than left as an unexamined
+   property of the capture machine.
+
+**Recommendation: yes, in scope, but asserted rather than captured.** Doubling
+39 screenshots buys less than one contrast test run under both renderers would,
+because the defect class snora hit is a *computed colour* difference, not a
+layout difference. `contrast_check` runs headless and could run twice. Full
+screenshot sets stay single-renderer with the limitation recorded.
+
+The findings that reached us do not apply — we use neither snora's tab bar nor
+its tooltips (`app.rs:14` imports only `AppLayout`, `Toast`, `ToastIntent`,
+`ToastPosition`, `render`). **The renderer gap is ours regardless of theirs.**

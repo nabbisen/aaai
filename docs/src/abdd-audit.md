@@ -86,6 +86,7 @@ Measure with the OS accessibility inspector or by hovering and noting feedback a
 | Save and continue (bottom bar) | | | |
 | Diff-tab buttons (Side by side / Unified / Changes only) | | | |
 | File-tree entry rows | | | |
+| **Toast dismiss `×`** (snora prefab) | 24 × 24 | | Checked 2026-09-26. **Supplied by snora, not by us.** It measured 25.00 × 23.40 from 0.41 to 0.50 — failing on the height axis — and is exactly **24 × 24** from 0.51.0, which is snora's stated minimum and WCAG 2.5.8 (AA). **It does not meet this section's 44 px bar, which is WCAG 2.5.5 (AAA), and cannot without snora changing it.** Owner decision needed: relax the bar for dependency-supplied controls, accept the gap as a recorded exception, or stop using the prefab's close button |
 
 ---
 
