@@ -71,6 +71,12 @@ path the user chooses, to be read by someone else, possibly machine-parsed.
 
 **B4 — the dependency graph.** 570 crates, none of them ours.
 
+> **T7's count corrected 2026-10-19.** This said "four accepted warnings"
+> when written. The first CI run after unparking reports **eight** — three
+> zbus-family crates were deprecated upstream on 2026-10-16, and
+> `unsafe-libyaml` had not been in my local scan. The figure was a month old
+> and quoted rather than re-derived.
+
 **Explicitly not boundaries, because the attack surface does not exist:**
 
 - **No network.** No HTTP client, no socket code, no telemetry, no update
@@ -91,7 +97,8 @@ path the user chooses, to be read by someone else, possibly machine-parsed.
 | **T4** | A pathological regular expression in a definition file hangs the audit | B2 | **Structurally impossible.** `regex` 1.12.4 is a finite-automata engine with linear-time matching and no backtracking. ReDoS is not expressible. Recorded because the absence is a property of the dependency choice and would be lost if that choice ever changed |
 | **T5** | A very large file in an audited folder exhausts memory | B1 | **Not mitigated; scheduled.** Slice A recommended for unit 4, slice B owned by M5 / gate E1 — see §5 |
 | **T6** | aaai modifies the folders it is auditing | B1 | **Mitigated.** SEC-2; the engine opens inputs read-only, and canary tests in `diff/tests.rs` assert byte-and-metadata stability across a run |
-| **T7** | A compromised or vulnerable dependency | B4 | **Partly mitigated.** `cargo audit` reports no vulnerabilities; four accepted warnings remain. The scan is configured but its workflow is parked, so it runs only when someone runs it — gate C0 |
+| **T7** | A compromised or vulnerable dependency | B4 | **Partly mitigated.** `cargo audit` reports **no vulnerabilities**. **Eight informational warnings** remain — 7 unmaintained, 1 unsound — all needing C0 exception records. The scan now runs in CI (RFC 114). **One of the eight is not like the rest: see T7a** |
+| **T7a** | `unsafe-libyaml` parses audit definition files, is unsafe Rust, and is unmaintained | **B2** | **Accepted, recorded separately.** `RUSTSEC-2024-0449`. Reached via `serde_yaml 0.9.34+deprecated`, a direct dependency of the engine. The advisory calls it "a machine translation of libyaml's C code into unsafe Rust" and states bugs "will not be fixed upstream". It parses the one input this model classifies as semi-trusted. No CVE and no known exploit; it has been present since the project began. Migration off `serde_yaml` is a compatibility question — the persisted definition, prefs and profiles formats — and belongs in its own RFC, not a C0 exception line |
 | **T8** | A memory-safety defect in aaai's own code | all | **Mitigated.** SEC-1 / DEC-012 — no `unsafe` anywhere in project code, verifiable by grep |
 | **T9** | A user cannot tell whether a shared report was redacted | B3 | **Accepted limitation.** RFC 104 §5.1 — the `Masking` API does not report whether a pattern matched. Recorded here because "I thought it was safe" is a security outcome, not only a UX one |
 
