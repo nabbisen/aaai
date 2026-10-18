@@ -15,9 +15,11 @@ including for inside-root targets* — is a **live constraint**, not settled
 history: it is what the cross-root test guards, and what RFC 101 would collide
 with if it revisits the workspace.
 
-**Outstanding, non-blocking:** a Windows twin of the cross-root test, for §9.1's
-"every hosted OS" symmetry. No substantive gap — the Windows reparse decision is
-tag-agnostic and never consults the link target — assigned to the dev team.
+~~**Outstanding, non-blocking:** a Windows twin of the cross-root test, for
+§9.1's "every hosted OS" symmetry.~~ **Closed** — landed in `e108618` as
+`windows_cross_root_links_are_not_followed_into_the_other_selected_root`
+(`crates/aaai/src/diff/tests.rs:940`), asserting `AAAI-PATH-REPARSE`. §9.1 now
+has three-platform symmetry.
 
 **Gate S2 does not close with this RFC.** Its threat-model half and RFC 104's
 GUI export masking remain.
