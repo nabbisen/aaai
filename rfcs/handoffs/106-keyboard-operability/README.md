@@ -2,7 +2,8 @@
 
 **RFC.** [`rfcs/proposed/106-keyboard-operability.md`](../../proposed/106-keyboard-operability.md)
 
-**Status.** §5's open question is **settled** — `F6` / `Shift+F6`, owner-approved
+**Status.** **Accepted by the owner 2026-10-18.** §5 settled on `F6` /
+`Shift+F6`. Ready to implement.
 2026-09-05. **The RFC itself is not yet accepted for implementation.** Do not
 start until it is.
 
@@ -26,7 +27,8 @@ number here** — see §7.
 control and `Enter` activates none, so a keyboard-only user cannot start an
 audit. This is the application's entry point.
 
-The cause is not a missing feature. `app.rs` intercepts `Tab` globally and maps
+The cause is not a missing feature. `crates/aaai-gui/src/app.rs` intercepts
+`Tab` globally and maps
 it to `Message::FocusNext`, which cycles an enum naming three panes of the
 **`Main`** screen and **never calls iced's `focus_next()`**. No widget focus
 moves on any screen.

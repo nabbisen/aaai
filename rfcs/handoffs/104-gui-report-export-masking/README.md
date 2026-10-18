@@ -38,7 +38,7 @@ than wiring, and this RFC exists to close a gap of exactly that shape.
 `report_path_picked`, both `aaai::Masking::Disabled`, with a comment naming
 this RFC as the follow-up.
 
-**Mirror `cmd/report.rs:57-62` exactly:**
+**Mirror `crates/aaai-cli/src/cmd/report.rs:57-62` exactly:**
 
 ```rust
 let custom_patterns = ProjectConfig::discover(&before)
@@ -129,14 +129,16 @@ masking outcome. This fails if project-config discovery diverges between the two
 surfaces, which is §8's first risk.
 
 The cheapest honest form: drive both `write_markdown` calls — the one
-`write_report` makes and the one `cmd/report.rs` makes — over the same
+`write_report` makes and the one `crates/aaai-cli/src/cmd/report.rs` makes —
+over the same
 `AuditResult` and the same root, and compare the written bytes. If that is not
 practical, say why in the evidence and assert the next-best thing; do not
 silently drop the item.
 
 ## 4. Do not build an `App` in the test
 
-`App::default()` calls `UserPrefs::load()` three times (`app.rs:192`, `:199`,
+`App::default()` calls `UserPrefs::load()` three times
+(`crates/aaai-gui/src/app.rs:192`, `:199`,
 `:200`), which reads `$XDG_CONFIG_HOME/aaai/prefs.yaml` — **the operator's real
 config**. Two existing tests already do this; that is a known gap recorded in
 RFC 104 §7a, and it is not yours to fix here.
@@ -174,8 +176,9 @@ on all of them. The check is that no new finding appears.
 **Any line number, ELOC figure, or test count in this document is stale until
 you re-measure it on current `main`.**
 
-RFC 104's own §2 quoted a code block from `app.rs` that RFC 100 moved to
-`app/update/save.rs`, and RFC 111's removal table had to be regenerated for the
+RFC 104's own §2 quoted a code block from `crates/aaai-gui/src/app.rs` that
+RFC 100 moved to `crates/aaai-gui/src/app/update/save.rs`, and RFC 111's
+removal table had to be regenerated for the
 same reason. Re-measure first; if a figure is wrong, report it rather than
 working around it.
 
