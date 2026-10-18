@@ -44,10 +44,10 @@ jobs:
 
       # RFC 091 §11.1 — GUI must compile on all CI platforms.
       - name: Build
-        run: cargo build -p aaai-core -p aaai-cli -p aaai-gui
+        run: cargo build -p aaai -p aaai-cli -p aaai-gui
 
       - name: Unit tests
-        run: cargo test -p aaai-core --lib
+        run: cargo test -p aaai --lib
 
       - name: Integration tests
         run: cargo test -p aaai-cli -- --test-threads=1
@@ -81,7 +81,7 @@ jobs:
       # RFC 091 §5.2 — include GUI in MSRV check.
       # If GUI dependencies raise the MSRV above 1.91 in future, update the
       # workspace rust-version field and document the reason.
-      - run: cargo check -p aaai-core -p aaai-cli -p aaai-gui
+      - run: cargo check -p aaai -p aaai-cli -p aaai-gui
 
   audit-security:
     name: Security audit

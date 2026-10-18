@@ -127,9 +127,30 @@ fn write_report(
     after: &Path,
     def_path: Option<&Path>,
     out: &Path,
-    masking: Masking<'_>,
-) -> std::io::Result<()>
+) -> anyhow::Result<()>
 ```
+
+> **Amended 2026-10-18, at implementation review.** Two corrections, both
+> found by the implementer.
+>
+> **No `masking` parameter.** The first draft passed `Masking<'_>` in, which
+> meant the acceptance test supplied its own and therefore proved only that
+> `write_report` masks *when told to* — it would pass unchanged even if
+> `report_path_picked` passed `Disabled`. That is §3.1 goal 3's own complaint
+> about RFC 103, reproduced one level up. `write_report` now builds the masking
+> itself from `before` via `report_masker`, which makes `Masking::Disabled`
+> **unrepresentable** on this path: §3.1 goal 2 becomes a type rather than a
+> grep, and the same tests then exercise the production construction.
+>
+> **`anyhow::Result<()>`, not `std::io::Result<()>`.**
+> `ReportGenerator::write_json` and `write_markdown` both return
+> `anyhow::Result` (`crates/aaai/src/report/generator.rs:14-21`, `:45-52`), so
+> the original type would not compile. `anyhow` is already a GUI dependency and
+> the error still reaches the toast as `e.to_string()`.
+>
+> Keep `report_masker` as a separate private helper rather than inlining the
+> discovery: inline, no test can reach it, and §8's first risk would rest on
+> review alone.
 
 `report_path_picked` keeps the `self` reads, the format derivation, and the
 toast handling, and calls it. **Acceptance item 3's test then calls

@@ -132,35 +132,14 @@ impl App {
                 Some(PathBuf::from(&self.definition_path))
             };
 
-            // Derive format from chosen extension.
-            let use_json = out
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.eq_ignore_ascii_case("json"))
-                .unwrap_or(false);
+            // RFC 104 §4.1 — built once, shared by both formats, mirroring
+            // `aaai-cli/src/cmd/report.rs`. Unconditional (§4.2): the
+            // project's `mask_secrets` setting does not un-redact a report.
+            let masker = Self::report_masker(&before);
+            let masking = aaai::Masking::Enabled(&masker);
 
-            // RFC 103 §5.1a — GUI report export is out of RFC 103
-            // scope; carries the same gap `cmd/report.rs` had,
-            // tracked as follow-up.
-            let res = if use_json {
-                aaai::report::generator::ReportGenerator::write_json(
-                    result,
-                    &before,
-                    &after,
-                    def_path.as_deref(),
-                    &out,
-                    aaai::Masking::Disabled,
-                )
-            } else {
-                aaai::report::generator::ReportGenerator::write_markdown(
-                    result,
-                    &before,
-                    &after,
-                    def_path.as_deref(),
-                    &out,
-                    aaai::Masking::Disabled,
-                )
-            };
+            let res =
+                Self::write_report(result, &before, &after, def_path.as_deref(), &out, masking);
 
             match res {
                 Ok(()) => {
@@ -177,6 +156,49 @@ impl App {
                     &e.to_string(),
                 ),
             }
+        }
+    }
+
+    /// RFC 104 §4.1 — the masking engine for an exported report.
+    ///
+    /// Discovers project-level custom patterns relative to the **before**
+    /// root, exactly as `aaai report` does (`cmd/report.rs`), so the two
+    /// surfaces redact the same content.
+    fn report_masker(before: &std::path::Path) -> aaai::MaskingEngine {
+        let custom_patterns = aaai::project::config::ProjectConfig::discover(before)
+            .unwrap_or(None)
+            .map(|(config, _)| config.custom_mask_patterns)
+            .unwrap_or_default();
+        aaai::MaskingEngine::with_custom(&custom_patterns)
+    }
+
+    /// RFC 104 §4.3 — writes the report; the format follows `out`'s extension.
+    ///
+    /// Takes only what the write needs, so a test can drive it without an
+    /// `App` (and therefore without `UserPrefs::load`).
+    fn write_report(
+        result: &AuditResult,
+        before: &std::path::Path,
+        after: &std::path::Path,
+        def_path: Option<&std::path::Path>,
+        out: &std::path::Path,
+        masking: aaai::Masking<'_>,
+    ) -> anyhow::Result<()> {
+        // Derive format from chosen extension.
+        let use_json = out
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.eq_ignore_ascii_case("json"))
+            .unwrap_or(false);
+
+        if use_json {
+            aaai::report::generator::ReportGenerator::write_json(
+                result, before, after, def_path, out, masking,
+            )
+        } else {
+            aaai::report::generator::ReportGenerator::write_markdown(
+                result, before, after, def_path, out, masking,
+            )
         }
     }
 
@@ -271,3 +293,6 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

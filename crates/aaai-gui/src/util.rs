@@ -91,7 +91,7 @@ use aaai::config::definition::{AuditStrategy, RegexTarget};
 /// `LocalizedOption<StrategyKind>`.
 ///
 /// This is a GUI-layer concern (display + Message protocol identity).
-/// `aaai-core` continues to expose only `AuditStrategy`; this discriminator
+/// `aaai` continues to expose only `AuditStrategy`; this discriminator
 /// stays inside the GUI's display layer.
 ///
 /// The variants mirror `AuditStrategy`'s variants one-for-one.

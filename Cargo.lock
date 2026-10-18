@@ -65,6 +65,7 @@ dependencies = [
  "rust-i18n",
  "similar",
  "snora",
+ "tempfile",
  "tokio",
 ]
 

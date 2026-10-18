@@ -1,4 +1,4 @@
-//! # aaai-core
+//! # aaai
 //!
 //! Core engine for **aaai** (audit for asset integrity).
 //!
@@ -9,7 +9,7 @@
 //! ## Module map
 //!
 //! ```text
-//! aaai-core
+//! aaai
 //!   ├── config      — AuditDefinition YAML, entry fields, lockfile, I/O
 //!   ├── diff        — parallel folder diff (rayon), DiffEntry, IgnoreRules (.aaaiignore)
 //!   ├── audit       — AuditEngine, AuditResult, AuditStatus, AuditWarning

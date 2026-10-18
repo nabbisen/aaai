@@ -71,9 +71,14 @@ fn write_report(
     after: &Path,
     def_path: Option<&Path>,
     out: &Path,
-    masking: Masking<'_>,
-) -> std::io::Result<()>
+) -> anyhow::Result<()>
 ```
+
+> **Corrected 2026-10-18** — see RFC §4.3's amendment. No `masking`
+> parameter: `write_report` builds it from `before` itself, so
+> `Masking::Disabled` cannot be expressed on this path and the acceptance
+> test exercises the real construction. The return type is `anyhow::Result`
+> because that is what `ReportGenerator` returns.
 
 It contains the format derivation and the `write_json` / `write_markdown`
 branch, nothing else. `report_path_picked` keeps every `self` read, builds the
