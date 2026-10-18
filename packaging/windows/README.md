@@ -88,16 +88,19 @@ its only two runs (`v0.41.0`, `v0.42.0`) with `makeappx.exe not found`:
 `make-msix.ps1` searches the unversioned `…\Windows Kits\10\bin\x64` path,
 while the Windows SDK installs its tools under a versioned directory.
 
-Parked rather than repaired because nothing depends on it — Store distribution
-is deferred until after the v1 release decision (RFC 095 §5), and the four
-assets below are still placeholders, with `StoreLogo.png` at 150 × 150 where
-50 × 50 is required, so a submission would be rejected anyway.
-`workflow_dispatch` still works; a package can also be built by hand on a
-Windows machine with the SDK.
+**The owner packages the MSIX by hand and will submit to the Microsoft Store
+when the app has matured (2026-10-19). Automating that is a separate, later
+task and is not scheduled.** Store distribution is in any case deferred until
+after the v1 release decision (RFC 095 §5).
 
-**To revive:** fix the SDK lookup (glob the versioned directories, take the
-newest), replace the four assets at the sizes listed below, restore the tag
-trigger.
+**The placeholder assets block a manual submission too.** All four are
+placeholders and `StoreLogo.png` is 150 × 150 where 50 × 50 is required, so
+they must be replaced before any submission, automated or not — that is the
+one item on this page with a real deadline attached to it.
+
+**To automate later:** fix the SDK lookup (glob the versioned directories,
+take the newest), replace the assets, restore the tag trigger.
+`workflow_dispatch` still works in the meantime.
 
 ## Rollout stages
 

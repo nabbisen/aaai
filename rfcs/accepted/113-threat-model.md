@@ -157,10 +157,13 @@ which is a long wait for a crash-to-message change that is perhaps thirty lines.
 Unit 4 is reachable soon and "code quality" covers robustness fairly.
 
 **This is an authorization, not a design decision** — the work is already
-scoped. **Owner: shall slice A ride with unit 4?** My recommendation is yes.
-If you would rather keep unit 4 to supply chain and lint alone, slice A waits
-for M5 and T5 stands as written, which is the safe fallback rather than the
-better one.
+scoped.
+
+> **Authorized by the owner 2026-10-19: slice A rides with unit 4.**
+> Recorded in `ROADMAP.md`'s unit 4 row. Its RFC is opened when unit 4 is
+> entered rather than now, so its figures are measured against the tree it
+> will actually land on — the mistake RFC 111, RFC 104 and RFC 109 each made
+> by being written too early.
 
 T5's row is marked **scheduled**, not merely accepted, on that basis.
 

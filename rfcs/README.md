@@ -14,7 +14,6 @@ route to v1.0.0).
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | Successor to RFC 017 |
-| [114](proposed/114-lint-policy-and-ci-restoration.md) | Lint policy, and restoring CI | M4B / gate C2 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
@@ -38,6 +37,7 @@ RFC 110 §8.
 | [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
 | [113](accepted/113-threat-model.md) | Threat model — S2's last open half | M2 / gate S2 |
+| [114](accepted/114-lint-policy-and-ci-restoration.md) | Lint policy, and restoring CI | M4B / gate C2 |
 
 RFCs the owner has approved for implementation and that have not shipped. The
 folder is the source of truth for this state (RFC 000); each moves to `done/`

@@ -1,6 +1,8 @@
 # RFC 114 — Lint policy, and restoring CI
 
-**Status.** Proposed
+**Status.** **Accepted** — approved for implementation by the owner
+2026-10-19. Lives in `rfcs/accepted/`; the folder is the source of truth for
+this state (RFC 000).
 
 **Tracks.** `ROADMAP.md` M4B / gate **C2** (formatting and lint policy is
 settled and passing). Unblocks gate **C1** (the whole workflow green), and
