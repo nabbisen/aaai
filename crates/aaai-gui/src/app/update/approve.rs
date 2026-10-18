@@ -1,6 +1,8 @@
 use super::super::*;
 
 impl App {
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn approve_and_save(&mut self) -> Task<Message> {
         // RFC 002: approve + save in one action.
@@ -11,6 +13,8 @@ impl App {
         return Task::batch([t1, t2]);
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn approve_entry(&mut self) -> Task<Message> {
         if let Some(idx) = self.selected_index {
@@ -116,6 +120,8 @@ impl App {
         Task::none()
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn undo_approval(&mut self) -> Task<Message> {
         if let Some(path) = self.undo_stack.pop() {
@@ -205,6 +211,8 @@ impl App {
         Task::none()
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn revert_selected_entry(&mut self) -> Task<Message> {
         if let (Some(idx), Some(def)) = (self.selected_index, &mut self.definition) {

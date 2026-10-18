@@ -81,12 +81,12 @@ pub fn collect(diff: &DiffEntry, entry: &AuditEntry) -> Vec<AuditWarning> {
     }
 
     // No-strategy on Modified.
-    if diff.diff_type == crate::diff::entry::DiffType::Modified {
-        if let AuditStrategy::None = entry.strategy {
-            warns.push(AuditWarning::NoStrategyOnModified {
-                path: diff.path.clone(),
-            });
-        }
+    if diff.diff_type == crate::diff::entry::DiffType::Modified
+        && let AuditStrategy::None = entry.strategy
+    {
+        warns.push(AuditWarning::NoStrategyOnModified {
+            path: diff.path.clone(),
+        });
     }
 
     // No approver.

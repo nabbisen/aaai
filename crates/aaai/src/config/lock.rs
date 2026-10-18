@@ -19,24 +19,24 @@ pub fn acquire(definition_path: &Path) -> anyhow::Result<LockGuard> {
 
     if lock_path.exists() {
         // Check whether the lock is stale.
-        if let Ok(meta) = std::fs::metadata(&lock_path) {
-            if let Ok(modified) = meta.modified() {
-                if SystemTime::now()
-                    .duration_since(modified)
-                    .unwrap_or_default()
-                    < LOCK_TTL
-                {
-                    anyhow::bail!(
-                        "Definition file is locked by another process: {}.\n\
+        if let Ok(meta) = std::fs::metadata(&lock_path)
+            && let Ok(modified) = meta.modified()
+        {
+            if SystemTime::now()
+                .duration_since(modified)
+                .unwrap_or_default()
+                < LOCK_TTL
+            {
+                anyhow::bail!(
+                    "Definition file is locked by another process: {}.\n\
                          Delete {} to force-unlock.",
-                        definition_path.display(),
-                        lock_path.display()
-                    );
-                }
-                // Stale lock — remove it.
-                log::warn!("Removing stale lock: {}", lock_path.display());
-                let _ = std::fs::remove_file(&lock_path);
+                    definition_path.display(),
+                    lock_path.display()
+                );
             }
+            // Stale lock — remove it.
+            log::warn!("Removing stale lock: {}", lock_path.display());
+            let _ = std::fs::remove_file(&lock_path);
         }
     }
 

@@ -638,20 +638,16 @@ fn build_file_row<'a>(
 // ── Diff pane ────────────────────────────────────────────────────────────────
 
 fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
-    match app.selected_index {
-        Some(idx) => {
-            if let Some(result) = &app.audit_result {
-                if let Some(far) = result.results.get(idx) {
-                    return diff_view::view(
-                        &far.diff,
-                        app.diff_view_mode,
-                        &app.design_tokens,
-                        app.theme.is_high_contrast(),
-                    );
-                }
-            }
-        }
-        None => {}
+    if let Some(idx) = app.selected_index
+        && let Some(result) = &app.audit_result
+        && let Some(far) = result.results.get(idx)
+    {
+        return diff_view::view(
+            &far.diff,
+            app.diff_view_mode,
+            &app.design_tokens,
+            app.theme.is_high_contrast(),
+        );
     }
     match &app.audit_result {
         Some(r) => dashboard::view(r, &app.design_tokens, app.theme.is_high_contrast()),
@@ -662,15 +658,11 @@ fn build_diff_panel<'a>(app: &'a App) -> Element<'a, Message> {
 // ── Inspector pane ───────────────────────────────────────────────────────────
 
 fn build_inspector_panel<'a>(app: &'a App) -> Element<'a, Message> {
-    match app.selected_index {
-        Some(idx) => {
-            if let Some(result) = &app.audit_result {
-                if let Some(far) = result.results.get(idx) {
-                    return inspector::view(app, far);
-                }
-            }
-        }
-        None => {}
+    if let Some(idx) = app.selected_index
+        && let Some(result) = &app.audit_result
+        && let Some(far) = result.results.get(idx)
+    {
+        return inspector::view(app, far);
     }
     empty_state_inspector(app.design_tokens.clone())
 }

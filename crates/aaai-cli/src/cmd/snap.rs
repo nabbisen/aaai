@@ -117,13 +117,12 @@ pub fn run(args: SnapArgs) -> anyhow::Result<()> {
             continue;
         }
 
-        if args.merge {
-            if let Some(existing) = definition.find_entry(&diff.path) {
-                if !existing.reason.trim().is_empty() {
-                    skipped += 1;
-                    continue;
-                }
-            }
+        if args.merge
+            && let Some(existing) = definition.find_entry(&diff.path)
+            && !existing.reason.trim().is_empty()
+        {
+            skipped += 1;
+            continue;
         }
 
         let strategy = template_strategy.clone().unwrap_or(AuditStrategy::None);

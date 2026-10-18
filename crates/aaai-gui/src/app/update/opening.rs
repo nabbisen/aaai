@@ -15,6 +15,8 @@ impl App {
         self.definition_path = s;
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return, clippy::collapsible_if)]
     pub(in crate::app) fn start_audit(&mut self) -> Task<Message> {
         self.open_error = None;
@@ -113,6 +115,8 @@ impl App {
         );
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn pick_before_folder(&mut self) -> Task<Message> {
         let title = t!("dialog.pick_before").to_string();
@@ -128,6 +132,8 @@ impl App {
         );
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn pick_after_folder(&mut self) -> Task<Message> {
         let title = t!("dialog.pick_after").to_string();
@@ -143,6 +149,8 @@ impl App {
         );
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn pick_definition_file(&mut self) -> Task<Message> {
         let title = t!("dialog.pick_audit_yaml").to_string();
@@ -159,6 +167,8 @@ impl App {
         );
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn pick_ignore_file(&mut self) -> Task<Message> {
         let title = t!("dialog.pick_aaaiignore").to_string();

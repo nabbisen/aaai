@@ -52,6 +52,8 @@ impl App {
         Task::none()
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn export_report(&mut self) -> Task<Message> {
         // RFC 040 — open native save-file dialog; format derived from extension.

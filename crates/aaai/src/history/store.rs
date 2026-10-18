@@ -84,7 +84,7 @@ pub(crate) fn prune_in(paths: &UserStatePaths, max_entries: usize) -> anyhow::Re
     let lines: Vec<String> = keep
         .iter()
         .rev()
-        .map(|r| serde_json::to_string(r))
+        .map(serde_json::to_string)
         .collect::<Result<Vec<_>, _>>()?;
     paths.ensure_for_write()?;
     let path = paths.history();

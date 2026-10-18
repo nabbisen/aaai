@@ -37,6 +37,11 @@ impl IgnoreRules {
     }
 
     /// Parse rules from a string (one pattern per line).
+    // `IgnoreRules` is re-exported from `aaai::lib`, so implementing
+    // `std::str::FromStr` instead would change the public call shape;
+    // `docs/src/compatibility.md` puts engine API changes behind a major
+    // version. Deferred to v2 (RFC 114 §4.2).
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(text: &str) -> anyhow::Result<Self> {
         let mut rules = Vec::new();
         for line in text.lines() {

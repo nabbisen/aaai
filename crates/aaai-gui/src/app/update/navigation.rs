@@ -109,6 +109,8 @@ impl App {
         self.focus_target = FocusTarget::Inspector;
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn diff_before_scrolled(
         &mut self,
@@ -129,6 +131,8 @@ impl App {
         );
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn diff_after_scrolled(
         &mut self,

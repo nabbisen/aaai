@@ -92,7 +92,7 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
     let proj_cfg = ProjectConfig::discover(&args.left)
         .unwrap_or(None)
         .map(|(c, _)| c);
-    let use_masking = args.mask_secrets || proj_cfg.as_ref().map_or(false, |c| c.mask_secrets);
+    let use_masking = args.mask_secrets || proj_cfg.as_ref().is_some_and(|c| c.mask_secrets);
     let masker: Option<MaskingEngine> = if use_masking {
         let custom = proj_cfg
             .as_ref()
@@ -200,25 +200,25 @@ pub fn run(args: AuditArgs) -> anyhow::Result<()> {
         print_human_audit(
             &result,
             &args,
-            &masker,
-            &expired,
-            &expiring_soon,
             s,
-            &left_path,
-            &right_path,
-            &args.config,
+            &HumanAuditContext {
+                masker: &masker,
+                expired: &expired,
+                expiring_soon: &expiring_soon,
+                left_path: &left_path,
+                right_path: &right_path,
+                config_path: &args.config,
+            },
         );
     }
 
     // Summary (always printed unless --json-output)
-    if !args.json_output {
-        if args.quiet {
-            let verdict_str = if s.is_passing() { "PASSED" } else { "FAILED" };
-            println!(
-                "{verdict_str}  Total:{}  ✓{}  ⚠{}  ✗{}  !{}",
-                s.total, s.ok, s.pending, s.failed, s.error
-            );
-        }
+    if !args.json_output && args.quiet {
+        let verdict_str = if s.is_passing() { "PASSED" } else { "FAILED" };
+        println!(
+            "{verdict_str}  Total:{}  ✓{}  ⚠{}  ✗{}  !{}",
+            s.total, s.ok, s.pending, s.failed, s.error
+        );
     }
 
     process::exit(exit_code(s, args.allow_pending));
@@ -261,17 +261,30 @@ fn status_label(status: AuditStatus) -> &'static str {
     }
 }
 
+/// What `print_human_audit` shows besides the result itself (RFC 114 §4.3).
+struct HumanAuditContext<'a> {
+    masker: &'a Option<aaai::MaskingEngine>,
+    expired: &'a [&'a aaai::config::definition::AuditEntry],
+    expiring_soon: &'a [&'a aaai::config::definition::AuditEntry],
+    left_path: &'a std::path::Path,
+    right_path: &'a std::path::Path,
+    config_path: &'a std::path::Path,
+}
+
 fn print_human_audit(
     result: &aaai::AuditResult,
     args: &AuditArgs,
-    masker: &Option<aaai::MaskingEngine>,
-    expired: &[&aaai::config::definition::AuditEntry],
-    expiring_soon: &[&aaai::config::definition::AuditEntry],
     s: &aaai::AuditSummary,
-    left_path: &std::path::Path,
-    right_path: &std::path::Path,
-    config_path: &std::path::Path,
+    context: &HumanAuditContext<'_>,
 ) {
+    let HumanAuditContext {
+        masker,
+        expired,
+        expiring_soon,
+        left_path,
+        right_path,
+        config_path,
+    } = *context;
     // ── Zone 1: Header with Result ────────────────────────────────────
     let result_colored = if s.is_passing() {
         "✓ PASSED".green().bold().to_string()
@@ -401,10 +414,10 @@ fn print_human_audit(
             sym_colored, label_colored, r.diff.path, ticket_tag, r.diff.diff_type
         );
 
-        if let Some(detail) = &r.detail {
-            if r.status != AuditStatus::Ok {
-                println!("           {}", detail.dimmed());
-            }
+        if let Some(detail) = &r.detail
+            && r.status != AuditStatus::Ok
+        {
+            println!("           {}", detail.dimmed());
         }
         if args.verbose {
             if let Some(entry) = &r.entry {

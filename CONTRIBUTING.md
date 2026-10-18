@@ -1,6 +1,6 @@
 # Contributing to aaai
 
-This document describes formatting policy for the workspace. See
+This document describes formatting and lint policy for the workspace. See
 [`RELEASING.md`](RELEASING.md) for the release process.
 
 ## Formatting
@@ -38,3 +38,25 @@ format!("after content {i}\n")   // modified           // aligned comment
 rustfmt cannot be configured to preserve this — its configuration surface has
 no alignment option. Do not reintroduce aligned `=` or aligned trailing
 comments; let `cargo fmt --all` format the line normally.
+
+## Lints
+
+The project uses **clippy's default lint set, unconfigured** — there is
+deliberately **no `clippy.toml`**, for the same reason there is no
+`rustfmt.toml`: a project's style is the ecosystem's unless it has earned a
+difference. If a lint proves wrong for this project repeatedly, that is an RFC
+amendment with evidence, not a config line added in passing.
+
+The gate is:
+
+```sh
+cargo +1.91 clippy --workspace --all-targets -- -D warnings
+```
+
+It must exit 0. Do not use `--no-deps` for the gate; that flag is a diagnostic
+for comparing a crate's own findings and would let a dependency-surfaced finding
+through.
+
+Any `#[allow(clippy::…)]` must carry a comment saying why the lint does not
+apply here, or which decision defers it. An allow with no reason is a defect in
+review. (The same goes for `#[allow(dead_code)]` and other rustc lints.)

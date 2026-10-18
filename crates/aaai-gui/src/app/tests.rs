@@ -19,9 +19,11 @@ fn rfc098_path_issue_diff() -> aaai::DiffEntry {
 
 #[test]
 fn rfc098_initial_failure_is_actionable_without_replacing_prior_data() {
-    let mut app = App::default();
-    app.diffs = vec![rfc098_path_issue_diff()];
-    app.is_loading = true;
+    let mut app = App {
+        diffs: vec![rfc098_path_issue_diff()],
+        is_loading: true,
+        ..Default::default()
+    };
     let _ = app.update(Message::DiffFailed(
         "[AAAI-ROOT-UNAVAILABLE] Select a physical directory".into(),
     ));
@@ -37,10 +39,12 @@ fn rfc098_initial_failure_is_actionable_without_replacing_prior_data() {
 
 #[test]
 fn rfc098_rerun_failure_retains_prior_result_as_stale() {
-    let mut app = App::default();
-    app.diffs = vec![rfc098_path_issue_diff()];
-    app.audit_dirty = true;
-    app.is_loading = true;
+    let mut app = App {
+        diffs: vec![rfc098_path_issue_diff()],
+        audit_dirty: true,
+        is_loading: true,
+        ..Default::default()
+    };
     let _ = app.update(Message::RerunDiffReady(Err(
         "[AAAI-ROOT-UNAVAILABLE] Select a physical directory".into(),
     )));

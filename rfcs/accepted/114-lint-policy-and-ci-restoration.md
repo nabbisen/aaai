@@ -117,6 +117,24 @@ break compatibility.**
 the compatibility constraint and the v2 follow-up.** An allow carrying its
 reason is settled policy; a bare allow is debt in disguise — §5.2.
 
+### 4.2a The CI toolchain — pinned to 1.91 (added 2026-10-19)
+
+`ci.yaml`'s `test` job installed `dtolnay/rust-toolchain@stable`, so the gate
+CI ran was not the gate `CONTRIBUTING.md` and §7 item 1 name. On stable 1.99.1
+the workspace fails with three lints that do not exist in 1.91.
+
+**It is pinned to `@1.91`, which is conformance rather than a new decision:**
+`CONTRIBUTING.md:21` already requires `+1.91` for both fmt and clippy, `b0.yaml`
+pins 1.91, and `ci.yaml`'s own `check-msrv` pins 1.91. The `test` job was the
+only floating toolchain in the estate, and it was parked when the rest
+converged.
+
+Nothing is lost by pinning: no workflow currently builds on stable, so there is
+no forward-compatibility coverage to give up. Acquiring some is a separate
+deliberate choice and is **not** taken here — an advisory job that is
+permanently yellow is ignored exactly as reliably as one that is permanently
+red.
+
 ### 4.3 `print_human_audit` — fix by grouping, not by allowing
 
 Nine arguments on a private CLI print helper. It is not API-bound and nothing
@@ -152,10 +170,17 @@ proof.
 means editing 16 bodies, which is a behaviour-risk for zero functional gain,
 and they are a true record of how that code arrived.
 
-**None of the 20 allows in the workspace currently carries a reason comment** —
+**None of the 20 allows in the workspace carries a `//` reason comment** —
 verified, not assumed. That is the actual gap, and §5.2 is what closes it. The
 implementer adds the reason to all 20, clippy and non-clippy alike; the
 suppressions stay.
+
+> **Corrected 2026-10-19 at review.** "None carries a reason" was overstated:
+> two of the three `dead_code` allows already explained themselves in an
+> adjacent **doc** comment, which is a reason even though my grep for `//`
+> did not see one. The implementer added explicit `//` lines so all are
+> uniformly greppable, and the final count is **21** — §4.2 adds the
+> twenty-first.
 
 ## 5. The policy — the half that makes this stick
 

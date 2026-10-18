@@ -78,7 +78,7 @@ impl AuditDefinition {
         let today = Utc::now().date_naive();
         self.entries
             .iter()
-            .filter(|e| e.expires_at.map_or(false, |d| d <= today))
+            .filter(|e| e.expires_at.is_some_and(|d| d <= today))
             .collect()
     }
 
@@ -88,7 +88,7 @@ impl AuditDefinition {
         let threshold = today + chrono::Duration::days(days);
         self.entries
             .iter()
-            .filter(|e| e.expires_at.map_or(false, |d| d > today && d <= threshold))
+            .filter(|e| e.expires_at.is_some_and(|d| d > today && d <= threshold))
             .collect()
     }
 }
@@ -167,15 +167,14 @@ impl AuditEntry {
     /// True if `expires_at` is today or in the past.
     pub fn is_expired(&self) -> bool {
         self.expires_at
-            .map_or(false, |d| d <= Utc::now().date_naive())
+            .is_some_and(|d| d <= Utc::now().date_naive())
     }
 
     /// True if expiring within `days` days but not yet expired.
     pub fn expires_soon(&self, days: i64) -> bool {
         let today = Utc::now().date_naive();
         let threshold = today + chrono::Duration::days(days);
-        self.expires_at
-            .map_or(false, |d| d > today && d <= threshold)
+        self.expires_at.is_some_and(|d| d > today && d <= threshold)
     }
 
     /// Stamp created_at (first time) and updated_at (always) with the current UTC time.
@@ -201,9 +200,10 @@ impl AuditEntry {
 
 // ── Content-audit strategy ────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum AuditStrategy {
+    #[default]
     None,
     Checksum {
         expected_sha256: String,
@@ -219,12 +219,6 @@ pub enum AuditStrategy {
     Exact {
         expected_content: String,
     },
-}
-
-impl Default for AuditStrategy {
-    fn default() -> Self {
-        AuditStrategy::None
-    }
 }
 
 impl AuditStrategy {

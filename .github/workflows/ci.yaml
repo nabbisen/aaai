@@ -1,5 +1,15 @@
 # aaai — Continuous Integration
 #
+# RFC 114 — automatic triggers are restored. This workflow was parked by
+# RFC 102 §5.4 for the reasons recorded below; all four are now resolved:
+#
+#   1. Repository-wide `cargo fmt --check` debt (DEC-006)  — RESOLVED, RFC 107
+#   2. Jobs naming the nonexistent `aaai-core`             — RESOLVED, RFC 112
+#   3. Open advisories in the security-audit job           — RESOLVED 2026-09-17
+#   4. `clippy -D warnings` findings (never listed here)   — RESOLVED, RFC 114
+#
+# History, kept deliberately (as RFC 112 kept it):
+#
 # RFC 102 §5.4 — automatic triggers are parked pending C2. This workflow has
 # failed on every recent push for reasons already documented (repository-wide
 # `cargo fmt --check` debt under DEC-006, an MSRV job naming the nonexistent
@@ -10,6 +20,10 @@
 name: CI
 
 on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 env:
@@ -39,8 +53,10 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+      # RFC 114 §5.1 — workspace-wide and without `--no-deps`: as a gate, that
+      # flag would let a dependency-surfaced finding through.
       - name: Clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       # RFC 091 §11.1 — GUI must compile on all CI platforms.
       - name: Build

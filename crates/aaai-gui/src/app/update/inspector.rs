@@ -72,6 +72,8 @@ impl App {
         };
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn remove_line_rule(&mut self, i: usize) {
         if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
@@ -82,6 +84,8 @@ impl App {
         self.validate_inspector();
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn line_rule_action_changed(&mut self, i: usize, new_action: LineAction) {
         // RFC 033 — payload is already `LineAction`; no string parsing
@@ -93,6 +97,8 @@ impl App {
         }
     }
 
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::collapsible_if)]
     pub(in crate::app) fn line_rule_line_changed(&mut self, i: usize, s: String) {
         if let AuditStrategy::LineMatch { rules } = &mut self.inspector.strategy {
@@ -171,13 +177,12 @@ impl App {
         }
 
         // ExpiresAt format
-        if !ins.expires_at_str.trim().is_empty() {
-            if chrono::NaiveDate::parse_from_str(&ins.expires_at_str, "%Y-%m-%d").is_err() {
-                // RFC 031 — i18n-migrated; this was the last
-                // hardcoded user-facing string in app.rs.
-                v.expires_at_error =
-                    Some(t!("error.inspector.expires_at_format.message").to_string());
-            }
+        if !ins.expires_at_str.trim().is_empty()
+            && chrono::NaiveDate::parse_from_str(&ins.expires_at_str, "%Y-%m-%d").is_err()
+        {
+            // RFC 031 — i18n-migrated; this was the last
+            // hardcoded user-facing string in app.rs.
+            v.expires_at_error = Some(t!("error.inspector.expires_at_format.message").to_string());
         }
 
         // Strategy-specific validation

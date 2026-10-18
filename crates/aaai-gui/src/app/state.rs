@@ -82,6 +82,7 @@ impl FilterMode {
 pub struct FieldError {
     /// Which inspector field triggered the error. Currently stored for
     /// future use in field-level focus/highlight; not yet read by view code.
+    // Not read by any view yet; kept for the field-level focus/highlight above.
     #[allow(dead_code)]
     pub field: String,
     pub message: String,

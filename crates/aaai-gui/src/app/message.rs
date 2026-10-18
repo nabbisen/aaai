@@ -10,6 +10,10 @@ use crate::util::StrategyKind;
 
 use super::{DiffViewMode, FilterMode};
 
+// Silences "never constructed" for 12 variants that update() handles but no view
+// or subscription builds today (listed in the RFC 114 review request). Whether
+// they are reserved or dead is undecided; this allow records that, it does not
+// answer it.
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Message {

@@ -49,8 +49,10 @@ pub struct AuditSummary {
 
 impl AuditSummary {
     pub fn from_results(results: &[FileAuditResult]) -> Self {
-        let mut s = AuditSummary::default();
-        s.total = results.len();
+        let mut s = AuditSummary {
+            total: results.len(),
+            ..Default::default()
+        };
         for r in results {
             match r.status {
                 AuditStatus::Ok => s.ok += 1,

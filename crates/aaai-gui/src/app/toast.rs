@@ -41,6 +41,7 @@ impl App {
     /// method is part of RFC 026's public surface for future error sites
     /// (e.g. when DiffFailed, profile delete failure, or export failure
     /// gain proper UserError plumbing).
+    // No caller yet; kept as RFC 026's surface for future error sites (see above).
     #[allow(dead_code)]
     pub(in crate::app) fn push_user_error_toast(
         &mut self,

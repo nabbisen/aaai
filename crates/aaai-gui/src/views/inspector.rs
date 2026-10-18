@@ -18,9 +18,8 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     let ins = &app.inspector;
 
     // ── Header ────────────────────────────────────────────────────────
-    let status_color = match far.status {
-        s => crate::theme::status_color(s, &app.design_tokens, app.theme.is_high_contrast()),
-    };
+    let status_color =
+        crate::theme::status_color(far.status, &app.design_tokens, app.theme.is_high_contrast());
     let status_label = t!(match far.status {
         AuditStatus::Ok => "status.ok",
         AuditStatus::Pending => "status.pending",
@@ -286,7 +285,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
     .map(|k| {
         let base = k.label();
         let label = if k == recommended_kind {
-            format!("{}{}", base, rec_label).into()
+            format!("{}{}", base, rec_label)
         } else {
             base
         };
@@ -314,7 +313,7 @@ pub fn view<'a>(app: &'a App, far: &'a FileAuditResult) -> Element<'a, Message> 
         tmpl_opts,
         Some(t!("inspector.template_none").to_string()),
         |s: String| {
-            if s == t!("inspector.template_none").to_string() {
+            if s == t!("inspector.template_none") {
                 Message::ApplyTemplate(String::new())
             } else {
                 Message::ApplyTemplate(s)
@@ -686,13 +685,11 @@ fn build_strategy_form<'a>(
                         },
                     )
                     .padding(tokens.spacing.xs);
-                    let line_input = text_input(
-                        &t!("inspector.linematch_line_placeholder").to_string(),
-                        &rule.line,
-                    )
-                    .on_input(move |s| Message::LineRuleLineChanged(i, s))
-                    .padding(tokens.spacing.sm)
-                    .font(iced::Font::MONOSPACE);
+                    let line_input =
+                        text_input(&t!("inspector.linematch_line_placeholder"), &rule.line)
+                            .on_input(move |s| Message::LineRuleLineChanged(i, s))
+                            .padding(tokens.spacing.sm)
+                            .font(iced::Font::MONOSPACE);
                     let del = button(
                         text("✕")
                             .size(tokens.typography.label.size)
@@ -809,13 +806,10 @@ fn build_strategy_form<'a>(
                 text(t!("inspector.regex_pattern_label").to_string())
                     .size(tokens.typography.label.size)
                     .line_height(tokens.typography.label.line_height),
-                text_input(
-                    &t!("inspector.regex_pattern_placeholder").to_string(),
-                    pattern
-                )
-                .on_input(Message::RegexPatternChanged)
-                .padding(tokens.spacing.sm)
-                .font(iced::Font::MONOSPACE),
+                text_input(&t!("inspector.regex_pattern_placeholder"), pattern)
+                    .on_input(Message::RegexPatternChanged)
+                    .padding(tokens.spacing.sm)
+                    .font(iced::Font::MONOSPACE),
                 text(t!("inspector.regex_target_label").to_string())
                     .size(tokens.typography.label.size)
                     .line_height(tokens.typography.label.line_height),
@@ -835,13 +829,10 @@ fn build_strategy_form<'a>(
             text(t!("inspector.exact_label").to_string())
                 .size(tokens.typography.label.size)
                 .line_height(tokens.typography.label.line_height),
-            text_input(
-                &t!("inspector.exact_content_placeholder").to_string(),
-                expected_content
-            )
-            .on_input(Message::ExactContentChanged)
-            .padding(tokens.spacing.sm)
-            .font(iced::Font::MONOSPACE),
+            text_input(&t!("inspector.exact_content_placeholder"), expected_content)
+                .on_input(Message::ExactContentChanged)
+                .padding(tokens.spacing.sm)
+                .font(iced::Font::MONOSPACE),
         ]
         .spacing(tokens.spacing.xs)
         .into(),

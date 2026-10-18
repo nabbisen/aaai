@@ -1,6 +1,8 @@
 use super::super::*;
 
 impl App {
+    // Deferred by RFC 114 §4.4: body moved byte-identical out of update() in RFC 100
+    // phase A, where the lint only became visible; fixing it is a behaviour risk for no gain.
     #[allow(clippy::needless_return)]
     pub(in crate::app) fn rerun_audit(&mut self) -> Task<Message> {
         // RFC 037 — converted to async; toast fires from RerunDiffReady.

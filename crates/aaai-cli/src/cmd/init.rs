@@ -142,7 +142,10 @@ pub fn run(args: InitArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn non_interactive_init(_dir_unused: &PathBuf, config_path: &PathBuf) -> anyhow::Result<()> {
+fn non_interactive_init(
+    _dir_unused: &PathBuf,
+    config_path: &std::path::Path,
+) -> anyhow::Result<()> {
     let cfg = ProjectConfig::default();
     cfg.save(config_path)?;
     println!(

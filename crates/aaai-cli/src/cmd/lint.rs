@@ -110,15 +110,15 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
         }
 
         // Expired entries
-        if let Some(exp) = entry.expires_at {
-            if exp <= today {
-                issues.push(LintIssue {
-                    path: entry.path.clone(),
-                    kind: "expired".into(),
-                    severity: "warning".into(),
-                    message: format!("Entry expired on {exp} — re-review required."),
-                });
-            }
+        if let Some(exp) = entry.expires_at
+            && exp <= today
+        {
+            issues.push(LintIssue {
+                path: entry.path.clone(),
+                kind: "expired".into(),
+                severity: "warning".into(),
+                message: format!("Entry expired on {exp} — re-review required."),
+            });
         }
 
         // LineMatch with empty line rules
@@ -146,19 +146,18 @@ pub fn run(args: LintArgs) -> anyhow::Result<()> {
         // Strategy / diff_type mismatch suggestions
         use aaai::DiffType;
         use aaai::config::definition::AuditStrategy;
-        match (&entry.diff_type, &entry.strategy) {
-            (DiffType::Added | DiffType::Removed, AuditStrategy::LineMatch { .. }) => {
-                issues.push(LintIssue {
-                    path: entry.path.clone(),
-                    kind: "strategy-mismatch".into(),
-                    severity: "info".into(),
-                    message: format!(
-                        "LineMatch on {:?} entry — consider Checksum or None instead.",
-                        entry.diff_type
-                    ),
-                });
-            }
-            _ => {}
+        if let (DiffType::Added | DiffType::Removed, AuditStrategy::LineMatch { .. }) =
+            (&entry.diff_type, &entry.strategy)
+        {
+            issues.push(LintIssue {
+                path: entry.path.clone(),
+                kind: "strategy-mismatch".into(),
+                severity: "info".into(),
+                message: format!(
+                    "LineMatch on {:?} entry — consider Checksum or None instead.",
+                    entry.diff_type
+                ),
+            });
         }
 
         // Disabled entries warning

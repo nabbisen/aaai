@@ -116,7 +116,7 @@ pub fn run(args: ExportArgs) -> anyhow::Result<()> {
                     .and_then(|e| e.expires_at)
                     .map(|d| d.to_string())
                     .unwrap_or_default(),
-                &entry
+                entry
                     .map(|e| if e.enabled { "true" } else { "false" })
                     .unwrap_or(""),
                 &note,

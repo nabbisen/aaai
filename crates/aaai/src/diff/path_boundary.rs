@@ -548,6 +548,8 @@ fn display_component(name: &OsStr) -> String {
             .map(|unit| format!("%u{unit:04X}"))
             .collect();
     }
+    // On unix and windows the cfg blocks above always `return`, so this fallback is
+    // unreachable there; it is the live path only on targets that are neither.
     #[allow(unreachable_code)]
     String::from("%INVALID")
 }
