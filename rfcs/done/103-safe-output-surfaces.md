@@ -5,7 +5,7 @@ unit 1). Landed 2026-07-31 in
 `4d4996a7517e5cbd8f09ee645c9086c9899b2e33`; hosted evidence in run
 `30551474446`. All eight §6 acceptance items discharged — see §12. Completes
 S2's **output half**; S2 itself remains open on RFC 098's symlink half. Two residuals, both deliberate and both recorded in §12.3: GUI
-report export stayed unmasked — **closed by [RFC 104](../accepted/104-gui-report-export-masking.md)** (implemented, awaiting release) — and SARIF navigation targets stay unmasked.
+report export stayed unmasked — **closed by [RFC 104](../done/104-gui-report-export-masking.md)** (implemented, awaiting release) — and SARIF navigation targets stay unmasked.
 
 **Tracks.** `ROADMAP.md` M2 / WS-05 / gate S2
 
@@ -285,7 +285,7 @@ workstream records, WS-12/D1 accepts before R1.
 | **Deliberately not softened** | No `From<Option<…>>`, `Default`, or `Into` shim. A shim would let `None` keep compiling, preserving the silent default that caused F3, F4, and F5. The break *is* the mechanism (§5.1) |
 | **Permitted because** | v0.x is pre-release; RFC 095 §8 states the contract starts at v1.0.0 and v0.x gains no retroactive promise |
 | **Behaviour change** | `aaai report` now masks its file output on all formats. Owner-approved 2026-07-29 (§5.1a). Not an API break, but a user-visible one |
-| **Known limitation carried** | GUI report export remains unmasked; `App` constructs no `MaskingEngine`. Follow-up, not resolved here (since closed by [RFC 104](../accepted/104-gui-report-export-masking.md)) |
+| **Known limitation carried** | GUI report export remains unmasked; `App` constructs no `MaskingEngine`. Follow-up, not resolved here (since closed by [RFC 104](../done/104-gui-report-export-masking.md)) |
 | **Downstream consumers** | None known. `aaai` is not published under this name, so no external caller can exist yet |
 
 ### 9.2 Not changed
@@ -361,7 +361,7 @@ change closes a gap between documentation and code rather than opening one.
 
 ### 12.3 Residuals — deliberate, not deferred defects
 
-1. **GUI report export remains unmasked.** **CLOSED — [RFC 104](../accepted/104-gui-report-export-masking.md)**
+1. **GUI report export remains unmasked.** **CLOSED — [RFC 104](../done/104-gui-report-export-masking.md)**
    masks both GUI export formats unconditionally, from a single binding, and a
    test reads the written file. The text below is the original residual, kept
    as the record. Originally, `crates/aaai-gui/src/app.rs` passed
@@ -369,7 +369,7 @@ change closes a gap between documentation and code rather than opening one.
    enabling it is more than a mechanical change. Declared a non-goal in §3.2 and
    confirmed as a known limitation in review 052 §5. It is the one place where a
    user-visible surface still contradicts NF-14. **Owned by
-   [RFC 104](../accepted/104-gui-report-export-masking.md)**, opened
+   [RFC 104](../done/104-gui-report-export-masking.md)**, opened
    2026-07-31 and scheduled after RFC 100.
 2. **SARIF `originalUriBaseIds` and `artifactLocation.uri` remain unmasked.**
    Accepted in review 053 §4 Q2: these are functional navigation targets a SARIF

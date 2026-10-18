@@ -1,6 +1,6 @@
 # RFC 112 — Rename and layout conformance: implementer handoff
 
-**RFC.** [`rfcs/accepted/112-rename-and-layout-conformance.md`](../../accepted/112-rename-and-layout-conformance.md)
+**RFC.** [`rfcs/done/112-rename-and-layout-conformance.md`](../../done/112-rename-and-layout-conformance.md)
 
 **Status.** **Accepted by the owner 2026-10-18.** Ready to implement.
 

@@ -6,6 +6,64 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+### Reports exported from the GUI are now redacted
+
+Until now, the same report exported from the GUI instead of the CLI was **not
+masked**. A secret-pattern match in a `reason`, `ticket` or `note` field
+reached the file you chose to save — the exact sink the report is meant to be
+shared from.
+
+GUI export now masks exactly what CLI export masks, including custom patterns
+discovered from the project's own configuration, and it is proven by a test
+that reads the written file back and asserts the canary is gone.
+
+Masking is **unconditional** on both surfaces: `mask_secrets: false` in project
+config does not un-redact a report. That was already true of `aaai report`;
+this extends the same rule to the GUI rather than introducing it.
+
+A GUI user still cannot distinguish "nothing needed redacting" from "something
+was redacted" — the current API does not report whether a pattern matched.
+That is a deliberate, recorded limitation, not an oversight.
+
+### Security — five advisories cleared from the dependency graph
+
+All reached the project through its dependencies, none through its own code:
+
+| Advisory | Crate | |
+|---|---|---|
+| `RUSTSEC-2026-0194`, `-0195` | `quick-xml` | denial of service |
+| `RUSTSEC-2026-0186` | `memmap2` | unchecked pointer offset |
+| `RUSTSEC-2026-0221` | `event-listener` | `!Send` tags crossing threads |
+| `RUSTSEC-2026-0190` | `anyhow` | unsound `Error::downcast_mut` |
+| `RUSTSEC-2026-0204` | `crossbeam-epoch` | invalid pointer dereference |
+
+`cargo audit` now reports **no vulnerabilities**. Four advisories remain as
+accepted warnings and cannot be fixed today: `lru` (unsound, held below the
+patched release by an upstream dependency) and three unmaintained crates
+(`paste`, `rustybuzz`, `ttf-parser`).
+
+### Removed
+
+- **Batch Approve.** The feature had been unreachable since v0.15.0 — no
+  button, menu item or shortcut could open it — because RFC 007 removed its
+  entry point and RFC 008 made the bottom action bar the sole approval
+  mechanism. Roughly 300 lines of view, state, messages and translations are
+  gone with it. No user-visible change: nothing could reach it.
+
+### Internal
+
+- The engine crate's published documentation is titled `aaai` rather than
+  `aaai-core`, a name retired in v0.39.0. `aaai-cli` now follows the project's
+  Rust 2024 module layout — no `mod.rs`, tests in a sibling file — which the
+  GUI crate already did.
+- **Release tags no longer carry a `v` prefix.** Tag `0.43.0`, not `v0.43.0`,
+  matching the crates.io version exactly. The GitHub Release is titled with the
+  bare version, and asset filenames follow the tag. `v0.41.0` and `v0.42.0`
+  keep their names; retagging published releases would break their download
+  URLs.
+- RFC lifecycle moved to the five-folder layout, adding `accepted/` for work
+  the owner has approved and that has not yet shipped.
+
 ---
 
 ## [0.42.0] — Accessibility: borders are visible, muted text meets AA (2026-08-27)

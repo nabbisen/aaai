@@ -34,10 +34,8 @@ RFC 110 §8.
 
 | ID | Title | Tracks |
 |---|---|---|
-| [104](accepted/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2 |
 | [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
-| [112](accepted/112-rename-and-layout-conformance.md) | Finish the `aaai-core` rename and the DEC-003 layout | Precursor to C1 (not urgent) |
 
 RFCs the owner has approved for implementation and that have not shipped. The
 folder is the source of truth for this state (RFC 000); each moves to `done/`
@@ -144,6 +142,8 @@ when it ships.
 | [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 migration — accessibility repairs and typography | v0.42.0 |
 | [111](done/111-batch-approve-removal.md) | Remove the Batch Approve feature — unreachable since v0.15.0 | Unreleased (after v0.42.0) |
 | [109](done/109-rfc-lifecycle-sync-and-five-folder.md) | Sync the lifecycle policy, adopt the 5-folder variant, bound the decision register | Unreleased (after v0.42.0) |
+| [112](done/112-rename-and-layout-conformance.md) | Finish the `aaai-core` rename and the DEC-003 layout | Unreleased (after v0.42.0) |
+| [104](done/104-gui-report-export-masking.md) | GUI Report Export Masking | Unreleased (after v0.42.0) |
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0 (release unit 1) |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |

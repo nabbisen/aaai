@@ -1,8 +1,8 @@
 # RFC 104 — GUI Report Export Masking
 
-**Status.** **Accepted** — approved for implementation by the owner 2026-08-27.
-Lives in `rfcs/accepted/`; the folder is the source of truth for this state
-(RFC 000).
+**Status.** **Implemented on `main` at `ad1bfa9`, 2026-10-18.** Not yet in a
+release. Approved by the owner 2026-08-27; one correction required at review
+(078 §3.1) and closed at re-review (079).
 
 **Tracks.** `ROADMAP.md` M2 / WS-05 / gate S2 — closes the last surface RFC 103
 left unmasked
