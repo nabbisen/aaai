@@ -1,6 +1,9 @@
 # RFC 109 — Sync the lifecycle policy, adopt the 5-folder variant, bound the decision register
 
-**Status.** Proposed
+**Status.** **Implemented on `main` at `b6ec197`, 2026-10-18.** Not yet in a
+release; v0.42.0 was cut before it landed. §1's three corrections are all
+closed — see §4 and §7 for what actually happened, which differs from what
+this RFC predicted.
 
 **Tracks.** Project governance. No milestone or gate — this is process, not
 product.
@@ -91,17 +94,28 @@ implementation is authorised — two states a reader cannot tell apart.
 
 ## 4. Where today's RFCs land
 
-| RFC | Folder | Why |
-|---|---|---|
-| **108** — snora 0.38 migration | **`accepted/`** | Owner approved all four §11 decisions 2026-08-19; handoff written |
-| **100** — GUI module boundaries | `proposed/` | Design re-review 070 says Accept, but **owner approval has not been given** — it was asked for and the conversation moved on |
-| 101 — guided review flow | `proposed/` | Never design-reviewed |
-| 104 — GUI export masking | `proposed/` | Never design-reviewed |
-| 105 — visual verification scope | `proposed/` | Never design-reviewed — noted repeatedly and still true |
-| 106 — keyboard operability | `proposed/` | Never design-reviewed |
+> **Regenerated 2026-10-18 at implementation.** The table below originally
+> predicted RFC 108 as `accepted/`'s only occupant and RFC 100 as a one-line
+> follow-up. Seven weeks passed before this RFC was executed, and in that time
+> **both shipped**. The prediction was wrong in the ordinary way a dated plan
+> is wrong; it is replaced rather than defended.
 
-**RFC 100 moves to `accepted/` the moment the owner approves it**, which is a
-one-line follow-up rather than part of this RFC.
+| RFC | Folder at implementation | Why |
+|---|---|---|
+| **104** — GUI export masking | **`accepted/`** | Owner approved 2026-08-27; handoff written; not started |
+| **106** — keyboard operability | **`accepted/`** | Owner approved 2026-10-18; §5 settled on `F6`; handoff written |
+| **110** — modal overlay consolidation | **`accepted/`** | Owner approved 2026-08-21; no handoff yet |
+| 100 — GUI module boundaries | `done/` | Shipped in v0.42.0 |
+| 108 — snora 0.38 migration | `done/` | Shipped in v0.42.0 |
+| 111 — Batch Approve removal | `done/` | On `main`, unreleased |
+| 101 — guided review flow | `proposed/` | Never design-reviewed |
+| 105 — visual verification scope | `proposed/` | Never design-reviewed |
+
+**`accepted/` opened with three occupants, not one.** That is a better outcome
+for §8's "sits empty and becomes clutter" risk than the single occupant this
+RFC planned for, and it is direct evidence the variant fits: three RFCs the
+owner has signed off and nobody has started is precisely the state the
+4-folder layout could not express.
 
 ## 5. `DEC-` and `RISK-` are not RFCs — and I was making them behave like some
 
@@ -142,28 +156,43 @@ before it is adopted, replacing them with pointers to RFC 107 and RFC 108.
 
 ## 6. Timing
 
-**Now, before the dev team starts RFC 108.** Three reasons:
-
-- the migration is a file move plus a link sweep, and it gets more expensive
-  with every RFC added;
-- **handoffs do not move** — the policy is explicit — so RFC 108's handoff path
-  is unaffected and the dev team is not disturbed mid-task;
-- nothing is currently mid-implementation, which is the same window RFC 107 used
-  and the condition self-application recommends.
+> **Overtaken.** This section argued for landing "now, before the dev team
+> starts RFC 108". RFC 108 shipped seven weeks before this RFC was executed.
+> The reasoning still held when it was finally done — nothing was
+> mid-implementation, and handoffs did not move — but the window named here
+> was missed. Recorded rather than rewritten, because the cost of the delay is
+> the point: three RFCs accumulated in the wrong folder in the meantime.
 
 ## 7. Acceptance contract
 
-1. `rfcs/done/000-rfc-lifecycle-policy.md` is byte-identical to
-   `.git-exclude/rules/000-rfc-lifecycle-policy.md`, except for a Status-field
-   note recording the sync.
-2. `rfcs/accepted/` exists and contains **RFC 108**.
-3. Every other `proposed/` RFC is unmoved.
-4. `rfcs/README.md` gains an **Accepted** table between Proposed and Done.
-5. **No `rfcs/handoffs/` directory moves**, per the policy.
+> **Regenerated 2026-10-18.** Items 1 and 2 were overtaken before execution:
+> the owner synced the policy directly in `4707516`, and RFC 108 shipped. What
+> follows is what was actually required and verified.
+
+1. ~~`rfcs/done/000-rfc-lifecycle-policy.md` is byte-identical to the rules
+   copy~~ — **done by the owner in `4707516`**, independently of this RFC.
+   Verified: `diff` between the two copies reports no difference.
+2. `rfcs/accepted/` exists and contains **RFC 104, 106 and 110** — every RFC
+   the owner has approved and that has not shipped. ✔
+3. Every other `proposed/` RFC is unmoved — 101, 105 and this RFC. ✔
+4. `rfcs/README.md` gains an **Accepted** table between Proposed and Done. ✔
+5. **No `rfcs/handoffs/` directory moves**, per the policy. ✔ — the handoffs
+   for 104 and 106 had their inbound links rewritten, but neither directory
+   moved.
 6. Every cross-reference to a moved RFC is updated —
-   `grep -rn "proposed/108" --include="*.md"` returns nothing.
-7. The draft decision log drops DEC-013 and DEC-014 in favour of pointers.
-8. One atomic commit, per self-application.
+   `grep -rn "proposed/104\|proposed/106\|proposed/110" --include="*.md"`
+   returns nothing. ✔
+7. The draft decision register drops DEC-013 and DEC-014 in favour of
+   pointers. ✔ — see §5.1.
+8. One atomic commit, per self-application. ✔ — `b6ec197`, which also carried
+   the unrelated tag-format change the owner decided in the same exchange.
+   Strictly that is two themes in one commit; recorded as a deviation rather
+   than claimed as compliance.
+
+**Not created: `archive/` and `draft/`.** Nothing is withdrawn, superseded or
+drafted, and RFC 000 names an empty folder a maintenance burden with no
+payoff. The 5-folder variant is adopted as a *rule*; the folders appear when
+they have an occupant.
 
 ## 8. Risks
 

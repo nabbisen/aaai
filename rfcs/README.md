@@ -12,7 +12,6 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
-| [109](proposed/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | プロジェクト運営 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
@@ -139,6 +138,7 @@ RFC 110 §8.
 | [100](done/100-gui-module-boundaries.md) | GUI Module Boundaries | v0.42.0 |
 | [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | v0.42.0 |
 | [111](done/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | 未リリース（v0.42.0 の次）|
+| [109](done/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | 未リリース（v0.42.0 の次）|
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
