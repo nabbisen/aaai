@@ -132,14 +132,7 @@ impl App {
                 Some(PathBuf::from(&self.definition_path))
             };
 
-            // RFC 104 §4.1 — built once, shared by both formats, mirroring
-            // `aaai-cli/src/cmd/report.rs`. Unconditional (§4.2): the
-            // project's `mask_secrets` setting does not un-redact a report.
-            let masker = Self::report_masker(&before);
-            let masking = aaai::Masking::Enabled(&masker);
-
-            let res =
-                Self::write_report(result, &before, &after, def_path.as_deref(), &out, masking);
+            let res = Self::write_report(result, &before, &after, def_path.as_deref(), &out);
 
             match res {
                 Ok(()) => {
@@ -175,15 +168,22 @@ impl App {
     /// RFC 104 §4.3 — writes the report; the format follows `out`'s extension.
     ///
     /// Takes only what the write needs, so a test can drive it without an
-    /// `App` (and therefore without `UserPrefs::load`).
+    /// `App` (and therefore without `UserPrefs::load`). Builds its own masking
+    /// from `before`, so unmasked output cannot be expressed on this path.
     fn write_report(
         result: &AuditResult,
         before: &std::path::Path,
         after: &std::path::Path,
         def_path: Option<&std::path::Path>,
         out: &std::path::Path,
-        masking: aaai::Masking<'_>,
     ) -> anyhow::Result<()> {
+        // RFC 104 §4.1 — built here, once, for both formats, mirroring
+        // `aaai-cli/src/cmd/report.rs`. Unconditional (§4.2): the project's
+        // `mask_secrets` setting does not un-redact a report, and no caller
+        // can supply a different masking.
+        let masker = Self::report_masker(before);
+        let masking = aaai::Masking::Enabled(&masker);
+
         // Derive format from chosen extension.
         let use_json = out
             .extension()

@@ -81,16 +81,7 @@ fn without_timestamps(text: &str) -> String {
 }
 
 fn export(result: &AuditResult, before: &Path, out: &Path) -> String {
-    let masker = App::report_masker(before);
-    App::write_report(
-        result,
-        before,
-        before,
-        None,
-        out,
-        aaai::Masking::Enabled(&masker),
-    )
-    .unwrap();
+    App::write_report(result, before, before, None, out).unwrap();
     std::fs::read_to_string(out).unwrap()
 }
 
