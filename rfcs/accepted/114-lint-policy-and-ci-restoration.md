@@ -129,11 +129,21 @@ pins 1.91, and `ci.yaml`'s own `check-msrv` pins 1.91. The `test` job was the
 only floating toolchain in the estate, and it was parked when the rest
 converged.
 
-Nothing is lost by pinning: no workflow currently builds on stable, so there is
-no forward-compatibility coverage to give up. Acquiring some is a separate
-deliberate choice and is **not** taken here — an advisory job that is
-permanently yellow is ignored exactly as reliably as one that is permanently
-red.
+**Only the `test` job is pinned.** `windows-gui-build` and `docs-build` stay on
+`stable`, deliberately:
+
+| Job | Toolchain | Why |
+|---|---|---|
+| `test`, `check-msrv` | **1.91** | They gate. A gate on a moving toolchain goes red when Rust ships a lint |
+| `windows-gui-build` | stable | `cargo build -p aaai-gui` compiles `aaai-gui` **and** `aaai` on the current toolchain — the project's only forward-compatibility signal |
+| `docs-build` | stable | It compiles `mdbook`, not our crates; a tool is best built with a current toolchain |
+
+> **Corrected 2026-10-19.** An earlier revision of this section claimed no
+> workflow builds on stable and that pinning gave up nothing. That was wrong —
+> `windows-gui-build` does, and pinning everything would have deleted the one
+> forward-compatibility signal the project has. The coverage is partial
+> (Windows only, no `aaai-cli`, build without tests), which is worth knowing,
+> but it is not nothing.
 
 ### 4.3 `print_human_audit` — fix by grouping, not by allowing
 

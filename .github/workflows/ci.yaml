@@ -42,8 +42,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      # RFC 114 §5.1 — pinned to the toolchain CONTRIBUTING.md's `+1.91` rule,
+      # B0 and the MSRV job already use. On a moving `stable` this gate would go
+      # red whenever Rust ships a new lint.
+      - name: Install Rust (1.91)
+        uses: dtolnay/rust-toolchain@1.91
         with:
           components: rustfmt, clippy
 
