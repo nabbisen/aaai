@@ -1,6 +1,8 @@
 # RFC 113 — Threat model
 
-**Status.** Proposed
+**Status.** **Accepted** — approved for implementation by the owner
+2026-10-18. Lives in `rfcs/accepted/`; the folder is the source of truth for
+this state (RFC 000).
 
 **Tracks.** `ROADMAP.md` M2 / gate **S2** (untrusted input and output are
 safe). S2's last open half — RFC 098 closed symlinks, RFC 103 the engine and
@@ -87,7 +89,7 @@ path the user chooses, to be read by someone else, possibly machine-parsed.
 | **T2** | A secret in a `reason`, `ticket` or `note` reaches the shared report | B3 | **Mitigated.** RFC 103 for the engine and CLI, RFC 104 for the GUI. Unconditional on both — `mask_secrets: false` does not un-redact |
 | **T3** | Hostile content in a filename or diff line is interpreted by the report's consumer — spreadsheet formula injection, HTML or SARIF escaping | B1 → B3 | **Mitigated.** RFC 103 — contextual encoding and spreadsheet neutralisation per format |
 | **T4** | A pathological regular expression in a definition file hangs the audit | B2 | **Structurally impossible.** `regex` 1.12.4 is a finite-automata engine with linear-time matching and no backtracking. ReDoS is not expressible. Recorded because the absence is a property of the dependency choice and would be lost if that choice ever changed |
-| **T5** | A very large file in an audited folder exhausts memory | B1 | **NOT MITIGATED — see §5** |
+| **T5** | A very large file in an audited folder exhausts memory | B1 | **Not mitigated; scheduled.** Slice A recommended for unit 4, slice B owned by M5 / gate E1 — see §5 |
 | **T6** | aaai modifies the folders it is auditing | B1 | **Mitigated.** SEC-2; the engine opens inputs read-only, and canary tests in `diff/tests.rs` assert byte-and-metadata stability across a run |
 | **T7** | A compromised or vulnerable dependency | B4 | **Partly mitigated.** `cargo audit` reports no vulnerabilities; four accepted warnings remain. The scan is configured but its workflow is parked, so it runs only when someone runs it — gate C0 |
 | **T8** | A memory-safety defect in aaai's own code | all | **Mitigated.** SEC-1 / DEC-012 — no `unsafe` anywhere in project code, verifiable by grep |
@@ -121,16 +123,46 @@ is not a result the user can act on — §15.1 of the development instructions
 requires errors to tell the user what to do next, and an OOM kill tells them
 nothing.
 
-**Recommendation: fix it, in its own RFC, sequenced with M5.** Gate E1 already
-owns "staged and bounded diff engine" and M5's exit criteria are about bounded
-scanning. A size bound belongs there rather than bolted on here — the right
-design is probably streaming the hash and refusing text classification above a
-threshold, which is M5's work, not a patch.
+### 5.1 Can it be fixed, and should it be — yes to both, and it is already planned
 
-**Not recommended as an emergency fix.** It has been true since the first
-release, it is availability-only, and a hasty bound would collide with M5's
-design. **Owner decision: accept as a recorded limitation until M5, or raise
-it?** My recommendation is to accept and record, and I have written T5 that way.
+**Can it?** Yes, and the shape is not in doubt:
+
+| Slice | Change | Effect |
+|---|---|---|
+| **A — bound the read** | `stat` before reading; above a threshold return a `PathIssue` ("too large to compare") instead of a `Vec<u8>` | Converts an OOM abort into an `Error`-status entry the user can act on, which is what §15.1 of the development instructions requires |
+| **B — stream the hash** | Feed `sha2` incrementally rather than hashing a resident buffer; skip text classification above the threshold and mark the entry binary/large | Restores *comparability* for large files — checksum strategies keep working at bounded memory |
+
+Slice A is a subset of the end state, not a throwaway: **even with streaming,
+there will always be a size above which line-diffing is refused**, so the
+threshold and its user-facing issue are permanent furniture.
+
+**Should it?** Yes. NF-3 promises tens-of-thousands-of-files scale and the
+current failure mode is an out-of-memory kill, which tells the user nothing and
+cannot be distinguished from a crash.
+
+**It is already in the plan.** `ROADMAP.md`'s M5 scope reads *"staged bounded
+scan and lazy retention"* and E1's criteria already name large-file budgets.
+This RFC does not add work; it **connects the threat to the plan item that
+owns it**, which is what was missing.
+
+### 5.2 Scheduling recommendation
+
+**Slice B belongs to M5 / gate E1, unchanged.** It is measurement-bound work
+needing fixtures and benchmark hardware, and designing it piecemeal would waste
+the measurement.
+
+**Slice A should be pulled forward, and I recommend unit 4.** M5's entry is
+*"D0, S2, P1, and C1 complete"* — behind persistence and a green workflow,
+which is a long wait for a crash-to-message change that is perhaps thirty lines.
+Unit 4 is reachable soon and "code quality" covers robustness fairly.
+
+**This is an authorization, not a design decision** — the work is already
+scoped. **Owner: shall slice A ride with unit 4?** My recommendation is yes.
+If you would rather keep unit 4 to supply chain and lint alone, slice A waits
+for M5 and T5 stands as written, which is the safe fallback rather than the
+better one.
+
+T5's row is marked **scheduled**, not merely accepted, on that basis.
 
 ## 6. The deliverable
 
@@ -157,7 +189,9 @@ the same kind of artifact: maintainer- and auditor-facing, not tutorial.
    claim, not a mitigation.
 3. Every **non-boundary** in §3 states why the surface does not exist, not
    merely that it is out of scope.
-4. T5 and T9 appear as accepted limitations with their reasoning, not omitted.
+4. T9 appears as an accepted limitation with its reasoning. **T5 appears as
+   a scheduled defect**, naming its slices and the units that own them — not as
+   an accepted limitation, because it is neither accepted nor unowned.
 5. `mdbook build` succeeds — RFC 027's CI check covers orphan chapters.
 6. No change under `crates/`.
 7. **S2 can then be assessed.** This RFC does not declare S2 met; it supplies
