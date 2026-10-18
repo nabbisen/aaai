@@ -1,10 +1,12 @@
 # aaai — audit for asset integrity
 
-[![crates.io](https://img.shields.io/crates/v/aaai-core?label=aaai-core)](https://crates.io/crates/aaai-core)
+[![crates.io](https://img.shields.io/crates/v/aaai?label=aaai)](https://crates.io/crates/aaai)
+[![crates.io](https://img.shields.io/crates/v/aaai-cli?label=aaai-cli)](https://crates.io/crates/aaai-cli)
+[![crates.io](https://img.shields.io/crates/v/aaai-gui?label=aaai-gui)](https://crates.io/crates/aaai-gui)
 [![License](https://img.shields.io/github/license/nabbisen/aaai)](LICENSE)
-[![Rust Documentation](https://docs.rs/aaai-core/badge.svg?version=latest)](https://docs.rs/aaai-core)
-[![Dependency Status](https://deps.rs/crate/aaai-core/latest/status.svg)](https://deps.rs/crate/aaai-core)
-[![CI](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml/badge.svg)](https://github.com/nabbisen/aaai/actions/workflows/ci.yaml)
+[![Rust Documentation](https://docs.rs/aaai/badge.svg?version=latest)](https://docs.rs/aaai)
+[![Dependency Status](https://deps.rs/crate/aaai/latest/status.svg)](https://deps.rs/crate/aaai)
+[![B0](https://github.com/nabbisen/aaai/actions/workflows/b0.yaml/badge.svg)](https://github.com/nabbisen/aaai/actions/workflows/b0.yaml)
 
 **aaai** is a folder-diff auditor that requires every detected change to carry a human-readable reason before it can be marked as accepted. It provides a CLI and a desktop GUI built with [iced](https://github.com/iced-rs/iced).
 
@@ -34,7 +36,7 @@ aaai audit --left ./before --right ./after --config audit.yaml
 
 | Crate | Description |
 |---|---|
-| [`aaai-core`](crates/aaai-core) | Core engine — diff, audit, report, masking |
+| [`aaai`](crates/aaai) | Core engine — diff, audit, report, masking |
 | [`aaai-cli`](crates/aaai-cli) | `aaai` command-line binary |
 | [`aaai-gui`](crates/aaai-gui) | `aaai-gui` desktop application |
 
