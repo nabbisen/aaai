@@ -1,6 +1,6 @@
 # RFC 104 — GUI report export masking: implementer handoff
 
-**RFC.** [`rfcs/proposed/104-gui-report-export-masking.md`](../../proposed/104-gui-report-export-masking.md)
+**RFC.** [`rfcs/accepted/104-gui-report-export-masking.md`](../../accepted/104-gui-report-export-masking.md)
 
 **Status.** **Accepted by the owner 2026-08-27.** Ready to implement.
 

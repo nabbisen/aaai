@@ -11,11 +11,8 @@ RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecy
 | ID | タイトル | Tracks |
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
-| [104](proposed/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
-| [106](proposed/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [109](proposed/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | プロジェクト運営 |
-| [110](proposed/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 106 の後）|
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
@@ -29,6 +26,18 @@ module restructure rather than be undone by it — that restructure shipped in
 v0.42.0. RFC 110 comes after them, because it touches both `view()` and
 `update()` which RFC 106 also rewires. See RFC 104 §7, RFC 106 §8, and
 RFC 110 §8.
+
+---
+
+## Accepted — 実装待ち（オーナー承認済み）
+
+| ID | タイトル | Tracks |
+|---|---|---|
+| [104](accepted/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2 |
+| [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
+| [110](accepted/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 106 の後）|
+
+オーナーが実装を承認し、まだ出荷されていない RFC。フォルダが状態の源泉（RFC 000）。出荷時に `done/` へ移動する。
 
 ---
 

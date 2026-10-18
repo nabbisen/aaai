@@ -1,5 +1,6 @@
 # aaai — Release workflow
-# Triggered by a version tag (v0.10.1, v1.0.0, etc.).
+# Triggered by a version tag (0.10.1, 1.0.0, etc.) — no "v" prefix,
+# per project-instructions-rust.md "Release tag format".
 # RFC 091 — builds both CLI and GUI binaries for every supported target;
 # produces per-component and combined archives for Windows.
 name: Release
@@ -7,7 +8,7 @@ name: Release
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: write
@@ -129,7 +130,8 @@ jobs:
       - name: Extract changelog entry
         run: |
           set -euo pipefail
-          VERSION=${GITHUB_REF_NAME#v}
+          # Tags carry no "v" prefix, so the ref name is the version.
+          VERSION=${GITHUB_REF_NAME}
 
           # An awk range `/## \[$VERSION\]/,/## \[/` cannot work here: the
           # heading line matches the end pattern as well as the start one, so
@@ -162,6 +164,6 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: aaai ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ env.NOTES }}
           files: dist/**

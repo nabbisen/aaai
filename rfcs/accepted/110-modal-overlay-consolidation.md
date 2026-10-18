@@ -1,8 +1,8 @@
 # RFC 110 — Modal Overlay Consolidation
 
-**Status.** Proposed — **accepted for implementation by the owner,
-2026-08-20.** Under the 4-folder lifecycle an accepted RFC stays in
-`proposed/` until it ships; RFC 109 moves it to `accepted/`.
+**Status.** **Accepted** — approved for implementation by the owner 2026-08-21.
+Lives in `rfcs/accepted/`; the folder is the source of truth for this state
+(RFC 000).
 
 **Tracks.** V1 (GUI tokens + contrast). Extends the gate RFC 099 established
 and RFC 108 repaired — see §8.

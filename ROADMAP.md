@@ -91,15 +91,16 @@ root, version-suffixed name, per DEC-008.
 **Entry criteria.** `main` green on hosted B0; the `CHANGELOG.md` section
 written; no open High security finding without recorded owner acceptance.
 
-**Exit criteria.** Tag pushed **as `RELEASING.md` specifies** — `v`-prefixed —
+**Exit criteria.** Tag pushed **as `RELEASING.md` specifies** — **no `v`
+prefix** as of 2026-10-18 —
 and `release.yaml` observed to actually run; tarball produced and its layout
 verified by hand; `[Unreleased]` cleared. Every release states explicitly that
 v1 readiness remains gated on M7, so cadence never implies readiness.
 
 **Unit 1 additionally exercises the release pipeline for the first time.**
-`release.yaml` has never run — 53 historical tags omit the `v` prefix its
-trigger and `RELEASING.md:69` both require — so its build matrix, archive
-production, and upload steps are unverified. Treat that release as their first
+`release.yaml` had never run — 53 historical tags omitted the `v` prefix its
+trigger then required — so its build matrix, archive
+production, and upload steps were unverified. Treat that release as their first
 test, not as a routine cut.
 
 ### Scheduling assumptions

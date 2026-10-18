@@ -1,6 +1,6 @@
 # RFC 106 — Keyboard operability: implementer handoff
 
-**RFC.** [`rfcs/proposed/106-keyboard-operability.md`](../../proposed/106-keyboard-operability.md)
+**RFC.** [`rfcs/accepted/106-keyboard-operability.md`](../../accepted/106-keyboard-operability.md)
 
 **Status.** **Accepted by the owner 2026-10-18.** §5 settled on `F6` /
 `Shift+F6`. Ready to implement.

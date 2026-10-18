@@ -13,7 +13,7 @@ on:
   # Also triggered by version tags so a candidate is built on every release
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
       - name: Build MSIX candidate
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          $version = "${{ github.ref_name }}"
           if (-not $version) { $version = "0.0.0-dev" }
           packaging\windows\make-msix.ps1 `
             -Version  $version `

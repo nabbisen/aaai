@@ -366,7 +366,7 @@ change closes a gap between documentation and code rather than opening one.
    enabling it is more than a mechanical change. Declared a non-goal in §3.2 and
    confirmed as a known limitation in review 052 §5. It is the one place where a
    user-visible surface still contradicts NF-14. **Owned by
-   [RFC 104](../proposed/104-gui-report-export-masking.md)**, opened
+   [RFC 104](../accepted/104-gui-report-export-masking.md)**, opened
    2026-07-31 and scheduled after RFC 100.
 2. **SARIF `originalUriBaseIds` and `artifactLocation.uri` remain unmasked.**
    Accepted in review 053 §4 Q2: these are functional navigation targets a SARIF

@@ -66,7 +66,7 @@ cargo publish -p aaai-gui
 ### 6. Tag the release
 
 ```sh
-git tag v$(grep '^version' Cargo.toml | head -1 | grep -oP '"\K[^"]+')
+git tag $(grep '^version' Cargo.toml | head -1 | grep -oP '"\K[^"]+')
 git push origin --tags
 ```
 
@@ -92,11 +92,22 @@ some platforms — the script uses `sed -i` to avoid this.
   before the engine crate was renamed to `aaai`. Do not publish to it and do not
   yank it — existing 0.39.0 users resolve against it. This document referred to
   it throughout until 2026-07-31.
-- **The tag carries a `v` prefix; the crates.io version does not.** Tag
-  `v0.41.0` for workspace version `0.41.0`. Only `v`-prefixed tags match
-  `release.yaml`'s trigger, so a tag without it publishes to crates.io but
-  produces no GitHub Release and no binaries. Every tag before `v0.41.0` omitted
-  the prefix, which is why `release.yaml` had never run.
+- **The tag carries no `v` prefix.** Tag `0.43.0` for workspace version
+  `0.43.0`, matching the crates.io version exactly and
+  `project-instructions-rust.md`'s "Release tag format". `release.yaml` and
+  `windows-msix.yaml` both trigger on `[0-9]+.[0-9]+.[0-9]+`, so a `v`-prefixed
+  tag now publishes to crates.io but produces **no GitHub Release and no
+  binaries**.
+
+  **Changed 2026-10-18.** `v0.41.0` and `v0.42.0` are the only two prefixed
+  tags; every tag before them and every tag after them is unprefixed. They are
+  published releases and stay as they are — retagging would break their
+  download URLs. Two consequences of the change:
+  - The **GitHub Release title is now just `0.43.0`**, not `aaai v0.43.0`.
+  - **Asset filenames lose the `v`** — `aaai-cli-0.43.0-<target>.tar.gz` rather
+    than `aaai-cli-v0.42.0-<target>.tar.gz`. They are built from the tag name.
+    This is consistent with DEC-008, which requires a version suffix and does
+    not mandate a prefix.
 - **Step 6 requires a `## [<version>]` section in `CHANGELOG.md`.**
   `release.yaml` extracts the release notes from it and now **fails the release**
   if that section is missing or empty, rather than publishing a blank one.

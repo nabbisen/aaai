@@ -1,9 +1,8 @@
 # RFC 106 — Keyboard Operability
 
-**Status.** Proposed — **accepted for implementation by the owner,
-2026-10-18**, and handed to the dev team. Under the 4-folder lifecycle an
-accepted RFC stays in `proposed/` until it ships; RFC 109 moves it to
-`accepted/`.
+**Status.** **Accepted** — approved for implementation by the owner 2026-10-18;
+§5 settled on `F6` / `Shift+F6` the same day. Lives in `rfcs/accepted/`; the
+folder is the source of truth for this state (RFC 000).
 
 **Tracks.** NF-4 / ABDD keyboard completeness. No existing milestone covers
 this — see §8.
