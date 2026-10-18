@@ -81,6 +81,24 @@ process. CI may upload an unsigned candidate.
 For **direct distribution** outside the Store: a separate signing certificate
 and process is required. See `make-msix.ps1` for the unsigned output path.
 
+## Status — parked 2026-10-18
+
+**The MSIX workflow no longer runs on release tags.** It failed identically on
+its only two runs (`v0.41.0`, `v0.42.0`) with `makeappx.exe not found`:
+`make-msix.ps1` searches the unversioned `…\Windows Kits\10\bin\x64` path,
+while the Windows SDK installs its tools under a versioned directory.
+
+Parked rather than repaired because nothing depends on it — Store distribution
+is deferred until after the v1 release decision (RFC 095 §5), and the four
+assets below are still placeholders, with `StoreLogo.png` at 150 × 150 where
+50 × 50 is required, so a submission would be rejected anyway.
+`workflow_dispatch` still works; a package can also be built by hand on a
+Windows machine with the SDK.
+
+**To revive:** fix the SDK lookup (glob the versioned directories, take the
+newest), replace the four assets at the sizes listed below, restore the tag
+trigger.
+
 ## Rollout stages
 
 Per RFC 091 §13:

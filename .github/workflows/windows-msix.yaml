@@ -7,13 +7,35 @@
 # Manual Store submission follows successful local install validation.
 name: Windows MSIX Candidate
 
+# ── PARKED 2026-10-18, owner-approved ───────────────────────────────────
+# This workflow has run twice — v0.41.0 and v0.42.0 — and failed identically
+# both times: `makeappx.exe not found`. The Windows SDK installs its tools
+# under a versioned directory (…\Windows Kits\10\bin\<version>\x64\),
+# while packaging/windows/make-msix.ps1 searches only the unversioned
+# …\bin\x64 and …\bin\x86 paths.
+#
+# It is parked rather than repaired because nothing depends on it:
+#   * Microsoft Store distribution is deferred until after the v1 release
+#     decision (RFC 095 §5), so no submission is waiting on a package;
+#   * the icon assets are placeholders and StoreLogo.png is 150x150 where
+#     50x50 is required, so a submission would be rejected regardless
+#     (packaging/windows/README.md);
+#   * a package can be built by hand on a Windows machine with the SDK,
+#     which is what the owner does when one is wanted.
+#
+# The tag trigger is removed so it stops failing red on every release. A
+# workflow that fails on each cut, with nothing depending on it, trains the
+# team to ignore CI — which is the real cost. workflow_dispatch is kept, so
+# it remains runnable on demand and nothing is deleted.
+#
+# To revive: fix the SDK lookup in make-msix.ps1 (glob the versioned
+# directories, take the newest), replace the four placeholder assets at the
+# sizes packaging/windows/README.md lists, then restore the tag trigger.
+# ────────────────────────────────────────────────────────────────────────
 on:
-  # Manual trigger for testing and validation
+  # Manual trigger for testing and validation. Parked from tag triggers —
+  # see the note above.
   workflow_dispatch:
-  # Also triggered by version tags so a candidate is built on every release
-  push:
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
   contents: read
