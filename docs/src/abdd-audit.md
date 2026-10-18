@@ -13,7 +13,7 @@
 >   3. Fill in **Observed** (one sentence) and **Verdict** with one of:
 >      - `✅ pass`
 >      - `❌ fail` — follow up with an issue or RFC; note ID in **Notes**
->      - `例外 / exception` — record reason in **Notes**; v1.0 still ships
+>      - `⚠️ exception` — record reason in **Notes**; v1.0 still ships
 >   4. Replace `vX.Y.Z` in the title with the verified version once done.
 >
 > **Scope.** v1.0.0 commits to keyboard completeness, colour-independent
@@ -106,7 +106,7 @@ or open a follow-up RFC that drives the migration.
 
 ## Summary
 
-| Section | Verdicts (✅ / ❌ / 例外) |
+| Section | Verdicts (✅ / ❌ / ⚠️) |
 |---|---|
 | 1. Tab order | 0 / 0 / 0 |
 | 2. Colour independence | 0 / 0 / 0 |

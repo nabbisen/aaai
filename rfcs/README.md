@@ -1,18 +1,19 @@
 # aaai RFCs
 
-RFC の配置ルールは [done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecycle-policy.md) を参照。
+For where RFCs live and how they move between states, see
+[done/000-rfc-lifecycle-policy.md](done/000-rfc-lifecycle-policy.md).
 
-中期計画は [PLAN.md](PLAN.md)（Rev. 4 = Phase 12〜16 / v1.0.0 までの道筋）を参照。
+For the medium-term plan, see [PLAN.md](PLAN.md) (Rev. 4 — Phases 12–16, the
+route to v1.0.0).
 
 ---
 
-## Proposed — 実装待ち
+## Proposed — awaiting review
 
-| ID | タイトル | Tracks |
+| ID | Title | Tracks |
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
-| [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | RFC 017 の後継 |
-| [112](proposed/112-rename-and-layout-conformance.md) | `aaai-core` 改名と DEC-003 レイアウトの未完了分の是正 | C1 の前段（緊急ではない）|
+| [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | Successor to RFC 017 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
@@ -29,23 +30,26 @@ RFC 110 §8.
 
 ---
 
-## Accepted — 実装待ち（オーナー承認済み）
+## Accepted — owner-approved, awaiting implementation
 
-| ID | タイトル | Tracks |
+| ID | Title | Tracks |
 |---|---|---|
 | [104](accepted/104-gui-report-export-masking.md) | GUI Report Export Masking | M2 / WS-05 / S2 |
 | [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
-| [110](accepted/110-modal-overlay-consolidation.md) | モーダルオーバーレイの統合：直書き背景を snora の dim へ | V1（RFC 106 の後）|
+| [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
+| [112](accepted/112-rename-and-layout-conformance.md) | Finish the `aaai-core` rename and the DEC-003 layout | Precursor to C1 (not urgent) |
 
-オーナーが実装を承認し、まだ出荷されていない RFC。フォルダが状態の源泉（RFC 000）。出荷時に `done/` へ移動する。
+RFCs the owner has approved for implementation and that have not shipped. The
+folder is the source of truth for this state (RFC 000); each moves to `done/`
+when it ships.
 
 ---
 
-## Done — 実装済み
+## Done — implemented
 
-| ID | タイトル | 実装バージョン |
+| ID | Title | Shipped in |
 |---|---|---|
-| [000](done/000-rfc-lifecycle-policy.md) | RFC Lifecycle Policy | — (ポリシー) |
+| [000](done/000-rfc-lifecycle-policy.md) | RFC Lifecycle Policy | — (policy) |
 | [001](done/001-cli-output-ux.md) | CLI Output UX Consistency | v0.11.0 |
 | [002](done/002-inspector-validation.md) | Inspector Validation & Primary Action | v0.12.0 |
 | [003](done/003-abdd-status-display.md) | ABDD Status Display | v0.12.0 |
@@ -132,15 +136,15 @@ RFC 110 §8.
 | [095](done/095-v1-authority-scope-and-distribution.md) | v1 Authority, Scope, GUI, Compatibility, and Distribution | D0 decision (2026-07-17) |
 | [096](done/096-test-environment-and-user-state-isolation.md) | Test Environment and User-State Isolation | S1 local Linux (2026-07-17) |
 | [097](done/097-safe-hosted-ci-bootstrap.md) | Safe Hosted-CI Bootstrap | B0 hosted bootstrap (2026-07-21) |
-| [098](done/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | v0.41.0（リリースユニット 1） |
-| [099](done/099-gui-visual-foundation.md) | GUI Visual Foundation — *partial*, acceptance item 7 deferred to RFC 101 | v0.41.0（リリースユニット 1） |
-| [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | v0.41.0（リリースユニット 1） |
+| [098](done/098-selected-folder-and-symlink-policy.md) | Selected-folder and Symlink Policy | v0.41.0 (release unit 1) |
+| [099](done/099-gui-visual-foundation.md) | GUI Visual Foundation — *partial*, acceptance item 7 deferred to RFC 101 | v0.41.0 (release unit 1) |
+| [102](done/102-b0-trigger-scope-and-ci-disposition.md) | B0 Trigger Scope and Legacy CI Disposition | v0.41.0 (release unit 1) |
 | [107](done/107-formatting-policy.md) | Formatting Policy: adopt rustfmt | v0.42.0 |
 | [100](done/100-gui-module-boundaries.md) | GUI Module Boundaries | v0.42.0 |
-| [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 移行：アクセシビリティ修復とタイポグラフィ | v0.42.0 |
-| [111](done/111-batch-approve-removal.md) | Batch Approve 機能の削除：v0.15.0 以降到達不能なコードの撤去 | 未リリース（v0.42.0 の次）|
-| [109](done/109-rfc-lifecycle-sync-and-five-folder.md) | RFC ライフサイクル方針の同期・5 フォルダ構成の採用・決定レジストリの境界 | 未リリース（v0.42.0 の次）|
-| [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0（リリースユニット 1） |
+| [108](done/108-snora-0-37-migration.md) | snora 0.25.1 → 0.38.0 migration — accessibility repairs and typography | v0.42.0 |
+| [111](done/111-batch-approve-removal.md) | Remove the Batch Approve feature — unreachable since v0.15.0 | Unreleased (after v0.42.0) |
+| [109](done/109-rfc-lifecycle-sync-and-five-folder.md) | Sync the lifecycle policy, adopt the 5-folder variant, bound the decision register | Unreleased (after v0.42.0) |
+| [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0 (release unit 1) |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |
 | [086](done/086-nav-guard-hide-discard.md) | Navigation guard: hide Discard | v0.32.0 |
@@ -154,63 +158,64 @@ RFC 110 §8.
 | [064](done/064-suggest-patterns-tests.md) | GUI suggest_patterns unit tests | v0.26.0 |
 | [058](done/058-pending-count-title.md) | Pending count in window title | v0.25.0 |
 
-> **注意**: RFC 007〜016 は「コード実装は完了したが視覚検証は未通過」の状態。
-> RFC 017 のハーネスでエビデンスを取得し、判明した差分は個別 fix RFC を別途切る。
+> **Note**: RFCs 007–016 are "code implemented, visual verification not yet
+> passed". Evidence is gathered with RFC 017's harness, and any discrepancy it
+> reveals becomes its own fix RFC.
 
-> **v0.20.0 の特徴**: Phase 12 で 9 件の RFC が実装され、19 件の pre-existing バグも整理された。
-> Phase 13 以降は別途 ROADMAP.md を参照。
+> **What v0.20.0 was about**: Phase 12 implemented 9 RFCs and cleared 19
+> pre-existing bugs. From Phase 13 onward, see ROADMAP.md instead.
 >
-> **Phase 13 進捗** (v0.21.0 想定):
-> - RFC 026 (Toast Error Hints) landed — RFC 020 の message+hint パターンを toast 側にも拡張し、Phase 12 で削除された 4 件の i18n キーを復活
-> - RFC 027 (CI mdbook build) landed — `mdbook build` を CI に組み込み、Phase 12 で発覚した orphan chapter 問題などをハンマー的に防ぐ
-> - RFC 028 (FieldError native hint) landed — RFC 026 で workaround として使った `💡` インライン合成を構造分離。FieldError が `hint: Option<String>` を持ち、inspector がそれを muted style で第 2 行表示
-> - RFC 029 (FieldError i18n) landed — `app.rs` に残っていた 4 件の英語ハードコードされた validation メッセージを `t!()` 経由で i18n 化。日本語ユーザーでも全 validation エラーが日本語で読めるようになる
-> - RFC 030 (FieldError hint authoring, 選択的) landed — RFC 028/029 の延長として、ヒントが本当に役立つ 2 サイト（Checksum hex format、LineMatch 空ルール）に actionable hint を追加。残りの 2 サイトは「メッセージ自体が action を示している」ためヒント未追加（noise になる）。`+ Add rule` / `+ ルール追加` のような UI ラベルとの引用整合に注意して文言を作成
-> - RFC 031 (app.rs i18n sweep) landed — `app.rs` に残っていた **8 件**の user-facing 英語ハードコード文字列（progress / batch validation / inspector validation / opening inline validation）を全て i18n 化。これにより `app.rs` 内に user-facing ハードコード文字列は **0 件**になった。aaai-core の `is_approvable()` 由来のエラー文言は major version bump が必要なため明示的に deferred
-> - RFC 032 (views/*.rs i18n sweep) landed — `views/{batch,dashboard,diff_view,inspector,main_view,opening}.rs` の **20 件**の user-facing 英語ハードコード文字列を i18n 化（diff_view バイナリラベル 4種・SHA-256 ラベル 3種・ハッシュ一致状態 2種、その他 11 件）。display と Message protocol value を兼ねる pick_list 文字列 5 件は out-of-scope として明示し、別 RFC で Message protocol refactor として扱う
+> **Phase 13 progress** (targeting v0.21.0):
+> - RFC 026 (Toast Error Hints) landed — extended RFC 020's message+hint pattern to toasts and restored the 4 i18n keys Phase 12 had deleted
+> - RFC 027 (CI mdbook build) landed — added `mdbook build` to CI, bluntly preventing the orphan-chapter problem Phase 12 exposed
+> - RFC 028 (FieldError native hint) landed — separated the inline `💡` composition RFC 026 had used as a workaround into structure. `FieldError` now carries `hint: Option<String>` and the inspector renders it as a second line in muted style
+> - RFC 029 (FieldError i18n) landed — put the 4 hardcoded English validation messages left in `app.rs` through `t!()`, so Japanese users read every validation error in Japanese
+> - RFC 030 (FieldError hint authoring, selective) landed — extending RFCs 028/029, added actionable hints at the 2 sites where a hint genuinely helps (Checksum hex format, LineMatch empty rule). The other 2 sites got none, because the message already states the action and a hint would be noise. Wording was matched against UI labels such as `+ Add rule`
+> - RFC 031 (app.rs i18n sweep) landed — put all **8** user-facing hardcoded English strings remaining in `app.rs` (progress / batch validation / inspector validation / opening inline validation) through i18n, leaving **zero** user-facing hardcoded strings in that file. Error wording originating from the engine's `is_approvable()` is explicitly deferred, because changing it needs a major version bump
+> - RFC 032 (views/*.rs i18n sweep) landed — put **20** user-facing hardcoded English strings in `views/{batch,dashboard,diff_view,inspector,main_view,opening}.rs` through i18n (4 diff_view binary labels, 3 SHA-256 labels, 2 hash-match states, 11 others). The 5 pick_list strings that double as display text and Message protocol values were marked out of scope and deferred to a separate Message-protocol refactor RFC
 
-> **Phase 14 進捗** (v0.22.0 想定):
-> - RFC 033 (pick_list display/value separation) landed — RFC 032 で deferred とした 5 件の pick_list 文字列 (`Added`/`Removed` × LineMatch action picker, `Added lines`/`Removed lines`/`All changed lines` × RegexTarget picker) を i18n 化。`Message::LineRuleActionChanged(String)` / `Message::RegexTargetChanged(String)` を `LineAction` / `RegexTarget` enum payload に変更し、`LocalizedOption<T>` adapter を `util.rs` に追加。これにより `aaai-gui` の user-facing 文字列はすべて `t!()` 経由となり、英語のまま残るのは aaai-core 由来 (Display impls / `Result<(), String>` errors) のみ
-> - RFC 034 (toast/dialog/format-string i18n sweep) landed — RFCs 031-033 では検出できなかったパターン（`push_toast()` への直接 `&str` 引数、`format!()` 内部の英語、`rfd::AsyncFileDialog::set_title()` 引数）に対して `format!` / `push_toast` / `.set_title` の 3 種類の grep で網羅 sweep。16 call site / 13 new keys を i18n 化（toast bodies, native dialog titles, diff size_inline format string）。RFC 031 の教訓「draft 前に網羅 grep を流す」を適用し、scope creep ゼロで 1 回の implementation pass で完了
-> - RFC 035 (strategy label display/value separation) landed — RFC 034 で out-of-scope とした最後の i18n gap (`STRATEGIES: &["None", "Checksum", "LineMatch", "Regex", "Exact"]` 5 件) を `StrategyKind` discriminator enum + `LocalizedOption<StrategyKind>` パターンで i18n 化。`AuditStrategy` が struct-shaped enum (associated data 持ち) のため、`LineAction`/`RegexTarget` (RFC 033) と違い直接使えないので、discriminator enum を `aaai-gui/src/util.rs` に追加（aaai-core API は touch しない）。`Message::StrategySelected(String)` → `StrategySelected(StrategyKind)`、`InspectorState.strategy_label: String` → `strategy_kind: StrategyKind`、`strategy_from_label()` 関数および 2 個の `STRATEGIES` 定数を削除。**これで GUI i18n loop は完全閉じる** — 残る英語文字列は aaai-core 由来および documented out-of-scope のみ
-
----
-
-## Archive — 取り下げ・置換済み
-
-_なし_
+> **Phase 14 progress** (targeting v0.22.0):
+> - RFC 033 (pick_list display/value separation) landed — put the 5 pick_list strings RFC 032 deferred (`Added`/`Removed` for the LineMatch action picker; `Added lines`/`Removed lines`/`All changed lines` for the RegexTarget picker) through i18n. `Message::LineRuleActionChanged(String)` and `Message::RegexTargetChanged(String)` now carry `LineAction` / `RegexTarget` enum payloads, with a `LocalizedOption<T>` adapter added to `util.rs`. Every user-facing string in `aaai-gui` now goes through `t!()`; what remains in English comes from the engine (Display impls, `Result<(), String>` errors)
+> - RFC 034 (toast/dialog/format-string i18n sweep) landed — swept the patterns RFCs 031–033 could not detect (direct `&str` arguments to `push_toast()`, English inside `format!()`, `rfd::AsyncFileDialog::set_title()` arguments) using three greps for `format!`, `push_toast` and `.set_title`. 16 call sites and 13 new keys (toast bodies, native dialog titles, the diff size_inline format string). Applying RFC 031's lesson — run the exhaustive grep before drafting — it finished in one implementation pass with zero scope creep
+> - RFC 035 (strategy label display/value separation) landed — closed the last i18n gap RFC 034 had ruled out of scope (`STRATEGIES: &["None", "Checksum", "LineMatch", "Regex", "Exact"]`, 5 strings) with a `StrategyKind` discriminator enum plus the `LocalizedOption<StrategyKind>` pattern. `AuditStrategy` is a struct-shaped enum carrying associated data, so unlike `LineAction`/`RegexTarget` in RFC 033 it cannot be used directly; the discriminator enum was added to `aaai-gui/src/util.rs` without touching the engine API. `Message::StrategySelected(String)` became `StrategySelected(StrategyKind)`, `InspectorState.strategy_label: String` became `strategy_kind: StrategyKind`, and `strategy_from_label()` plus two `STRATEGIES` constants were deleted. **This closes the GUI i18n loop** — the only English left comes from the engine or is documented as out of scope
 
 ---
 
-## 中期計画 (Phase 12〜16) との対応
+## Archive — withdrawn or superseded
 
-詳細は [PLAN.md](PLAN.md) Rev. 4 を参照。
+_None._
 
-| Sprint | バージョン目標 | 含まれる RFC | 主眼 |
+---
+
+## Mapping to the medium-term plan (Phases 12–16)
+
+See [PLAN.md](PLAN.md) Rev. 4 for detail.
+
+| Sprint | Target version | RFCs | Focus |
 |---|---|---|---|
-| E-1 | v0.20.0 | 017, 018, 019 | 視覚検証 / i18n 仕上げ / docs 刷新 |
-| F-1 | v0.21.0 | 020 | ABDD 監査 + 行動可能エラー文 |
-| G-1 | v0.22.0 | 021, 022 | 画面リレーション継続 + 空状態 |
-| H-1 | v0.23.0 | 023, 024 | Opening DnD + CLI 仕上げ |
-| I-1 | v1.0.0-rc → v1.0.0 | 025 | リリース判定ゲート通過 + 互換性宣言 |
+| E-1 | v0.20.0 | 017, 018, 019 | Visual verification / i18n finishing / docs refresh |
+| F-1 | v0.21.0 | 020 | ABDD audit + actionable error messages |
+| G-1 | v0.22.0 | 021, 022 | Screen-relation continuation + empty states |
+| H-1 | v0.23.0 | 023, 024 | Opening drag-and-drop + CLI finishing |
+| I-1 | v1.0.0-rc → v1.0.0 | 025 | Pass the release-decision gate + compatibility declaration |
 
-### 依存関係
+### Dependencies
 
 ```
-017 ──┬─> 018          (検証で B/C が必要と判明したら)
-      └─> 019          (検証結果に基づき docs を確定)
+017 ──┬─> 018          (if verification shows B/C are needed)
+      └─> 019          (settle docs from the verification result)
 019 ──> 020 ──> 021 ──┬─> 023
                        └─> 024
-021, 022, 023, 024 ──> 025 (リリース判定)
+021, 022, 023, 024 ──> 025 (release decision)
 ```
 
 ---
 
-## 過去の Sprint （Phase 1〜11 までの履歴）
+## Past sprints (Phases 1–11)
 
-| Sprint | RFC | 実装バージョン |
+| Sprint | RFC | Shipped in |
 |---|---|---|
 | A | 001 + 004 | v0.11.0 |
 | B | 002 + 003 | v0.12.0 |
-| C | 005 + 統合テスト | v0.12.0 |
-| (D 系列以降) | 006〜016 | v0.13.0〜v0.19.0 |
+| C | 005 + integration tests | v0.12.0 |
+| (D onward) | 006–016 | v0.13.0–v0.19.0 |

@@ -1,6 +1,8 @@
 # RFC 112 — Finish the `aaai-core` rename and the DEC-003 layout
 
-**Status.** Proposed
+**Status.** **Accepted** — approved for implementation by the owner
+2026-10-18. Lives in `rfcs/accepted/`; the folder is the source of truth
+for this state (RFC 000).
 
 **Tracks.** Conformance debt from two decisions already made — DEC-002 (the
 v0.39.0 crate rename) and DEC-003 (Rust 2024 module layout). No new behaviour,
