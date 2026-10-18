@@ -14,6 +14,7 @@ route to v1.0.0).
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | Successor to RFC 017 |
+| [114](proposed/114-lint-policy-and-ci-restoration.md) | Lint policy, and restoring CI | M4B / gate C2 |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
