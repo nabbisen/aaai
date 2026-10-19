@@ -73,6 +73,41 @@ Consecutive small units may batch; a unit is never split across releases.
 | 7 | **Documentation truth** | M6 — product and documentation convergence | D1 |
 | — | *Release-candidate decision* | M7 assembles prior evidence; the owner alone decides whether and when v1.0 follows | R1 |
 
+### Next cut — unit 4 before unit 2a (recorded 2026-10-20)
+
+**Unit order is authoritative, and readiness has diverged from it.** Recording
+the divergence rather than quietly reordering, because the order was a
+decision.
+
+| Unit | Gates | State |
+|---|---|---|
+| 2a — Close the output boundary | S2 | **Blocked.** RFC 104 shipped to `main`; **RFC 106 has not started** |
+| 4 — Supply chain and code quality | C0, C2 | **Nearly ready.** C2 closes with RFC 114; C0 needs owner exception records and no engineering |
+
+`main` carries **32 unreleased commits** since `v0.42.0`, including one
+user-visible security change — a report exported from the GUI is now redacted
+where it was not (RFC 104).
+
+**Recommendation: cut `0.43.0` on unit 4's gates**, carrying whatever `main`
+holds — which includes unit 2a's delivered half. Holding a shipped masking fix
+behind a keyboard feature that has not begun inverts the priority, and unit 2a
+is already half in `main`, so waiting does not keep it whole. This is the
+lesson unit 1 recorded about RFC 099 and the note above this table states.
+
+**Blocking the cut:**
+
+1. RFC 114's `audit-security` correction committed and `ci.yaml` green → **C2**
+2. Owner's C0 exception records for the eight advisories, with
+   `unsafe-libyaml` recorded separately per RFC 113 T7a → **C0**
+3. `CHANGELOG.md` `[Unreleased]` extended for RFC 114 — it covers 104, 111,
+   112, the advisories and the tag-format change, and predates 114
+4. `scripts/bump-version.sh 0.43.0`, then tag **`0.43.0`** — no `v` prefix
+
+**Not blocking:** RFC 113's threat-model document. It closes gate S2, which is
+unit 2a's gate, not unit 4's.
+
+**After the cut:** RFC 106 → unit 2a's remainder → RFC 110 → RFC 101.
+
 Unit 1 is unusually large because it accumulated during the missed-cadence
 window; everything in it is already merged, so it cannot be retroactively
 split. Units 2 onward are sized to one nameable outcome each.
