@@ -63,6 +63,16 @@ patched release by an upstream dependency) and three unmaintained crates
   URLs.
 - RFC lifecycle moved to the five-folder layout, adding `accepted/` for work
   the owner has approved and that has not yet shipped.
+- **Lint policy settled and CI restored.** 33 clippy findings cleared across
+  the three crates, every `#[allow]` now carries a reason, and the gate is
+  `cargo clippy --workspace --all-targets -- -D warnings` on a pinned
+  toolchain. `ci.yaml` runs again on push and pull request after being parked
+  since RFC 102; its security-audit job now runs `cargo audit` directly rather
+  than through a third-party action, so it needs no repository token
+  permissions.
+- **A threat model is published** at `docs/src/threat-model.md`, in English
+  and Japanese. It records what aaai defends, what it deliberately does not,
+  and the eight dependency advisories accepted with their reachability.
 
 ---
 

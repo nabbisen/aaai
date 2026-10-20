@@ -40,3 +40,7 @@ dist/
 # Custom
 /.git-exclude/
 *.local.json
+
+# mdbook build output
+/docs/book/
+/docs/ja/book/
