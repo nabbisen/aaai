@@ -102,14 +102,23 @@ jobs:
       # workspace rust-version field and document the reason.
       - run: cargo check -p aaai -p aaai-cli -p aaai-gui
 
+  # Runs `cargo audit` directly rather than through rustsec/audit-check. That
+  # action publishes its result as a check run, which needs `checks: write`;
+  # the repository caps GITHUB_TOKEN at read, and widening it for every workflow
+  # to post one annotation is the opposite of least privilege. A direct run
+  # needs no token, adds no third-party action to the supply-chain check, and
+  # still fails the job on a vulnerability (cargo audit exits 0 on warnings).
   audit-security:
     name: Security audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: dtolnay/rust-toolchain@1.91
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Audit
+        run: cargo audit
 
   # RFC 018 §3.4 — i18n key hygiene.
   # Static check that every t!("...") key in aaai-gui/src has an entry in
