@@ -6,6 +6,10 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+---
+
+## [0.43.0] — GUI exports are redacted, and CI runs again (2026-10-20)
+
 ### Reports exported from the GUI are now redacted
 
 Until now, the same report exported from the GUI instead of the CLI was **not

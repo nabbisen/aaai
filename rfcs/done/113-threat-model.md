@@ -1,8 +1,9 @@
 # RFC 113 — Threat model
 
-**Status.** **Accepted** — approved for implementation by the owner
-2026-10-18. Lives in `rfcs/accepted/`; the folder is the source of truth for
-this state (RFC 000).
+**Status.** **Implemented in 0.43.0.** `docs/src/threat-model.md` and its
+Japanese mirror published 2026-10-20 (`9c79884`). Supplies gate S2's
+threat-model half; **declaring S2 met remains the owner's call**, per §7
+item 7.
 
 **Tracks.** `ROADMAP.md` M2 / gate **S2** (untrusted input and output are
 safe). S2's last open half — RFC 098 closed symlinks, RFC 103 the engine and

@@ -36,8 +36,6 @@ RFC 110 §8.
 |---|---|---|
 | [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
 | [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
-| [113](accepted/113-threat-model.md) | Threat model — S2's last open half | M2 / gate S2 |
-| [114](accepted/114-lint-policy-and-ci-restoration.md) | Lint policy, and restoring CI | M4B / gate C2 |
 
 RFCs the owner has approved for implementation and that have not shipped. The
 folder is the source of truth for this state (RFC 000); each moves to `done/`
@@ -146,6 +144,8 @@ when it ships.
 | [109](done/109-rfc-lifecycle-sync-and-five-folder.md) | Sync the lifecycle policy, adopt the 5-folder variant, bound the decision register | Unreleased (after v0.42.0) |
 | [112](done/112-rename-and-layout-conformance.md) | Finish the `aaai-core` rename and the DEC-003 layout | Unreleased (after v0.42.0) |
 | [104](done/104-gui-report-export-masking.md) | GUI Report Export Masking | Unreleased (after v0.42.0) |
+| [114](done/114-lint-policy-and-ci-restoration.md) | Lint policy, and restoring CI | 0.43.0 |
+| [113](done/113-threat-model.md) | Threat model — S2's last open half | 0.43.0 |
 | [103](done/103-safe-output-surfaces.md) | Safe Reports, Exports, and Masking | v0.41.0 (release unit 1) |
 | [091b](done/091b-ci-handoff-windows-msix.md) | CI handoff — Windows MSIX build | v0.33.0 |
 | [090](done/090-count-summary-wording.md) | Count summary wording | v0.33.0 |

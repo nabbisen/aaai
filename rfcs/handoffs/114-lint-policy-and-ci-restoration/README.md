@@ -1,6 +1,6 @@
 # RFC 114 — Lint policy and CI restoration: implementer handoff
 
-**RFC.** [`rfcs/accepted/114-lint-policy-and-ci-restoration.md`](../../accepted/114-lint-policy-and-ci-restoration.md)
+**RFC.** [`rfcs/done/114-lint-policy-and-ci-restoration.md`](../../done/114-lint-policy-and-ci-restoration.md)
 
 **Status.** **Accepted by the owner 2026-10-19.** Ready to implement.
 

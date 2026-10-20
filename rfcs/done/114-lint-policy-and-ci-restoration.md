@@ -1,8 +1,8 @@
 # RFC 114 — Lint policy, and restoring CI
 
-**Status.** **Accepted** — approved for implementation by the owner
-2026-10-19. Lives in `rfcs/accepted/`; the folder is the source of truth for
-this state (RFC 000).
+**Status.** **Implemented in 0.43.0.** 33 clippy findings cleared, lint
+policy written, and `ci.yaml` running again — CI green on `b46e3f2` with
+all nine jobs. Closes gate C2.
 
 **Tracks.** `ROADMAP.md` M4B / gate **C2** (formatting and lint policy is
 settled and passing). Unblocks gate **C1** (the whole workflow green), and
