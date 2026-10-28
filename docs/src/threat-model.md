@@ -8,7 +8,7 @@ are, what is defended, and — equally — what is not.
 **Audience.** Maintainers, reviewers, and anyone assessing aaai before using it
 on content they care about.
 
-**Last reviewed:** 2026-10-20, against `0.42.0` plus unreleased work.
+**Last reviewed:** 2026-10-28, against `0.43.0`.
 
 ---
 
@@ -142,9 +142,9 @@ informational warnings are accepted, with reachability recorded:
 | `RUSTSEC-2024-0436` | `paste` | unmaintained | Build-time proc-macro only; no runtime presence |
 | `RUSTSEC-2026-0206` | `rustybuzz` | unmaintained | Runtime, text shaping via `iced`. No replacement available without an upstream change |
 | `RUSTSEC-2026-0192` | `ttf-parser` | unmaintained | Runtime, font parsing via `iced`. Same |
-| `RUSTSEC-2026-0371` | `zbus_names` | unmaintained | Merged into `zbus` 6.0.0 upstream on 2026-10-16; reached via `iced` → `winit`. Nothing is wrong with the code — the crate moved |
-| `RUSTSEC-2026-0370` | `zvariant` | unmaintained | Same event |
-| `RUSTSEC-2026-0372` | `zvariant_derive` | unmaintained | Same event |
+| `RUSTSEC-2026-0371` | `zbus_names` | unmaintained | Merged into `zbus` 6.0.0 upstream on 2026-10-16. **Linux only**, and feature-gated — see §6.2. Nothing is wrong with the code; the crate moved |
+| `RUSTSEC-2026-0370` | `zvariant` | unmaintained | Same event, same path |
+| `RUSTSEC-2026-0372` | `zvariant_derive` | unmaintained | Same event, same path |
 
 **All but the first two clear when `iced` updates its own dependencies.** They
 are not aaai's to fix and are recorded rather than chased.
@@ -180,6 +180,32 @@ D-Bus helper.
 touches the persisted audit-definition, preferences and profiles formats, so
 it is a compatibility change rather than a dependency swap, and it needs its
 own design.
+
+### 6.2 The three `zbus` advisories — why no upgrade clears them
+
+Recorded because the obvious remedy looks available and is not.
+
+The exact path is `iced_winit` → `mundy` → `zbus` 5, pulled in by **iced's
+default `linux-theme-detection` feature**. It reaches the graph on **Linux
+only**, and no version bump removes it while `iced` depends on `zbus` 5.
+
+**We do not use the feature.** `crates/aaai-gui/src/main.rs:61` supplies the
+theme from profile state, and the `System` variant is a fixed fallback that
+never queries the OS — this is DEC-010, open question Q-1.
+
+**We cannot switch it off.** Cargo unifies features across the graph, and
+`iced 0.14.0` is pulled by three crates — `aaai-gui`, `snora` and
+`snora-style` — all three taking iced's defaults. `default-features = false`
+in our workspace alone leaves the union unchanged; the two snora crates would
+have to publish the same change. iced also has no negative features, so the
+switch drops the whole default set, including **both** renderers (`wgpu` and
+`tiny-skia`) that RISK-003's fallback depends on.
+
+**Decision: accept all three by ID rather than pursue the feature switch.**
+They are unmaintained notices, not vulnerabilities; `cargo audit` exits 0 on
+them with no ignore list. The gain would be three fewer warning lines, against
+a cross-crate coordination we do not control and a hand-maintained feature
+list guarding the fallback renderer. Raised with snora on 2026-10-21.
 
 ## 7. Reporting a problem
 

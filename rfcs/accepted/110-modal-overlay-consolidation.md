@@ -495,6 +495,37 @@ from a plausible reading of a document is not the same as one derived from the
 measurement it claims to reproduce. §2.2's quote was read as licensing a
 border-against-dim check; it does not.
 
+### 6b.3 snora 0.53 moves the dim; the assertion is unaffected (added 2026-10-28)
+
+snora 0.53.0 changes dim rendering — **dark-theme modal dims are now visible (a
+light veil), and light-theme dims are slightly darker.** RFC 106 retargets the
+bump to `"0.53"`, so this is the release we will ship against.
+
+**No assertion in this RFC needs re-measuring.** §6b asserts the *presence* of
+the `snora-modal-dim` identifier, not a colour, precisely so that a change like
+this cannot invalidate it — which is the point §6b.2 makes about asserting our
+own decisions rather than our dependency's constants. This is the first time
+that choice has paid, and it is worth recording that it did.
+
+**What the figures in §2.2 and §6b.1 now are.** `DIM_ALPHA` `0.44`, `fill ǀ dim`
+`2.85`, `border ǀ dim` `1.00`/`1.04` were read from snora **0.38** and are
+**historical** — they explain why a fixed black literal is wrong and why the
+first draft's contrast pairs could not pass. Both arguments survive 0.53
+unchanged: §2.2's case is that our `0.35` black literal is weaker than an alpha
+a peer team measured as insufficient, and that a fixed literal cannot express a
+preset-aware derivation at any alpha. Neither claim depends on the current
+value. **Read those numbers as dated evidence, not as the state of snora 0.53,
+and do not refresh them** — refreshing would re-import the dependency's
+constants that §6b.2 deliberately stopped tracking.
+
+**One thing to confirm at implementation time:** that `snora-modal-dim` still
+exists and is still spelled that way in 0.53. Our vendored copy is 0.38. If it
+has moved, report it rather than substituting a weaker check — §6b's standing
+instruction.
+
+**Baselines regenerate after the bump**, on both themes, per RFC 105 §5.2's
+evidence location.
+
 ## 7. Risks
 
 | Risk | Mitigation |

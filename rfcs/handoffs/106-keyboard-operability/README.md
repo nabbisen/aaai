@@ -59,18 +59,25 @@ and the decoder, not the enum. This was decided in RFC §5 and is unchanged.
 Per RFC §5a, the manifest line becomes:
 
 ```toml
-snora = { version = "0.51", default-features = false, features = ["design"] }
+snora = { version = "0.53", default-features = false, features = ["design"] }
 ```
 
 **Two changes in one line, one B0 run.**
 
-- **`"0.51"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
+- **`"0.53"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
   0.42 for toast `Warning`/`Info` contrast repairs, 0.51 for the toast close
-  button reaching 24 × 24. 0.43, 0.44, 0.46 and the rest add nothing we compile
-  against; 0.45 removed `Emphasis` and `Size`, which we do not use.
+  button reaching 24 × 24, 0.52 for long unbroken text wrapping instead of
+  being cut off. 0.43, 0.44, 0.46 and the rest add nothing we compile against;
+  0.45 removed `Emphasis` and `Size`, which we do not use.
   **This number is a tested floor, not a claim about what is current** — it has
-  moved five times in three weeks. **Check for a newer release, read its
+  moved six times in nine weeks. **Check for a newer release, read its
   migration guide, and report what you find either way.**
+  **Retargeted 0.51 → 0.53 on 2026-10-28** (RFC §5a.2). No API we use breaks
+  across that span. Two consequences for your run: the 0.52 wrapping fix lands
+  on the file paths we put in toast bodies at three sites in
+  `crates/aaai-gui/src/app/update/save.rs`, which were truncating; and 0.53
+  changes modal dim rendering in both themes, so **GUI baselines regenerate**
+  (RFC 110 §6b.3 — no assertion changes, only pictures).
 - **`default-features = false`** — snora's default enables `widgets`, and we
   import nothing from it. **Do not justify this on binary size:** another
   consumer measured that delta at exactly zero, byte-identical either way. The

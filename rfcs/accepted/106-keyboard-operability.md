@@ -191,7 +191,7 @@ is three files — `lib.rs` (the `focus` re-export), `keyboard.rs`
 states no public item was renamed, removed, or retyped, and the file-level diff
 confirms it.
 
-### 5a.2 Retarget to `"0.51"` (added 2026-09-02; retimed 09-05, 09-06, 09-26)
+### 5a.2 Retarget to `"0.53"` (added 2026-09-02; retimed 09-05, 09-06, 09-26, 10-28)
 
 snora shipped 0.40, 0.41, 0.41.1 and 0.42 since §5a was written. **The target
 becomes `"0.42"`**, and the reason is no longer only `cycle_zones`:
@@ -228,8 +228,8 @@ not meet the 44 px bar `docs/src/abdd-audit.md` §6 sets** — see that file's
 reach us.** We use neither snora's `TabBar` nor its tooltips; `app.rs:14` imports
 only `AppLayout`, `Toast`, `ToastIntent`, `ToastPosition` and `render`.
 
-**This target has now moved five times** (0.39 → 0.42 → 0.44 → 0.46 → 0.51) in
-three weeks, because snora ships every few days. **The version written here is a
+**This target has now moved six times** (0.39 → 0.42 → 0.44 → 0.46 → 0.51 →
+0.53) in nine weeks, because snora ships every few days. **The version written here is a
 tested floor, not a claim about what is current.** What governs is the standing
 instruction: **re-check at implementation time, read the migration guide of
 anything newer, and report what you find either way.** I will stop recording
@@ -237,6 +237,28 @@ each release against this section individually — snora has stopped sending
 per-release letters for the same reason, and a number revised five times informs
 less than the instruction to go and look.
 
+> **Retargeted to `"0.53"`, 2026-10-28.** snora resumed sending letters, and two
+> arrived (0.52.0, 0.53.0; assessed in
+> `.git-exclude/review-requests/084-snora-0-52-0-53-assessment-review-request.md`).
+> Neither breaks any API we use, and the sentence above still stands — **what
+> governs is re-checking at implementation time**, not the number written here.
+>
+> Three things in the span are worth carrying into the bump, none of them
+> blocking:
+>
+> - **Long unbroken text now wraps instead of being cut off** (0.52.0). This is
+>   a fix we benefit from directly: we put file paths in toast bodies at three
+>   sites in `crates/aaai-gui/src/app/update/save.rs`, and they were truncating.
+> - **Modal dim rendering changed** (0.53.0) — dark-theme dims are now visible,
+>   light-theme dims slightly darker. This changes GUI baselines, not any
+>   assertion; see RFC 110 §6b.3.
+> - **Breadcrumbs gained an underline** (+1 px row height, 0.53.0). Baselines
+>   only; we do not size any layout around that row.
+>
+> One item to **verify before relying on it**: RFC 110 §6b asserts the presence
+> of the `snora-modal-dim` identifier, read from `snora-0.38.0`. Confirm it
+> still exists and is still spelled that way in 0.53 at implementation time, and
+> report either way.
 ### 5a.3 The pointer fix matters most to the navigation guard
 
 Our three modal overlays are **hand-rolled** — `stack![base, backdrop, dialog]`
@@ -302,7 +324,7 @@ path reaching `snora-style` directly (RFC-055), not the `widgets` re-export.
 **So the line should become:**
 
 ```toml
-snora = { version = "0.51", default-features = false, features = ["design"] }
+snora = { version = "0.53", default-features = false, features = ["design"] }
 ```
 
 Two changes, one line, one B0 run. The version bump §5a already argued for, and
