@@ -1,8 +1,14 @@
 # RFC 106 — Keyboard Operability
 
-**Status.** **Accepted** — approved for implementation by the owner 2026-10-18;
-§5 settled on `F6` / `Shift+F6` the same day. Lives in `rfcs/accepted/`; the
-folder is the source of truth for this state (RFC 000).
+**Status.** **Accepted, implementation held** — approved by the owner
+2026-10-18; §5 settled on `F6` / `Shift+F6` the same day. Lives in
+`rfcs/accepted/`; the folder is the source of truth for this state (RFC 000).
+
+> **Held 2026-11-04 — §6b is blocking.** iced 0.14's `button` is not focusable
+> and has no focused state, so **§4's selected design cannot satisfy §6
+> condition 1**, every control of which is a button. Found before
+> implementation started. §6b.4 carries the options and my recommendation;
+> the owner decides before T1 begins. The rest of the RFC stands.
 
 **Tracks.** NF-4 / ABDD keyboard completeness. No existing milestone covers
 this — see §8.
@@ -404,6 +410,13 @@ Source: `.git-exclude/review-requests/072-snora-0-39-1-review-2026-08-20.md`
    fail.**
 6. No new shortcut beyond §5's choice; existing bindings unchanged.
 7. RFC 099's V1 greps still pass; GUI test count grows only by the named tests.
+8. **The focused appearance of `text_input` / `text_editor` is asserted
+   against WCAG SC 1.4.11 (non-text contrast, ≥ 3:1)** in all four presets —
+   see §6b.6. Buttons are excluded because iced 0.14 cannot focus one; that
+   exclusion is §6b's subject and is **not** settled by this condition.
+
+**Conditions 1–3 are suspended pending §6b's decision** — as written they name
+controls that iced 0.14 cannot focus.
 
 ## 6a. How traversal is asserted (added 2026-08-19)
 
@@ -439,6 +452,100 @@ standard this project has arrived at repeatedly.
 `snapshot` / `matches_image` / `matches_hash` also exist and are **declined** —
 golden values that invalidate whenever snora ships an appearance change, three
 times in eleven releases. RFC 108 §6.3 records the reasoning.
+
+## 6b. **Blocking** — iced 0.14 cannot focus a button, so §4's design cannot meet §6 condition 1 (added 2026-11-04)
+
+Found while investigating the owner's authorization to assert the focus ring
+against SC 1.4.11
+(`.git-exclude/review-requests/086-elderly-accessibility-assessment-review-request.md`
+§6 decision 5). The assertion turned out not to be the finding. **There is
+nothing to assert, because on most of our controls there is no focus at all.**
+
+**This is a defect in this RFC, not in the implementation.** It was found before
+the dev team started. §4 and §6 condition 1 need an owner decision before T1.
+
+### 6b.1 The measurement
+
+In iced 0.14, only **`text_input`** and **`text_editor`** implement the
+`Focusable` operation — a grep for `operation::Focusable` across
+`iced_widget-0.14.2/src/` returns those two and `helpers.rs`, and nothing else.
+
+**`button` is not focusable and has no focused state.**
+`iced::widget::button::Status` is `Active | Hovered | Pressed | Disabled`
+(`iced_widget-0.14.2/src/button.rs:471-480`), and the string `focus` does not
+appear in `button.rs` at all. So a button cannot be focused programmatically,
+and a style function can never be told that one is focused.
+
+`focus_next()` "focuses the next focusable widget"
+(`iced_core-0.14.0/src/widget/operation/focusable.rs:162-165`) — which means
+the next **`Focusable`** widget, and no button is one.
+
+### 6b.2 What that does to §6 condition 1
+
+Condition 1 requires that `Tab` reach *"both `Pick folder` buttons,
+`Optional settings`, `Check changes`, and each recent-project `Open` and delete
+control."* **Every control it names is a `button`.**
+
+The Opening screen holds **6 buttons and 1 `text_input`**
+(`crates/aaai-gui/src/views/opening.rs`). Under §4's selected design — delegate
+`Tab` to `focus_next()` — pressing `Tab` there would cycle a single widget, the
+lone text input, and reach **none of the six buttons the condition names**.
+
+So **§4's design cannot satisfy §6 condition 1 on iced 0.14.** Conditions 2
+and 3 inherit the same limit.
+
+### 6b.3 Why our own tests would not have caught it
+
+§6a asserts traversal **by effect** — `tap_key(Tab) … tap_key(Enter)` then
+check the activation message. That is the right shape for what it tests, and it
+is blind to this: a test that never asks "is anything visible?" passes whether
+or not the user can see where they are. This project has made that exact
+mistake before, in GUI automation, and the lesson is the same — **an effect the
+screen never shows is not an effect the user has.**
+
+### 6b.4 Options
+
+| Option | Assessment |
+|---|---|
+| **(a) Build app-level focus** — extend `FocusTarget`, render our own ring from snora's unused `FocusTokens`, dispatch `Enter`/`Space` to the logically focused control | **Rejected.** This is precisely the "bespoke focus system" §4 refused, and larger: it means owning focus, traversal order, and activation for every widget type on every screen, forever, and then unwinding it when iced makes buttons focusable |
+| **(b) Keep §4, narrow condition 1, record the gap** | **Recommended.** §4 is still right — it uses the toolkit's mechanism and deletes code. Deliver it for the widgets that *can* hold focus, restate condition 1 accordingly, and record the button gap where the user meets it |
+| **(c) Raise it upstream** | **Recommended, alongside (b).** `button` focusability is iced's to fix and would benefit every consumer. snora is our existing channel and depends on iced |
+
+### 6b.5 What (b) delivers, and what it does not
+
+**Does deliver**, and it is not negligible: `Tab` starts working for the text
+fields, including the **reason field** — the one input DEC-004 makes mandatory
+and the most-used control in the application. It also deletes the broken
+interception §2.2 documents, which is a correctness fix on its own.
+
+**Does not deliver:** keyboard reach for buttons. Under (b) this RFC no longer
+makes the GUI fully keyboard-operable, and **its title overstates what it
+ships.** That is the owner's call to make, not mine to quietly absorb.
+
+Record the gap the way §5b already records modal trapping: in the **keyboard
+help overlay** (RFC 038), so the limitation is stated where a keyboard user
+meets it rather than only in an RFC. `docs/src/abdd-audit.md` §1 ("Tab order
+matches reading order") must also be scoped to focusable widgets rather than
+left implying full coverage.
+
+### 6b.6 The SC 1.4.11 assertion the owner authorized
+
+It survives, scoped to where focus can exist:
+
+- **`text_input` / `text_editor`:** `Status::Focused { is_hovered }` exists
+  (`text_input.rs:1697-1709`), so the focused appearance is real and
+  assertable. Assert the focused indication at **≥ 3:1** against the adjacent
+  surface, in all four presets, following `contrast_check`'s shape — a
+  documented module, named exemptions, traceability.
+- **Buttons:** nothing to assert until (a) or (c) changes the situation.
+
+Note that we do **not** currently apply snora's `FocusTokens` anywhere — no
+`tokens.focus`, `ring_color`, `ring_width` or `ring_offset` appears in
+`crates/aaai-gui/src`. The ring we render today is whatever iced draws for a
+focused text input. The handoff's §6 bullet deferring "focus-ring visual
+design" to RFC 101 rested on the premise that *"whatever iced draws by default
+is accepted"*; that premise is sound for text inputs and vacuous for buttons,
+which is the whole of this finding.
 
 ## 7. Verification note
 

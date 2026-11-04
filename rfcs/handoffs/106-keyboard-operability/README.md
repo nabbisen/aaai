@@ -21,6 +21,29 @@ number here** — see §7.
 
 ---
 
+> ## ⛔ Do not start — held 2026-11-04
+>
+> **RFC 106 §6b is blocking and the owner has not yet decided it.**
+>
+> iced 0.14's `button` is not focusable and has no focused state: only
+> `text_input` and `text_editor` implement `Focusable`. So **§4's design —
+> delegate `Tab` to `focus_next()` — cannot reach any of the controls §6
+> condition 1 names**, all of which are buttons. On the Opening screen (6
+> buttons, 1 `text_input`) `Tab` would cycle one widget and reach none of the
+> six buttons.
+>
+> This is a defect in the RFC, found before you started; nothing you were
+> handed is wrong, and T1–T5 below are not yet safe to build against
+> conditions 1–3.
+>
+> **What you may do now:** nothing in this handoff. **What changes when the
+> decision lands:** §3's snora bump and the `iced_test` dev-dependency are
+> unaffected; the traversal tasks are rescoped. I will amend this handoff
+> rather than reissue it.
+>
+> Read RFC 106 §6b before this document, so the rescope makes sense when it
+> arrives.
+
 ## 1. What this is
 
 **The Opening screen cannot be operated by keyboard at all.** `Tab` reaches no
