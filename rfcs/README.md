@@ -14,11 +14,18 @@ route to v1.0.0).
 |---|---|---|
 | [101](proposed/101-guided-review-flow.md) | Guided Review Flow | MG3 / WS-11 / U1 |
 | [105](proposed/105-visual-verification-scope-and-assertions.md) | Visual Verification: Scope, Assertions, Evidence Location | Successor to RFC 017 |
+| [116](proposed/116-snora-0-57-migration.md) | snora 0.57 Migration — the bump, detached from RFC 106 | Prerequisite for 106, 110, 115 §S2b |
 
 RFCs 099–101 are the GUI remediation sequence and must be implemented in that
 order; **RFC 099 shipped in v0.41.0 and RFC 100 in v0.42.0**, so the remaining
 order is **104 → 106 → 110 → 101**. RFC 111 led and is done — it deleted the
 unreachable code the later RFCs would otherwise have carried.
+
+**Revised 2026-11-09.** RFC 104 is done. RFC 106 is **held** on its §6b (iced
+0.14 cannot focus a button). The current order is **RFC 115 unit 1 → RFC 116
+(snora 0.57) → RFC 106, rescoped → RFC 115 §S2b → RFC 115 §S3–§S4 → RFC 110 →
+RFC 101** — RFC 116 first among the GUI work because RFC 106, RFC 110 and RFC 115
+§S2b all consume it. See RFC 115 §9.
 Each one's handoff states its entry conditions. See
 `.git-exclude/reviewed/038-gui-remediation-roadmap-and-milestones-2026-07-28.md`.
 
@@ -34,8 +41,9 @@ RFC 110 §8.
 
 | ID | Title | Tracks |
 |---|---|---|
-| [106](accepted/106-keyboard-operability.md) | Keyboard Operability | NF-4 / ABDD |
+| [106](accepted/106-keyboard-operability.md) | Keyboard Operability — **held on §6b** | NF-4 / ABDD |
 | [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
+| [115](accepted/115-elderly-reader-accessibility.md) | Elderly-Reader Accessibility — text size, target size, reachability | ABDD |
 
 RFCs the owner has approved for implementation and that have not shipped. The
 folder is the source of truth for this state (RFC 000); each moves to `done/`

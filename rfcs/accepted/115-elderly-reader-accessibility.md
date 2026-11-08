@@ -158,6 +158,21 @@ would turn a preference into a redesign.
 
 **User-visible**, so it carries a changelog entry. Authorized 2026-11-04.
 
+> **Corrected 2026-11-09 — the first reason is false on a tiling compositor.**
+> Implementation (review-request 087 §1.1) showed the app *requests*
+> 1280 × 720 correctly (`WM_NORMAL_HINTS … user specified size: 1280 by 720`)
+> and **niri ignores the request for a tiled window**, as tiling window
+> managers generally do. So S0 does **not** make evidence reproducible without
+> a nested compositor; I asserted that without checking it. S0 stands on the
+> second reason, which is unaffected, and on what users of floating window
+> managers — the Windows, macOS and mainstream Linux desktops — will see.
+> Acceptance condition 1 is judged on what the application controls: the
+> request.
+>
+> Reproducible baselines therefore need a nested compositor on this machine.
+> None is installed; that is an owner decision, needed before §S3–§S4's
+> single baseline regeneration and not before.
+
 ### S1 — Label the Help and Settings controls, and give them 44 px targets
 
 The defect, at `crates/aaai-gui/src/app/view.rs:130-169`:
@@ -235,6 +250,56 @@ assertion, and list the exemptions — deleting the empty table. The audit
 document stops being a place where measurements are promised and becomes a
 place where they are cited. Both language copies.
 
+> **Measured 2026-11-09 — 50 of 53 controls are under 44 px.** The scan
+> (review-request 087 §4) found heights from 22.3 to 42.8 px; only the two
+> footer controls §S1 rebuilt pass, plus the reason editor and one block.
+> The test cannot land red: a red `main` is a stop-work condition. **It lands
+> as a ratchet** — the 50 are listed in the module as *known debt* with their
+> measured heights; any control not on the list must reach 44 px, a listed one
+> may not get worse, and a listed one that reaches 44 px must be removed. The
+> rule is enforced for every new control from the day it lands, and the list
+> can only shrink. `#[ignore]` was rejected because it would stop enforcing the
+> rule for new controls too, just as RFC 106 and RFC 116 are about to touch
+> every button. Review: `.git-exclude/reviewed/087-rfc115-unit1-review-2026-11-09.md` §3.
+>
+> **The toast `×` exemption is retired by RFC 116**, which sets
+> `Tokens::targets.min = 44.0` — snora 0.57 sizes the toast close mark from
+> that token. The exemption recorded here is correct for 0.38 and temporary.
+
+### S2b — Burn down the known-debt list (authorization requested 2026-11-09)
+
+**Not yet authorized.** Added for the owner's decision so it can be read
+before it is approved.
+
+Empty the ratchet list. **The rule is 44 × 44 for every interactive control**,
+with no tier of "secondary" targets: a tier boundary is a judgement call no
+test can enforce, and it would be the first thing to drift. A text input at
+36.8 px and a button at 24.8 px fail the same rule for the same user.
+
+**Sequenced after RFC 116 and the rescoped RFC 106**, not before. Most of the
+50 are buttons; RFC 106 option (d) rebuilds them as snora controls, and RFC 116
+sets the token that makes every snora control at least 44 px. Hand-padding
+those buttons first would be work thrown away a unit later. What remains after
+both — text inputs, pick lists, any button snora cannot express — is this
+slice's actual scope, and the ratchet list will say exactly what it is.
+
+Folded in, from review-request 087 §7:
+
+- **A.** The recent-project **Open** button collapses to a ~12 px sliver beside
+  a long path — content-dependent, invisible to the static scan, and the
+  Opening screen's only route into a saved review. Fix it, and add a case the
+  scan *can* see (a minimum width on the control) so it cannot recur.
+- **B.** Two pick lists bypass the typography tokens with literals:
+  `.text_size(11)` at `crates/aaai-gui/src/views/inspector.rs:324` and
+  `.text_size(13)` at `crates/aaai-gui/src/views/settings_dialog.rs:65`.
+  11 px is the smallest text in the application. Move both to a role, and
+  extend RFC 099's V1 grep to `.text_size(` so the next one fails.
+- **C.** `bottombar.approve_and_save` carries a `// ABDD ≥44px` comment and
+  measures 40.8 px. The comment goes when the control passes, not before.
+
+Done when the ratchet list is empty and `every_control_reaches_44px` asserts
+the plain rule with no list at all.
+
 ### S3 — A text-size preference
 
 **The highest-impact item in this RFC, and the largest.**
@@ -298,7 +363,7 @@ sites that stayed is the interesting figure.
 | 7 | S3 | At `Larger`, every view remains fully reachable — no clipped or unscrollable content |
 | 8 | S3 | The scale control renders its own label at the scale it selects |
 | 9 | S4 | The `body_small` → `body` split is reported with the count that stayed and why |
-| 10 | all | Gate V1 re-run; baselines regenerated once, after S4 |
+| 10 | all | Gate V1 re-run; baselines regenerated **once, after S4** — never per unit. Earlier units capture only to answer named questions (corrected 2026-11-09: the unit 1 handoff said otherwise) |
 
 ## 7. What this RFC does not fix, and why
 
@@ -356,6 +421,13 @@ stops being a secondary accommodation. **§S1 and RFC 106 both edit the footer;
 unit 1 landing first means RFC 106 adapts to it, which is the cheaper
 direction** — unit 1 is three contained changes, RFC 106 is a traversal
 rework.
+
+> **Sequence as of 2026-11-09.** (1) Unit 1 lands — S0 + S1 now, S2 after its
+> corrections. (2) The advisory lockfile update. (3) RFC 116, the snora 0.57
+> migration. (4) RFC 106, rescoped. (5) §S2b, if authorized. (6) §S3 + §S4,
+> with the one baseline regeneration — needing a nested compositor first.
+> RFC 116 and RFC 106 moved ahead of §S2b because they fix most of its list
+> for free (§S2b's own sequencing note).
 
 ## 10. Sources
 

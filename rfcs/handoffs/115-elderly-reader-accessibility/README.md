@@ -167,7 +167,7 @@ From RFC §6, conditions 1–5 and 10:
 | 3 | At most one new i18n key (the Help label), in **both** locales; `i18n-key-audit` green |
 | 4 | `target_size_check` asserts every interactive control at 44 px, every exemption named and justified **in the module** |
 | 5 | `docs/src/abdd-audit.md` §6's empty table is gone — rule, pointer, exemptions |
-| 10 | Gate V1 re-run. **Baselines: regenerate for this unit** — §S1 changes the footer's appearance |
+| 10 | Gate V1 re-run. ~~Baselines: regenerate for this unit~~ — **corrected 2026-11-09: this contradicted RFC §6, which governs.** Baselines regenerate once, after §S4. This unit captures only to answer the S1 question |
 
 Also, unconditionally:
 

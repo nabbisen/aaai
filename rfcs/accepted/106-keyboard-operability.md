@@ -7,8 +7,9 @@
 > **Held 2026-11-04 — §6b is blocking.** iced 0.14's `button` is not focusable
 > and has no focused state, so **§4's selected design cannot satisfy §6
 > condition 1**, every control of which is a button. Found before
-> implementation started. §6b.4 carries the options and my recommendation;
-> the owner decides before T1 begins. The rest of the RFC stands.
+> implementation started. §6b.4 carries the options; **§6b.7 (2026-11-09)
+> adds option (d) from snora 0.57 and replaces my recommendation.** The owner
+> decides before T1 begins. **The snora bump moved to RFC 116** (§5a).
 
 **Tracks.** NF-4 / ABDD keyboard completeness. No existing milestone covers
 this — see §8.
@@ -185,6 +186,14 @@ screen being keyboard-inoperable is a good trade.
 > line — see §5a.
 
 ## 5a. The snora bump this implies (added 2026-08-20; retargeted 2026-09-02)
+
+> **Moved to RFC 116, 2026-11-09.** The bump is no longer part of this RFC.
+> It was held here when §6b held this RFC, while RFC 110 and RFC 115 also need
+> it, so it now ships on its own: `rfcs/proposed/116-snora-0-57-migration.md`.
+> **Read RFC 116 for the manifest line** — in particular, §5a.1's plan to drop
+> snora's `widgets` feature is reversed there, because §6b.7's option (d) uses
+> it. What follows is kept as the record of how the target was chosen; it is
+> not an instruction.
 
 §5's addendum needs `snora = "0.39"` in the workspace manifest. Recorded here
 rather than assumed, because a dependency bump costs a B0 matrix run and is the
@@ -546,6 +555,49 @@ focused text input. The handoff's §6 bullet deferring "focus-ring visual
 design" to RFC 101 rested on the premise that *"whatever iced draws by default
 is accepted"*; that premise is sound for text inputs and vacuous for buttons,
 which is the whole of this finding.
+
+### 6b.7 Option (d) — snora 0.57 ships focusable controls (added 2026-11-09)
+
+snora reached §6b's finding independently, in nearly the same words —
+*"iced 0.14's `button` handles mouse and touch events only, and registers no
+focus target. Only `text_input` and `text_editor` implement `Focusable`"*
+(`snora-interaction-0.57.0/src/lib.rs`) — and shipped the fix. In 0.57:
+
+- **snora's controls are focus targets** that Enter and Space press, publishing
+  the message a click publishes, with a focus ring drawn from
+  `Tokens::focus` (`snora-0.57.0/src/lib.rs`, doc on `pub mod design`).
+- **`snora::design::button::{primary, secondary, ghost, danger, link}`** are
+  such controls. They are **`widgets`-gated** (`snora-0.57.0/src/design.rs:103-111`),
+  which is why RFC 116 keeps that feature.
+- **`snora::keyboard::traverse(key, modifiers)`** routes plain Tab / Shift+Tab
+  (`snora-0.57.0/src/keyboard.rs:337`) — iced binds no Tab itself.
+- Each control's target is at least `Tokens::targets.min`, which RFC 116 sets
+  to 44 — so a migrated button fixes RFC 115's target-size shortfall too.
+
+**The limit.** Those five constructors take a **plain string label** and return
+a finished `Element` (`secondary(tokens, label, on_press)`,
+`snora-widgets-0.57.0/src/design/button.rs:120-126`) — no glyph-and-label row,
+no custom content. The general-content `Control` exists in
+`snora-interaction`, but snora does not re-export it and states that
+applications should not depend on that crate. So **buttons with rich content**
+— file-tree rows, suggestion chips, anything that is not one string — are not
+reachable through the supported API today.
+
+| Option | Assessment |
+|---|---|
+| **(d) Adopt snora 0.57's controls** — text-label buttons become `design::button::*`, Tab routes through `keyboard::traverse`, and snora is asked to expose a general-content control for the rest | **Recommended, replacing (b) + (c).** Condition 1 becomes achievable for most controls, the focus ring is snora's and assertable, and the bespoke-focus objection to (a) disappears because snora owns focus, not us |
+| (b) + (c), as recommended on 2026-11-04 | Superseded. (c) is answered — upstream shipped it |
+
+**What (d) costs.** It touches every view that builds a button, so it is the
+larger of the two. Rescoping this RFC under (d) means: T1–T5 rewritten around
+`design::button::*` and `keyboard::traverse`; §6 condition 1 kept, scoped to
+controls built from those constructors, with rich-content buttons listed by
+name as a recorded gap until snora answers; §6b.6's SC 1.4.11 assertion
+extended to snora's ring via `Tokens::focus`, the colour we pass. One question
+goes to snora (`.git-exclude/upstream/snora/send/draft/aaai-to-snora-2026-11-09.md`).
+
+**Sequencing.** After RFC 116. The rescoped handoff is mine to write once the
+owner chooses.
 
 ## 7. Verification note
 

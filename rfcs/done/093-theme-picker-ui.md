@@ -180,7 +180,16 @@ RFC just makes them reachable. RFC 094's two new variants will need the serde
 ### 5.1 System theme detection
 
 `Theme::System` currently falls back to Light (iced 0.14 exposes no reliable
-OS-dark-mode query). This RFC ships `System` as an option that behaves like
+OS-dark-mode query).
+
+> **Correction, 2026-11-09.** iced 0.14 *does* expose the query, publicly:
+> `iced::system::theme()` and `iced::system::theme_changes()`
+> (`iced-0.14.0/src/lib.rs:602-604`). It is native on Windows and macOS; on
+> Linux it needs iced's `linux-theme-detection` feature and an XDG desktop
+> portal, and reports `NoPreference` without one. "No reliable query" was a
+> defensible judgement about Linux; the decision register later shortened it
+> to "no query", which is false. The hiding decision below is re-opened in
+> `rfcs/proposed/116-snora-0-57-migration.md` §5. This RFC ships `System` as an option that behaves like
 Light until detection is available. **Question:** should `System` be hidden
 from the picker until it genuinely detects the OS theme, to avoid a "Match
 system" option that silently does nothing on a dark-mode OS?
