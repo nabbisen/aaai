@@ -126,47 +126,57 @@ impl App {
         };
 
         // RFC 036 — language picker moved to Settings dialog.
-        // RFC 038 — ? button (help overlay) + ⚙ settings button.
-        let help_btn = tooltip(
-            button(
-                text("?")
-                    .size(self.design_tokens.typography.label.size)
-                    .line_height(self.design_tokens.typography.label.line_height),
+        // RFC 038 — Help overlay + settings dialog buttons.
+        //
+        // RFC 115 §S1 — these are the only route to the theme picker (and so
+        // to the high-contrast themes), so each carries a visible text label
+        // beside its glyph, a resting border (`btn_secondary`) and 44 px of
+        // padding-derived height. The tooltips stay as supplementary help.
+        let footer_btn = |glyph: &'static str,
+                          label: String,
+                          tooltip_text: String,
+                          msg: Message|
+         -> Element<'_, Message> {
+            let tokens = &self.design_tokens;
+            tooltip(
+                button(
+                    row![
+                        text(glyph)
+                            .size(tokens.typography.label.size)
+                            .line_height(tokens.typography.label.line_height),
+                        text(label)
+                            .size(tokens.typography.label.size)
+                            .line_height(tokens.typography.label.line_height),
+                    ]
+                    .spacing(tokens.spacing.xs)
+                    .align_y(Center),
+                )
+                .on_press(msg)
+                .padding(iced::Padding::from([tokens.spacing.lg, tokens.spacing.lg]))
+                .style({
+                    let t = tokens.clone();
+                    move |_th, s| crate::style::btn_secondary(&t, s)
+                }),
+                text(tooltip_text)
+                    .size(tokens.typography.body_small.size)
+                    .line_height(tokens.typography.body_small.line_height),
+                Position::Top,
             )
-            .on_press(Message::ToggleHelp)
-            .padding(iced::Padding::from([
-                self.design_tokens.spacing.xs,
-                self.design_tokens.spacing.sm,
-            ]))
-            .style({
-                let t = self.design_tokens.clone();
-                move |_th, s| crate::style::btn_ghost(&t, s)
-            }),
-            text(t!("help.title").to_string())
-                .size(self.design_tokens.typography.body_small.size)
-                .line_height(self.design_tokens.typography.body_small.line_height),
-            Position::Top,
+            .into()
+        };
+
+        let help_btn = footer_btn(
+            "?",
+            t!("help.button_label").to_string(),
+            t!("help.title").to_string(),
+            Message::ToggleHelp,
         );
 
-        let settings_btn = tooltip(
-            button(
-                text("⚙")
-                    .size(self.design_tokens.typography.label.size)
-                    .line_height(self.design_tokens.typography.label.line_height),
-            )
-            .on_press(Message::OpenSettings)
-            .padding(iced::Padding::from([
-                self.design_tokens.spacing.xs,
-                self.design_tokens.spacing.sm,
-            ]))
-            .style({
-                let t = self.design_tokens.clone();
-                move |_th, s| crate::style::btn_ghost(&t, s)
-            }),
-            text(t!("settings.button_tooltip").to_string())
-                .size(self.design_tokens.typography.body_small.size)
-                .line_height(self.design_tokens.typography.body_small.line_height),
-            Position::Top,
+        let settings_btn = footer_btn(
+            "⚙",
+            t!("settings.button_tooltip").to_string(),
+            t!("settings.button_tooltip").to_string(),
+            Message::OpenSettings,
         );
 
         let left: Element<'_, Message> = if self.dirty {

@@ -261,6 +261,7 @@ settings:
   theme_high_contrast_light: ハイコントラスト（ライト）
   theme_high_contrast_dark: ハイコントラスト（ダーク）
 help:
+  button_label: ヘルプ
   title: キーボードショートカット
   shortcut_label: ショートカット
   action_label: 操作

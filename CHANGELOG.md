@@ -6,6 +6,19 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+### The window opens at 1280 × 720
+
+The GUI now opens at 1280 × 720 instead of iced's 1024 × 768 default. Nothing
+else about the window changed. (RFC 115 §S0)
+
+### Help and Settings are labelled, bordered buttons
+
+The two controls in the footer — Help and Settings, the only route to the
+theme picker and so to the high-contrast themes — were a 25 × 25 px `?` and `⚙`
+glyph with no label and no border, explained only by a hover tooltip. Each now
+carries a visible text label ("Help" / "ヘルプ" and "Settings" / "設定"), a
+resting outline, and 48.8 px of height. The tooltips are kept. (RFC 115 §S1)
+
 ---
 
 ## [0.43.0] — GUI exports are redacted, and CI runs again (2026-10-20)

@@ -27,6 +27,13 @@ fn main() -> iced::Result {
 
     iced::application(app::App::default, app::App::update, app::App::view)
         .subscription(app::App::subscription)
+        // RFC 115 §S0 — open at 1280 x 720 rather than iced's 1024 x 768
+        // default (iced_core 0.14 `window::Settings::default`). Nothing else
+        // about the window is set here, deliberately.
+        .window(iced::window::Settings {
+            size: iced::Size::new(1280.0, 720.0),
+            ..Default::default()
+        })
         .title(|app: &app::App| {
             // RFC 042 — dynamic title: `aaai — {filename}{dirty?}` on Main screen.
             // RFC 058 — append `(N pending)` when Pending > 0.

@@ -272,6 +272,7 @@ settings:
   theme_high_contrast_light: High Contrast Light
   theme_high_contrast_dark: High Contrast Dark
 help:
+  button_label: Help
   title: Keyboard Shortcuts
   shortcut_label: Shortcut
   action_label: Action
