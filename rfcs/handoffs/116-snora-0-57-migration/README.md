@@ -90,7 +90,11 @@ Then, in `crates/aaai-gui/src/target_size_check/tests.rs`:
 
 `docs/src/abdd-audit.md` §6 and `docs/ja/src/abdd-audit.md` §6: remove the
 toast row from the exemptions; state that snora controls take their minimum
-target from our token.
+target from our token. **Also correct the *Current state* paragraph:** it says
+*"snora 0.57 sets a 44 px minimum on its own controls"*. Snora provides the
+`targets.min` token and ships it at 24; **we** set it to 44. The same fix
+applies to the toast row's closing parenthesis, which goes with the row
+(review `.git-exclude/reviewed/088-rfc115-s2-ratchet-re-review-2026-11-09.md`).
 
 **Expect the known-debt list to be unchanged.** `targets.min` affects snora's
 controls only, and today none of our own buttons is one — they are iced
