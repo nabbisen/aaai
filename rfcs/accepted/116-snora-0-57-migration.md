@@ -1,6 +1,9 @@
 # RFC 116 — snora 0.57 Migration
 
-**Status.** Proposed — 2026-11-09. One open question (§5) for the owner.
+**Status.** **Accepted** — approved for implementation by the owner on
+2026-11-09, with §5 settled as **X: ship `Theme::System`**, keeping iced's
+`linux-theme-detection`, and keeping `Light` as the default. Lives in
+`rfcs/accepted/`; the folder is the source of truth for this state (RFC 000).
 
 **Tracks.** Dependency currency; prerequisite for RFC 106 (keyboard
 operability), RFC 110 (modal overlays) and RFC 115 §S2b (target-size
@@ -26,7 +29,7 @@ state), `crates/aaai-gui/src/app/update/dialogs.rs` (toast sweep),
 §S2 only, if §5 chooses X: `crates/aaai/src/profile/prefs.rs`,
 `crates/aaai-gui/src/app/subscription.rs`, `crates/aaai-gui/src/main.rs`.
 
-**Handoff.** Required, after acceptance.
+**Handoff.** `rfcs/handoffs/116-snora-0-57-migration/README.md`.
 
 ---
 
@@ -187,7 +190,7 @@ Today we discard both: `crates/aaai-gui/src/main.rs:61` maps
 | Manifest | Our `iced` line unchanged (defaults on) | Explicit iced feature list, plus a guard test that `iced_wgpu` and `iced_tiny_skia` stay and `zbus` is absent |
 | Work | §S2 below — small | One manifest line plus the guard |
 
-### 5.4 Recommendation — X
+### 5.4 Recommendation — X (**decided 2026-11-09: X**)
 
 **Ship `Theme::System`.** RFC 115 §4's lesson applies directly: *the
 accommodation a user does not have to find is the best one.* An elderly user
@@ -207,14 +210,25 @@ imposed. Revisit after it has shipped.
 Y is a sound choice if security surface outweighs the feature for you. It is
 not wrong, only smaller.
 
-### 5.5 Slice S2 — only if X
+### 5.5 Slice S2 — `Theme::System` (in scope: §5 decided X)
 
 - `prefs.rs`: add `Theme::System` back to `choices()` (DEC-010's reversal;
   the variant and its i18n key `settings.theme_system` already exist).
 - `subscription.rs`: subscribe `iced::system::theme_changes()`; seed it with
   `iced::system::theme()` at startup; store the `Mode` on `App`.
-- `main.rs:61`: map `System` through the stored mode — `Dark` → `Dark`,
-  `Light` or `None` → `Light`. **High-contrast is not inferred**: the portal
+- **One resolver, used everywhere a concrete preset is needed.** *(Corrected
+  2026-11-09, before handoff: an earlier draft said only "map `System` at
+  `main.rs:61`", which would have rendered iced's chrome dark around aaai's own
+  widgets still drawn in Light.)* Two consumers pick a preset today:
+  `main.rs:61`'s `.theme(...)` **and** `design_tokens::tokens_for()`
+  (`crates/aaai-gui/src/design_tokens.rs:15-23`, where `System` returns
+  `Tokens::light()`), whose result is cached as `App::design_tokens` at
+  `app.rs:200` and `app/update/dialogs.rs:6,115,133,145`. Add one function that
+  takes the user's choice and the OS mode and returns a concrete preset —
+  `System` with `Dark` → `Dark`, with `Light` or `None` → `Light`, every other
+  choice unchanged — and route **both** consumers through it. **No other code
+  may match on `System`.** When the OS mode changes while `System` is chosen,
+  recompute `App::design_tokens`. **High-contrast is not inferred**: the portal
   reports light/dark only.
 - `docs/src/threat-model.md` §6.2 and the Japanese copy: rewrite the reasoning.
   "We do not use the feature" and "we cannot switch it off" both stop being
@@ -230,10 +244,10 @@ not wrong, only smaller.
 | 3 | `tokens_for()` sets `targets.min = 44.0` on all four presets, asserted |
 | 4 | The toast `×` exemption is gone from `target_size_check` and from both `abdd-audit.md` copies |
 | 5 | `gpu-allocator` / `wgpu-hal` agree on `windows 0.58.0` |
-| 6 | `cargo audit` shows exactly the set in `docs/src/threat-model.md` §6, after §5 |
+| 6 | `cargo audit` shows exactly the set in `docs/src/threat-model.md` §6. A trial bump (2026-11-09) dropped `rustybuzz` from the graph, so expect `RUSTSEC-2026-0206` to leave and remove its row from both copies |
 | 7 | `theme::tests`' v0.35 pixel-identity lock still passes, or its failure is reported with snora's guide section that explains it — not re-baselined silently |
 | 8 | Every migration guide 0.38 → 0.57 read; anything touching us reported, either way |
-| 9 | If X: "Match system" follows an OS light/dark switch live on at least Windows or Linux-with-portal, evidenced; `NoPreference` renders Light |
+| 9 | A unit test covers the resolver for every choice, and `System` under each of the three OS modes; aaai's own widgets and iced's chrome resolve to the **same** preset; `NoPreference` renders Light. Live OS-switch evidence **only with the owner's agreement** — switching the desktop's colour scheme changes the owner's real setting, which the GUI rules forbid touching; otherwise the test plus review of the subscription wiring, and the report says which |
 | 10 | `CHANGELOG.md` entries for the toast behaviour change and, if X, the new theme |
 
 ## 7. Risks

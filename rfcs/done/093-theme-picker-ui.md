@@ -188,8 +188,8 @@ OS-dark-mode query).
 > Linux it needs iced's `linux-theme-detection` feature and an XDG desktop
 > portal, and reports `NoPreference` without one. "No reliable query" was a
 > defensible judgement about Linux; the decision register later shortened it
-> to "no query", which is false. The hiding decision below is re-opened in
-> `rfcs/proposed/116-snora-0-57-migration.md` §5. This RFC ships `System` as an option that behaves like
+> to "no query", which is false. The hiding decision below is **superseded**
+> by `rfcs/accepted/116-snora-0-57-migration.md` §5 (owner, 2026-11-09). This RFC ships `System` as an option that behaves like
 Light until detection is available. **Question:** should `System` be hidden
 from the picker until it genuinely detects the OS theme, to avoid a "Match
 system" option that silently does nothing on a dark-mode OS?

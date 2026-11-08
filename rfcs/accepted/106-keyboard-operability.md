@@ -7,9 +7,11 @@
 > **Held 2026-11-04 — §6b is blocking.** iced 0.14's `button` is not focusable
 > and has no focused state, so **§4's selected design cannot satisfy §6
 > condition 1**, every control of which is a button. Found before
-> implementation started. §6b.4 carries the options; **§6b.7 (2026-11-09)
-> adds option (d) from snora 0.57 and replaces my recommendation.** The owner
-> decides before T1 begins. **The snora bump moved to RFC 116** (§5a).
+> implementation started. §6b.4 carries the options; §6b.7 adds option (d)
+> from snora 0.57. **The owner chose (d) on 2026-11-09.** The handoff is
+> rewritten around snora's focusable controls **after RFC 116 lands**, against
+> the post-bump tree rather than a reading of snora's notes; until then it
+> stays marked do-not-start. **The snora bump moved to RFC 116** (§5a).
 
 **Tracks.** NF-4 / ABDD keyboard completeness. No existing milestone covers
 this — see §8.
@@ -189,7 +191,7 @@ screen being keyboard-inoperable is a good trade.
 
 > **Moved to RFC 116, 2026-11-09.** The bump is no longer part of this RFC.
 > It was held here when §6b held this RFC, while RFC 110 and RFC 115 also need
-> it, so it now ships on its own: `rfcs/proposed/116-snora-0-57-migration.md`.
+> it, so it now ships on its own: `rfcs/accepted/116-snora-0-57-migration.md`.
 > **Read RFC 116 for the manifest line** — in particular, §5a.1's plan to drop
 > snora's `widgets` feature is reversed there, because §6b.7's option (d) uses
 > it. What follows is kept as the record of how the target was chosen; it is
@@ -585,7 +587,7 @@ reachable through the supported API today.
 
 | Option | Assessment |
 |---|---|
-| **(d) Adopt snora 0.57's controls** — text-label buttons become `design::button::*`, Tab routes through `keyboard::traverse`, and snora is asked to expose a general-content control for the rest | **Recommended, replacing (b) + (c).** Condition 1 becomes achievable for most controls, the focus ring is snora's and assertable, and the bespoke-focus objection to (a) disappears because snora owns focus, not us |
+| **(d) Adopt snora 0.57's controls — chosen by the owner 2026-11-09** — text-label buttons become `design::button::*`, Tab routes through `keyboard::traverse`, and snora is asked to expose a general-content control for the rest | **Recommended, replacing (b) + (c).** Condition 1 becomes achievable for most controls, the focus ring is snora's and assertable, and the bespoke-focus objection to (a) disappears because snora owns focus, not us |
 | (b) + (c), as recommended on 2026-11-04 | Superseded. (c) is answered — upstream shipped it |
 
 **What (d) costs.** It touches every view that builds a button, so it is the

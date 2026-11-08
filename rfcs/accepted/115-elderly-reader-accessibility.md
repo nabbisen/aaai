@@ -266,10 +266,12 @@ place where they are cited. Both language copies.
 > `Tokens::targets.min = 44.0` — snora 0.57 sizes the toast close mark from
 > that token. The exemption recorded here is correct for 0.38 and temporary.
 
-### S2b — Burn down the known-debt list (authorization requested 2026-11-09)
+### S2b — Burn down the known-debt list (authorized 2026-11-09)
 
-**Not yet authorized.** Added for the owner's decision so it can be read
-before it is approved.
+**Authorized by the owner on 2026-11-09**, with the rule as written below:
+44 × 44 for every interactive control, no tiers. Its handoff is written after
+RFC 116 and the rescoped RFC 106 land, because those two decide what is left on
+the list.
 
 Empty the ratchet list. **The rule is 44 × 44 for every interactive control**,
 with no tier of "secondary" targets: a tier boundary is a judgement call no
