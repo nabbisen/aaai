@@ -23,7 +23,8 @@ pub enum Theme {
     Light,
     /// iced built-in dark palette.
     Dark,
-    /// System preference (not yet implemented — falls back to Light).
+    /// Follow the desktop's light/dark mode (RFC 116 §S2). Light when the
+    /// desktop reports light or no preference; never a high-contrast preset.
     System,
     /// High-contrast light theme (snora-design preset, ≥8:1 status contrast).
     #[serde(rename = "high_contrast_light")]
@@ -46,20 +47,23 @@ impl std::fmt::Display for Theme {
 }
 
 impl Theme {
-    /// All user-selectable themes, in display order (RFC 093).
-    ///
-    /// `System` is excluded until OS dark-mode detection is available
-    /// (RFC 093 §5.1 — hiding avoids a visibly broken picker option).
-    /// RFC 094 appends `HighContrastLight` and `HighContrastDark` here.
     /// Returns true for the two high-contrast variants.
     pub fn is_high_contrast(self) -> bool {
         matches!(self, Theme::HighContrastLight | Theme::HighContrastDark)
     }
 
+    /// All user-selectable themes, in display order (RFC 093).
+    ///
+    /// `System` is third, after `Dark` and before the two high-contrast presets
+    /// (RFC 116 §S2). It follows the desktop's light/dark mode. It was hidden
+    /// until iced exposed that mode; it now does (`iced::system::theme`).
+    /// High contrast is never chosen for the user — the desktop reports light
+    /// or dark only — so both stay explicit choices (RFC 094).
     pub fn choices() -> &'static [Theme] {
         &[
             Theme::Light,
             Theme::Dark,
+            Theme::System,
             Theme::HighContrastLight,
             Theme::HighContrastDark,
         ]

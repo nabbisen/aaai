@@ -6,6 +6,15 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+### New theme choice: "Match system"
+
+Settings → Theme now offers **Match system** (システムに合わせる), third in the
+list. It follows the desktop's light or dark setting, including when the
+setting changes while aaai is open, and shows the light theme where the desktop
+reports no preference. The default is still Light, and the high-contrast themes
+are never chosen for you.
+(RFC 116)
+
 ### Error toasts stay until dismissed; every toast is read at its own pace
 
 The GUI now builds against snora 0.57 (it was 0.38). An error toast — the kind

@@ -93,6 +93,9 @@ impl App {
             Subscription::none()
         };
 
-        Subscription::batch([toast_sub, kb_sub, dnd_sub(), time_sub])
+        // RFC 116 §S2 — follow the desktop's light/dark switch.
+        let system_theme_sub = iced::system::theme_changes().map(Message::SystemThemeChanged);
+
+        Subscription::batch([toast_sub, kb_sub, dnd_sub(), time_sub, system_theme_sub])
     }
 }

@@ -563,7 +563,7 @@ mod tests {
     use aaai::profile::prefs::Theme;
 
     fn tokens() -> Tokens {
-        tokens_for(&Theme::Light)
+        tokens_for(&Theme::Light, iced::theme::Mode::None)
     }
 
     fn one(src: &str) -> Site {

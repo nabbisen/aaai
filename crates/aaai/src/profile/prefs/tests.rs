@@ -75,3 +75,26 @@ fn save_and_load_use_the_explicit_state_root() {
     assert_eq!(loaded.theme, Theme::Dark);
     assert_eq!(loaded.language, "ja");
 }
+
+/// RFC 116 §S2 — `System` is offered third, between `Dark` and the two
+/// high-contrast presets, and the default stays `Light`.
+#[test]
+fn theme_choices_offer_system_third_and_default_stays_light() {
+    assert_eq!(
+        Theme::choices(),
+        &[
+            Theme::Light,
+            Theme::Dark,
+            Theme::System,
+            Theme::HighContrastLight,
+            Theme::HighContrastDark,
+        ]
+    );
+    assert_eq!(Theme::default(), Theme::Light);
+    let yaml = serde_yaml::to_string(&UserPrefs {
+        theme: Theme::System,
+        ..Default::default()
+    })
+    .unwrap();
+    assert!(yaml.contains("theme: system"), "{yaml}");
+}

@@ -190,6 +190,8 @@ impl App {
             Message::CloseModals => self.close_modals(),
             Message::CloseMenus => self.close_menus(),
 
+            Message::SystemThemeChanged(mode) => self.system_theme_changed(mode),
+
             // ── Toasts ────────────────────────────────────────────────
             Message::DismissToast(id) => self.dismiss_toast(id),
             Message::ToastTick => self.toast_tick(),

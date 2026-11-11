@@ -13,7 +13,6 @@ mod target_size_check;
 mod theme;
 mod util;
 mod views;
-use aaai::profile::prefs::Theme as AppTheme;
 use rust_i18n::t;
 
 // Initialise rust-i18n. Locale files live in `locales/`.
@@ -26,56 +25,61 @@ fn main() -> iced::Result {
     let locale = detect_locale();
     rust_i18n::set_locale(&locale);
 
-    iced::application(app::App::default, app::App::update, app::App::view)
-        .subscription(app::App::subscription)
-        // RFC 115 §S0 — open at 1280 x 720 rather than iced's 1024 x 768
-        // default (iced_core 0.14 `window::Settings::default`). Nothing else
-        // about the window is set here, deliberately.
-        .window(iced::window::Settings {
-            size: iced::Size::new(1280.0, 720.0),
-            ..Default::default()
-        })
-        .title(|app: &app::App| {
-            // RFC 042 — dynamic title: `aaai — {filename}{dirty?}` on Main screen.
-            // RFC 058 — append `(N pending)` when Pending > 0.
-            let base = t!("app.title").to_string();
-            if matches!(app.screen, app::Screen::Main) {
-                let fname: Option<&str> = if !app.definition_path.is_empty() {
-                    std::path::Path::new(&app.definition_path)
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                } else {
-                    None
-                };
-                let dirty = if app.dirty { " ●" } else { "" };
-                let pending = app
-                    .audit_result
-                    .as_ref()
-                    .map(|r| r.summary.pending)
-                    .unwrap_or(0);
-                let pending_str = if pending > 0 {
-                    format!(" ({pending} pending)")
-                } else {
-                    String::new()
-                };
-                if let Some(name) = fname {
-                    return format!("{} — {}{}{}", base, name, dirty, pending_str);
-                } else if app.dirty || pending > 0 {
-                    return format!("{}{}{}", base, dirty, pending_str);
-                }
+    iced::application(
+        // RFC 116 §S2 — seed the OS light/dark mode at startup; changes arrive
+        // through the subscription.
+        || {
+            (
+                app::App::default(),
+                iced::system::theme().map(app::Message::SystemThemeChanged),
+            )
+        },
+        app::App::update,
+        app::App::view,
+    )
+    .subscription(app::App::subscription)
+    // RFC 115 §S0 — open at 1280 x 720 rather than iced's 1024 x 768
+    // default (iced_core 0.14 `window::Settings::default`). Nothing else
+    // about the window is set here, deliberately.
+    .window(iced::window::Settings {
+        size: iced::Size::new(1280.0, 720.0),
+        ..Default::default()
+    })
+    .title(|app: &app::App| {
+        // RFC 042 — dynamic title: `aaai — {filename}{dirty?}` on Main screen.
+        // RFC 058 — append `(N pending)` when Pending > 0.
+        let base = t!("app.title").to_string();
+        if matches!(app.screen, app::Screen::Main) {
+            let fname: Option<&str> = if !app.definition_path.is_empty() {
+                std::path::Path::new(&app.definition_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+            } else {
+                None
+            };
+            let dirty = if app.dirty { " ●" } else { "" };
+            let pending = app
+                .audit_result
+                .as_ref()
+                .map(|r| r.summary.pending)
+                .unwrap_or(0);
+            let pending_str = if pending > 0 {
+                format!(" ({pending} pending)")
+            } else {
+                String::new()
+            };
+            if let Some(name) = fname {
+                return format!("{} — {}{}{}", base, name, dirty, pending_str);
+            } else if app.dirty || pending > 0 {
+                return format!("{}{}{}", base, dirty, pending_str);
             }
-            base
-        })
-        .theme(|app: &app::App| match app.theme {
-            AppTheme::Dark => iced::Theme::Dark,
-            AppTheme::Light => iced::Theme::Light,
-            AppTheme::System => iced::Theme::Light, // fallback
-            // HC themes use the matching iced base for built-in widget chrome;
-            // aaai's own widgets get the high-contrast snora tokens (RFC 092).
-            AppTheme::HighContrastLight => iced::Theme::Light,
-            AppTheme::HighContrastDark => iced::Theme::Dark,
-        })
-        .run()
+        }
+        base
+    })
+    // RFC 116 §S2 — iced's chrome and aaai's tokens resolve the theme
+    // choice through the same function, so they cannot disagree.
+    .theme(|app: &app::App| design_tokens::iced_theme_for(&app.theme, app.os_mode))
+    .run()
 }
 
 fn detect_locale() -> String {

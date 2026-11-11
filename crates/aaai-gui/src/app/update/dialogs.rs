@@ -3,9 +3,21 @@ use super::super::*;
 impl App {
     pub(in crate::app) fn set_theme(&mut self, t: AppTheme) {
         self.theme = t;
-        self.design_tokens = crate::design_tokens::tokens_for(&t);
+        self.refresh_design_tokens();
         self.prefs.theme = t;
         self.prefs.save();
+    }
+
+    /// Recompute the design tokens from the current choice and OS mode.
+    pub(in crate::app) fn refresh_design_tokens(&mut self) {
+        self.design_tokens = crate::design_tokens::tokens_for(&self.theme, self.os_mode);
+    }
+
+    /// RFC 116 §S2 — the desktop switched (or first reported) light/dark. Only
+    /// a `System` choice looks different for it; the resolver decides.
+    pub(in crate::app) fn system_theme_changed(&mut self, mode: iced::theme::Mode) {
+        self.os_mode = mode;
+        self.refresh_design_tokens();
     }
 
     pub(in crate::app) fn switch_locale(&mut self, code: String) {
@@ -112,7 +124,7 @@ impl App {
         // RFC 093 — revert live-preview theme change on cancel.
         let original = self.prefs.theme;
         self.theme = original;
-        self.design_tokens = crate::design_tokens::tokens_for(&original);
+        self.refresh_design_tokens();
         self.settings_open = false;
         // draft is abandoned; prefs remain unchanged
     }
@@ -130,7 +142,7 @@ impl App {
         }
         // RFC 093 — commit live-preview theme; tokens already applied.
         self.theme = self.prefs.theme;
-        self.design_tokens = crate::design_tokens::tokens_for(&self.prefs.theme);
+        self.refresh_design_tokens();
         self.prefs.save();
         self.settings_open = false;
     }
@@ -142,7 +154,7 @@ impl App {
     pub(in crate::app) fn settings_theme_changed(&mut self, theme: AppTheme) {
         self.settings_draft.theme = theme;
         self.theme = theme;
-        self.design_tokens = crate::design_tokens::tokens_for(&theme);
+        self.refresh_design_tokens();
     }
 
     pub(in crate::app) fn settings_ignore_dir_add(&mut self) {

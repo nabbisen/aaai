@@ -188,23 +188,16 @@ The exact path is `iced_winit` → `mundy` → `zbus` 5, pulled in by **iced's
 default `linux-theme-detection` feature**. It reaches the graph on **Linux
 only**, and no version bump removes it while `iced` depends on `zbus` 5.
 
-**We do not use the feature.** `crates/aaai-gui/src/main.rs:61` supplies the
-theme from profile state, and the `System` variant is a fixed fallback that
-never queries the OS — this is DEC-010, open question Q-1.
+**We use the feature.** Since RFC 116 the `Match system` theme choice follows the
+desktop's light/dark mode on Linux, which is what `linux-theme-detection`
+provides (`iced::system::theme` and `iced::system::theme_changes`). Dropping it
+would remove that choice on Linux. snora 0.54 made the feature switchable, so
+the switch exists; we keep it for this reason.
 
-**We cannot switch it off.** Cargo unifies features across the graph, and
-`iced 0.14.0` is pulled by three crates — `aaai-gui`, `snora` and
-`snora-style` — all three taking iced's defaults. `default-features = false`
-in our workspace alone leaves the union unchanged; the two snora crates would
-have to publish the same change. iced also has no negative features, so the
-switch drops the whole default set, including **both** renderers (`wgpu` and
-`tiny-skia`) that RISK-003's fallback depends on.
-
-**Decision: accept all three by ID rather than pursue the feature switch.**
-They are unmaintained notices, not vulnerabilities; `cargo audit` exits 0 on
-them with no ignore list. The gain would be three fewer warning lines, against
-a cross-crate coordination we do not control and a hand-maintained feature
-list guarding the fallback renderer. Raised with snora on 2026-10-21.
+**Decision: accept all three by ID.** They are unmaintained notices, not
+vulnerabilities; `cargo audit` exits 0 on them with no ignore list. The upstream
+crates were merged into `zbus` 6, which `iced` does not yet use, so nothing here
+can be fixed by us. The reasoning and the alternatives are in RFC 116 §5.
 
 ## 7. Reporting a problem
 

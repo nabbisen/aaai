@@ -162,3 +162,34 @@ fn rfc116_error_toasts_stay_and_others_expire_through_holds_sweep() {
         "the error toast must still be present"
     );
 }
+
+/// RFC 116 §S2 — an OS switch recolours the app only when the choice is
+/// `System`; a concrete choice is untouched. The theme is set explicitly,
+/// not read from the maintainer's saved settings.
+#[test]
+fn rfc116_os_mode_changes_tokens_only_under_system_choice() {
+    use iced::theme::Mode;
+
+    let mut app = App {
+        theme: AppTheme::System,
+        os_mode: Mode::None,
+        ..Default::default()
+    };
+    app.refresh_design_tokens();
+    let light = app.design_tokens.clone();
+
+    let _ = app.update(Message::SystemThemeChanged(Mode::Dark));
+    assert_eq!(app.os_mode, Mode::Dark);
+    assert_ne!(app.design_tokens, light, "System + Dark must recolour");
+    assert_eq!(
+        app.design_tokens,
+        crate::design_tokens::tokens_for(&AppTheme::Dark, Mode::None)
+    );
+
+    app.theme = AppTheme::Light;
+    app.refresh_design_tokens();
+    let fixed = app.design_tokens.clone();
+    let _ = app.update(Message::SystemThemeChanged(Mode::Light));
+    let _ = app.update(Message::SystemThemeChanged(Mode::Dark));
+    assert_eq!(app.design_tokens, fixed, "a concrete choice ignores the OS");
+}

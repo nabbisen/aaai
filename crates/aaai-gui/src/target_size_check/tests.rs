@@ -546,15 +546,21 @@ const EXTERNAL_EXEMPTIONS: &[(&str, f32, f32, &str)] = &[];
 
 fn presets() -> [(&'static str, Tokens); 4] {
     [
-        ("light", crate::design_tokens::tokens_for(&Theme::Light)),
-        ("dark", crate::design_tokens::tokens_for(&Theme::Dark)),
+        (
+            "light",
+            crate::design_tokens::tokens_for(&Theme::Light, iced::theme::Mode::None),
+        ),
+        (
+            "dark",
+            crate::design_tokens::tokens_for(&Theme::Dark, iced::theme::Mode::None),
+        ),
         (
             "high_contrast_light",
-            crate::design_tokens::tokens_for(&Theme::HighContrastLight),
+            crate::design_tokens::tokens_for(&Theme::HighContrastLight, iced::theme::Mode::None),
         ),
         (
             "high_contrast_dark",
-            crate::design_tokens::tokens_for(&Theme::HighContrastDark),
+            crate::design_tokens::tokens_for(&Theme::HighContrastDark, iced::theme::Mode::None),
         ),
     ]
 }

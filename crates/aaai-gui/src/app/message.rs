@@ -193,6 +193,9 @@ pub enum Message {
     /// snora's `on_close_menus()` callback type is self-documenting.
     CloseMenus,
 
+    /// RFC 116 §S2 — the desktop's light/dark mode, at startup and on change.
+    SystemThemeChanged(iced::theme::Mode),
+
     // Toasts
     DismissToast(u64),
     ToastTick,

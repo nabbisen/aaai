@@ -99,6 +99,9 @@ pub struct App {
 
     // Phase 10: theme
     pub theme: AppTheme,
+    /// RFC 116 §S2 — the desktop's light/dark mode as last reported. Only
+    /// `design_tokens::resolve` reads it, and only when `theme` is `System`.
+    pub os_mode: iced::theme::Mode,
     /// RFC 092 — resolved design tokens for the active theme.
     /// Updated on SetTheme; read by every view for token-driven styling.
     pub design_tokens: snora::design::Tokens,
@@ -202,7 +205,11 @@ impl Default for App {
             },
             locale: rust_i18n::locale().to_string(),
             theme: UserPrefs::load().theme,
-            design_tokens: crate::design_tokens::tokens_for(&UserPrefs::load().theme),
+            os_mode: iced::theme::Mode::None,
+            design_tokens: crate::design_tokens::tokens_for(
+                &UserPrefs::load().theme,
+                iced::theme::Mode::None,
+            ),
             settings_open: false,
             settings_draft: UserPrefs::default(),
             help_open: false,
