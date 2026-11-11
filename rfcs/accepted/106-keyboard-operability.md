@@ -601,6 +601,19 @@ goes to snora (`.git-exclude/upstream/snora/send/draft/aaai-to-snora-2026-11-09.
 **Sequencing.** After RFC 116. The rescoped handoff is mine to write once the
 owner chooses.
 
+**Two additions the rescoped handoff must carry** (2026-11-11, from the updated
+GUI rules; review-request 089 §2, §5):
+
+- **T0 — the shared session script.** Promote the dev team's RFC 115
+  `launch.sh` to `.git-exclude/tools/gui-session.sh`, mechanics only, with
+  aaai's facts in its header (089 §4).
+- **The level-2 harness.** `iced_test` arrives here anyway. Build the headless
+  matrix — label visibility, overflow, focusable hit area — over the axes that
+  exist (language × theme × window size). Once buttons are snora controls they
+  are `Focusable`, so their hit area is **measured**, which is what this RFC's
+  focus work and RFC 115's target-size work both need. I verify one cell end to
+  end before writing the handoff.
+
 ## 7. Verification note
 
 **Keyboard input is testable on this setup with no new tooling.** `xdotool`

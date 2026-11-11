@@ -289,8 +289,14 @@ Folded in, from review-request 087 §7:
 
 - **A.** The recent-project **Open** button collapses to a ~12 px sliver beside
   a long path — content-dependent, invisible to the static scan, and the
-  Opening screen's only route into a saved review. Fix it, and add a case the
-  scan *can* see (a minimum width on the control) so it cannot recur.
+  Opening screen's only route into a saved review. Fix it, and **add a
+  level-2 check** that holds it: render the Opening screen headless with a long
+  recent-project path, and assert the Open button's text has `visible_bounds`
+  equal to its `bounds`. *(Amended 2026-11-11: this said "a case the scan can
+  see". A capture found this, and the GUI rules now say such a finding gets an
+  automated check at the cheapest level that can hold it. The static scan
+  cannot see content-dependent collapse; the headless tree can. Review-request
+  089 §5.)*
 - **B.** Two pick lists bypass the typography tokens with literals:
   `.text_size(11)` at `crates/aaai-gui/src/views/inspector.rs:324` and
   `.text_size(13)` at `crates/aaai-gui/src/views/settings_dialog.rs:65`.
@@ -362,7 +368,7 @@ sites that stayed is the interesting figure.
 | 4 | S2 | `target_size_check` asserts every interactive control at 44 px, with every exemption named and justified in the module |
 | 5 | S2 | `docs/src/abdd-audit.md` §6's empty table is gone, replaced by the rule, a pointer to the assertion, and the exemption list — both languages |
 | 6 | S3 | An existing `prefs.yaml` with no scale field loads and renders identically to before |
-| 7 | S3 | At `Larger`, every view remains fully reachable — no clipped or unscrollable content |
+| 7 | S3 | At `Larger`, every view remains fully reachable — no clipped or unscrollable content. **Proved by the level-2 matrix** (review-request 089 §5) across every text size, language, theme and both window sizes, not by eye |
 | 8 | S3 | The scale control renders its own label at the scale it selects |
 | 9 | S4 | The `body_small` → `body` split is reported with the count that stayed and why |
 | 10 | all | Gate V1 re-run; baselines regenerated **once, after S4** — never per unit. Earlier units capture only to answer named questions (corrected 2026-11-09: the unit 1 handoff said otherwise) |

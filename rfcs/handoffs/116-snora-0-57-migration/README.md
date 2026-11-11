@@ -176,6 +176,29 @@ the record and the threat model points to it.
 **The decision log is mine**, not yours: I update DEC-010 and Q-1 when this
 ships.
 
+## 3a. Evidence plan
+
+Required by `.git-exclude/rules/project-instructions-gui-common.md`
+(*Test Optimization Rules*): the questions, the level each is checked at, and
+the captures that remain. **The headless level-2 harness does not exist yet** —
+RFC 106 brings it — so this unit uses level 1 wherever it can prove the
+property and level 3 only where nothing else can.
+
+| # | Question | Level | How |
+|---|---|---|---|
+| 1 | Does it build and behave on 0.57? | 1 | The full suite, fmt, clippy `-D warnings`, three-OS B0 |
+| 2 | Do toasts still expire, and do errors now stay? | 1 | A unit test on the toast state through `Holds::sweep`: an info toast is gone after its hold; an error toast is still present |
+| 3 | Is every snora control at least 44 px? | 1 | The `targets.min >= 44.0` assertion over all four presets (§2.3) |
+| 4 | Did snora's rendering move under our colour and pixel guarantees? | 1 | `contrast_check` and the v0.35 pixel-identity lock. A failure is reported, not re-baselined |
+| 5 | Does `System` pick the right preset, and do iced's frame and our widgets agree? | 1 | The resolver tests (§3.3) |
+| 6 | Does `System` follow a live OS switch? | 3 | **Only with the owner's agreement** (§3.3); otherwise questions 5 and the wiring review stand in for it |
+| 7 | Is a long file path in a toast fully readable now that snora wraps it (0.52)? | 3 | **One capture, the worst case:** Japanese, the longest path your fixture can produce, 800 × 550 if the compositor gives it — record the actual size otherwise. No baseline: nothing is being compared |
+
+**Question 7 is the only capture in this unit.** Write down what you will look
+for before you take it, and abort at the first anomaly. When RFC 106 builds the
+level-2 harness, question 7 becomes an automated check — note it in your report
+so it is not forgotten.
+
 ## 4. Acceptance
 
 RFC 116 §6, all ten conditions. Unconditionally: `cargo +1.91 fmt --check
