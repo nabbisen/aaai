@@ -9,6 +9,7 @@ mod design_tokens;
 mod error;
 mod i18n;
 mod style;
+mod target_size_check;
 mod theme;
 mod util;
 mod views;

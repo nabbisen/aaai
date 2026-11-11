@@ -77,16 +77,55 @@ Run with monochrome / greyscale display (Linux: `xrandr --output <name> --gamma 
 
 ## 6. Click targets are ≥ 44 px (design doc p.8 ABDD common rule)
 
-Measure with the OS accessibility inspector or by hovering and noting feedback area.
+**This section is asserted by a test, not filled in by hand.** A hand-filled
+table of pixel measurements goes stale the moment a padding token changes;
+this one did exactly that, and was removed for it (RFC 115 §S2).
 
-| Element | Observed (px h × w) | Verdict | Notes |
-|---|---|---|---|
-| Toolbar buttons (← Open / ↓ Save / ▶ Check again / ↑ Save report / ↩ Undo) | | | |
-| Opening "Pick folder" buttons | | | |
-| Save and continue (bottom bar) | | | |
-| Diff-tab buttons (Side by side / Unified / Changes only) | | | |
-| File-tree entry rows | | | |
-| **Toast dismiss `×`** (snora prefab) | 24 × 24 | | Checked 2026-09-26. **Supplied by snora, not by us.** It measured 25.00 × 23.40 from 0.41 to 0.50 — failing on the height axis — and is exactly **24 × 24** from 0.51.0, which is snora's stated minimum and WCAG 2.5.8 (AA). **It does not meet this section's 44 px bar, which is WCAG 2.5.5 (AAA), and cannot without snora changing it.** Owner decision needed: relax the bar for dependency-supplied controls, accept the gap as a recorded exception, or stop using the prefab's close button |
+**The rule.** Every interactive control reaches **44 × 44 px** on both axes
+(WCAG 2.5.5, AAA — the project's own ABDD common rule). WCAG 2.5.8 (AA) asks
+for 24 × 24 and is the floor, not the target.
+
+**The assertion.** `crates/aaai-gui/src/target_size_check/` — run it with
+
+```sh
+cargo test -p aaai-gui target_size_check
+```
+
+For every `button`, `text_input`, `text_editor` and `pick_list` the GUI builds,
+in all four theme presets:
+
+- **Height** is exact: text size × line height + padding, with the padding and
+  text size read from the view source and evaluated against the live design
+  tokens. A padding change in a view, or a spacing change in snora, changes the
+  result.
+- **Width** is the layout's for a `Length::Fill` control. For a content-sized
+  control it is horizontal padding plus a *floor estimate* of the label (no
+  font is loaded in a test), so a width failure is "not proven", while a height
+  failure is measured.
+
+A second test fails when a control is added to, or removed from, the views
+without being registered in that module (or is registered as the wrong kind of
+widget), so the set cannot drift silently.
+
+**Current state.** The rule is asserted for every control, but **50 existing
+controls are below it** (worst heights between 22.3 and 42.8 px, most of them
+the inspector, the opening screen and the dialogs' buttons). They are listed in
+the module as **known debt, not exemption**, each with its measured height. The
+list is a ratchet: it **may only shrink**. The test fails if a control that is
+not on it is below 44 px — so every new control must meet the rule — if a listed
+control gets worse, or if a listed control reaches 44 px and is not removed.
+Remediation is scheduled: RFC 116 (snora 0.57 sets a 44 px minimum on its own
+controls), the rescoped RFC 106 and RFC 115 §S2b.
+
+**Exemptions** — each is named, with its reason, in the module itself:
+
+| Control | Why it is exempt |
+|---|---|
+| Full-window backdrops behind the Settings, Help and unsaved-changes dialogs (3) | Click-to-dismiss surfaces that fill the window; not a pointer target anyone aims at. The dialogs' own Close / Cancel buttons are asserted individually. |
+| **Toast dismiss `×`** (snora prefab) | Supplied by snora, not built by us, so it cannot be changed here. Recorded at 24 × 24 from snora 0.51 (snora's stated minimum and WCAG 2.5.8), below 24 on one axis from 0.41 to 0.50; that figure came from a snora letter, not from this project. It does not meet the 44 px bar and cannot unless snora changes it (RFC 116 moves to a snora release that applies a 44 px minimum to this mark, which would retire the exemption). This is the owner decision this section carried since 2026-09-26: recorded as a dependency-supplied exemption. |
+
+**Not covered.** Controls built by a dependency that the scan cannot see
+(the toast `×` above is the only one known), and screen-reader behaviour (§7).
 
 ---
 
@@ -113,7 +152,7 @@ or open a follow-up RFC that drives the migration.
 | 3. Distance for destructive actions | 0 / 0 / 0 |
 | 4. State visibility | 0 / 0 / 0 |
 | 5. Reason-field plain language | 0 / 0 / 0 |
-| 6. Click-target size | 0 / 0 / 0 |
+| 6. Click-target size | asserted by `target_size_check`; 50 controls recorded as known debt (§6) |
 | 7. Screen reader | n/a (declared limitation) |
 
 **Overall verdict for this release.** `<pass / pass with exceptions / fail>`

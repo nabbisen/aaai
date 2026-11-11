@@ -19,6 +19,15 @@ glyph with no label and no border, explained only by a hover tooltip. Each now
 carries a visible text label ("Help" / "ヘルプ" and "Settings" / "設定"), a
 resting outline, and 48.8 px of height. The tooltips are kept. (RFC 115 §S1)
 
+### The 44 px click-target rule is now a test
+
+`docs/src/abdd-audit.md` §6 was a table of hand-measured sizes that was never
+filled in. It is replaced by `target_size_check`, which reads each control's
+padding and text size from the view source and asserts 44 px on both axes in
+all four themes. 50 existing controls are below the bar; they are listed, with
+their measured heights, so they can only improve, and every new control must
+meet it. (RFC 115 §S2)
+
 ---
 
 ## [0.43.0] — GUI exports are redacted, and CI runs again (2026-10-20)
