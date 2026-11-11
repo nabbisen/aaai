@@ -4,7 +4,7 @@
 //! * Toast subscription properly wired (`App::subscription`).
 //! * `FilterMode` for file-tree filtering.
 //! * `locale` field + `SwitchLocale` message.
-//! * `Instant` passed to `sweep_expired` correctly.
+//! * `Instant` passed to `snora::toast::Holds::sweep` correctly.
 
 use std::path::PathBuf;
 use std::time::Instant;
@@ -88,6 +88,10 @@ pub struct App {
 
     // Toasts
     pub toasts: Vec<Toast<Message>>,
+    /// RFC 116 §S1.2 — snora 0.57 keeps toast hold state here; expiry goes
+    /// through `Holds::sweep`. We never report pointer or focus attention, so
+    /// no toast is ever held.
+    pub toast_holds: snora::toast::Holds,
     pub toast_id: u64,
 
     // Locale
@@ -186,6 +190,7 @@ impl Default for App {
             last_saved_at: None,
             last_reported_at: None,
             toasts: Vec::new(),
+            toast_holds: snora::toast::Holds::default(),
             toast_id: 0,
             prefs: {
                 // RFC 036 — load persisted settings; apply stored language immediately.

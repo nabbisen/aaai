@@ -142,3 +142,23 @@ fn rfc064_suggest_patterns_empty() {
     let s = App::suggest_patterns("");
     assert!(s.is_empty(), "empty path → no suggestions");
 }
+
+/// RFC 116 §S1.2 — since snora 0.54 an error toast stays until it is
+/// dismissed, while any other toast expires after its reading time. Time is
+/// moved forward rather than waited for.
+#[test]
+fn rfc116_error_toasts_stay_and_others_expire_through_holds_sweep() {
+    let mut app = App::default();
+    app.push_toast(ToastIntent::Info, "saved", "profile written");
+    app.push_toast(ToastIntent::Error, "failed", "could not save");
+    assert_eq!(app.toasts.len(), 2);
+
+    let later = Instant::now() + std::time::Duration::from_secs(600);
+    app.toast_holds.sweep(&mut app.toasts, later);
+
+    assert_eq!(app.toasts.len(), 1, "the info toast must have expired");
+    assert!(
+        matches!(app.toasts[0].intent, ToastIntent::Error),
+        "the error toast must still be present"
+    );
+}

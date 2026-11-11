@@ -38,7 +38,9 @@
 //!   returning a `Padding`, say) is an error, not a silent skip.
 //! * Widgets that are interactive but not built through the four
 //!   constructors above (for example a snora prefab) are not seen by the
-//!   scan; those are listed as external exemptions by hand.
+//!   scan. snora's own controls take their minimum from the `targets.min`
+//!   token, which `design_tokens` sets and asserts; anything else a
+//!   dependency builds is listed as an external exemption by hand.
 //!
 //! # Adding or moving a control — ids are ordinal
 //!
@@ -531,19 +533,16 @@ const KNOWN_DEBT: &[(&str, f32)] = &[
 ];
 
 /// Controls that are interactive and ours to the user, but built by a
-/// dependency, so the scan cannot see them and we cannot change them.
-const EXTERNAL_EXEMPTIONS: &[(&str, f32, f32, &str)] = &[(
-    "snora toast dismiss `×`",
-    24.0,
-    24.0,
-    "Supplied by the snora prefab (`snora::Toast`), not built by us, so the scan cannot see it and we \
-     cannot change it. docs/src/abdd-audit.md §6 records it at 24 x 24 from snora 0.51 (snora's stated \
-     minimum and WCAG 2.5.8, AA), and below 24 on one axis from 0.41 to 0.50. That measurement came \
-     from a snora letter, not from this project, and this project's pinned snora (0.38.0) predates it: \
-     the figure is a recorded value, not one measured here. The control does not reach this rule's \
-     44 px bar (WCAG 2.5.5, AAA) and cannot unless snora changes it. Recorded as a dependency-supplied \
-     exemption, which closes the owner decision §6 has carried since 2026-09-26.",
-)];
+/// dependency, so the scan cannot see them and we cannot change them. Each is
+/// `(name, width, height, reason)`.
+///
+/// **Empty since RFC 116.** The one entry — snora's toast dismiss `×`, 24 x 24
+/// under snora 0.38 — went when we moved to snora 0.57, which sizes it (and
+/// every other snora control) from `Tokens::targets.min`. That token is ours,
+/// and `design_tokens::tests::every_preset_asks_snora_for_44px_targets` asserts
+/// it. Keep the list for the next control a dependency builds that no token
+/// reaches; do not delete the check that every entry states a reason.
+const EXTERNAL_EXEMPTIONS: &[(&str, f32, f32, &str)] = &[];
 
 fn presets() -> [(&'static str, Tokens); 4] {
     [

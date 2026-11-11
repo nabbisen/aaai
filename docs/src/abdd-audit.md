@@ -114,18 +114,23 @@ the module as **known debt, not exemption**, each with its measured height. The
 list is a ratchet: it **may only shrink**. The test fails if a control that is
 not on it is below 44 px — so every new control must meet the rule — if a listed
 control gets worse, or if a listed control reaches 44 px and is not removed.
-Remediation is scheduled: RFC 116 (snora 0.57 sets a 44 px minimum on its own
-controls), the rescoped RFC 106 and RFC 115 §S2b.
+Remediation is scheduled: the rescoped RFC 106 and RFC 115 §S2b.
+
+**snora's own controls** (the toast dismiss `×` among them) take their minimum
+target from the design token `Tokens::targets.min`. snora provides the token and
+ships it at 24; **we** set it to 44 for every theme preset
+(`design_tokens::TARGET_MIN_PX`), and a test asserts it. The toast `×` was an
+exemption here until RFC 116 (it was recorded at 24 × 24) and is no longer.
 
 **Exemptions** — each is named, with its reason, in the module itself:
 
 | Control | Why it is exempt |
 |---|---|
 | Full-window backdrops behind the Settings, Help and unsaved-changes dialogs (3) | Click-to-dismiss surfaces that fill the window; not a pointer target anyone aims at. The dialogs' own Close / Cancel buttons are asserted individually. |
-| **Toast dismiss `×`** (snora prefab) | Supplied by snora, not built by us, so it cannot be changed here. Recorded at 24 × 24 from snora 0.51 (snora's stated minimum and WCAG 2.5.8), below 24 on one axis from 0.41 to 0.50; that figure came from a snora letter, not from this project. It does not meet the 44 px bar and cannot unless snora changes it (RFC 116 moves to a snora release that applies a 44 px minimum to this mark, which would retire the exemption). This is the owner decision this section carried since 2026-09-26: recorded as a dependency-supplied exemption. |
 
 **Not covered.** Controls built by a dependency that the scan cannot see
-(the toast `×` above is the only one known), and screen-reader behaviour (§7).
+(snora's, covered by the token above rather than measured here), and
+screen-reader behaviour (§7).
 
 ---
 

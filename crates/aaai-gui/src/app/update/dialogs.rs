@@ -177,7 +177,7 @@ impl App {
     }
 
     pub(in crate::app) fn toast_tick(&mut self) {
-        snora::toast::sweep_expired(&mut self.toasts, Instant::now());
+        self.toast_holds.sweep(&mut self.toasts, Instant::now());
     }
 
     pub(in crate::app) fn relative_time_tick(&mut self) {

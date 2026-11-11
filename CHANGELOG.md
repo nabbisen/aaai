@@ -6,6 +6,21 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+### Error toasts stay until dismissed; every toast is read at its own pace
+
+The GUI now builds against snora 0.57 (it was 0.38). An error toast — the kind
+that tells you a save or an audit failed — no longer disappears by itself: it
+stays until you dismiss it. Other toasts stay for as long as their text takes to
+read (two seconds plus one per six characters, six seconds at least) instead of
+a fixed four, and long file paths now wrap inside a toast instead of being cut
+off. The upgrade also drops 37 crates from the dependency graph, among them `rustybuzz`
+(`RUSTSEC-2026-0206`, unmaintained), leaving seven accepted advisories. (RFC 116)
+
+### The toast close mark is 44 px
+
+The dismiss `×` on a toast was 24 × 24 px. aaai now asks snora for a 44 px
+minimum target on every theme, and the toast `×` reaches it. (RFC 116)
+
 ### The window opens at 1280 × 720
 
 The GUI now opens at 1280 × 720 instead of iced's 1024 × 768 default. Nothing

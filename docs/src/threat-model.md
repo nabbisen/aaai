@@ -91,7 +91,7 @@ holds it. A mitigation with no pointer is a claim, not a mitigation.
 | **T4** | A pathological regular expression in a definition file hangs the audit | B2 | **Not expressible** | The `regex` crate is a finite-automata engine with linear-time matching and no backtracking. Recorded because this is a property of a dependency choice, and would be lost if that choice changed |
 | **T5** | A very large file in an audited folder exhausts memory | B1 | **Not mitigated — scheduled** | §5 |
 | **T6** | aaai modifies the folders it is auditing | B1 | **Mitigated** | Inputs are opened read-only. `link_audit_preserves_namespace_content_and_stable_metadata` and its Windows twin capture size, mode, device, inode and mtime before and after a run and assert equality. **Scope note:** these cover the link-audit path, where the risk is highest; they are not a blanket proof that no code path writes |
-| **T7** | A vulnerable or compromised dependency | B4 | **Partly mitigated** | `cargo audit` runs in CI and reports **no vulnerabilities**. Eight informational warnings are accepted — §6 |
+| **T7** | A vulnerable or compromised dependency | B4 | **Partly mitigated** | `cargo audit` runs in CI and reports **no vulnerabilities**. Seven informational warnings are accepted — §6 |
 | **T7a** | `unsafe-libyaml` parses audit definition files, is unsafe Rust, and is unmaintained | B2 | **Accepted, recorded separately** | §6.1 |
 | **T8** | A memory-safety defect in aaai's own code | all | **Mitigated** | No `unsafe` anywhere in project code — verifiable by grep across `crates/` |
 | **T9** | You cannot tell whether a report you shared was redacted | B3 | **Accepted limitation** | §5 |
@@ -132,7 +132,7 @@ outcome, not only a usability one.
 ## 6. Accepted dependency advisories
 
 Gate C0 requires the dependency audit to be clean **or** its exceptions to be
-formally accepted. `cargo audit` reports **no vulnerabilities**. These eight
+formally accepted. `cargo audit` reports **no vulnerabilities**. These seven
 informational warnings are accepted, with reachability recorded:
 
 | Advisory | Crate | Kind | Reachability and reason |
@@ -140,8 +140,7 @@ informational warnings are accepted, with reachability recorded:
 | `RUSTSEC-2024-0449` | `unsafe-libyaml` | unmaintained | **§6.1 — recorded separately** |
 | `RUSTSEC-2026-0253` | `lru` | unsound | Runtime, via `cryoglyph` → `iced_wgpu` → `iced`. Use-after-free in `LruCache::pop()` reachable only if a stored key's `Drop` panics with unwinding enabled. **Not fixable by us** — `cryoglyph` holds `lru` below the patched 0.18.2 and has no release that lifts it |
 | `RUSTSEC-2024-0436` | `paste` | unmaintained | Build-time proc-macro only; no runtime presence |
-| `RUSTSEC-2026-0206` | `rustybuzz` | unmaintained | Runtime, text shaping via `iced`. No replacement available without an upstream change |
-| `RUSTSEC-2026-0192` | `ttf-parser` | unmaintained | Runtime, font parsing via `iced`. Same |
+| `RUSTSEC-2026-0192` | `ttf-parser` | unmaintained | Runtime, font parsing via `iced`. No replacement available without an upstream change |
 | `RUSTSEC-2026-0371` | `zbus_names` | unmaintained | Merged into `zbus` 6.0.0 upstream on 2026-10-16. **Linux only**, and feature-gated — see §6.2. Nothing is wrong with the code; the crate moved |
 | `RUSTSEC-2026-0370` | `zvariant` | unmaintained | Same event, same path |
 | `RUSTSEC-2026-0372` | `zvariant_derive` | unmaintained | Same event, same path |
