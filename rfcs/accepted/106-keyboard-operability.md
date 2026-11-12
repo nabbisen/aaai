@@ -601,8 +601,8 @@ goes to snora (`.git-exclude/upstream/snora/send/draft/aaai-to-snora-2026-11-09.
 **Sequencing.** After RFC 116. The rescoped handoff is mine to write once the
 owner chooses.
 
-**Two additions the rescoped handoff must carry** (2026-11-11, from the updated
-GUI rules; review-request 089 §2, §5):
+**Three additions the rescoped handoff must carry** (2026-11-11, from the updated
+GUI rules; review-request 089 §2, §5; the third from review 090 §4):
 
 - **T0 — the shared session script.** Promote the dev team's RFC 115
   `launch.sh` to `.git-exclude/tools/gui-session.sh`, mechanics only, with
@@ -613,6 +613,15 @@ GUI rules; review-request 089 §2, §5):
   are `Focusable`, so their hit area is **measured**, which is what this RFC's
   focus work and RFC 115's target-size work both need. I verify one cell end to
   end before writing the handoff.
+- **T0b — an injection point so tests never read the operator's settings.**
+  `App::default()` calls `UserPrefs::load()` and `ProfileStore::load()`, which
+  read the real `prefs.yaml` and `profiles.yaml`. That is gate S1's recorded GUI
+  gap (RFC 104 §7a): read-only, but a test's result can depend on the machine.
+  The level-2 matrix would build `App` for every cell, so it must be closed
+  **before** the harness exists. RFC 104 §7a already names the shape: build
+  `App` from injected prefs and profiles (`UserPrefs::load_from` exists), and
+  move every test that uses `App::default()` or `..Default::default()` onto
+  it. Today that is `app/tests.rs` — two RFC 098 tests and two RFC 116 tests.
 
 ## 7. Verification note
 

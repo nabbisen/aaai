@@ -180,9 +180,10 @@ touches the persisted audit-definition, preferences and profiles formats, so
 it is a compatibility change rather than a dependency swap, and it needs its
 own design.
 
-### 6.2 The three `zbus` advisories — why no upgrade clears them
+### 6.2 The three `zbus` advisories — why we keep them
 
-Recorded because the obvious remedy looks available and is not.
+Recorded because the obvious remedy — switching the feature off — is available,
+and we deliberately do not take it.
 
 The exact path is `iced_winit` → `mundy` → `zbus` 5, pulled in by **iced's
 default `linux-theme-detection` feature**. It reaches the graph on **Linux

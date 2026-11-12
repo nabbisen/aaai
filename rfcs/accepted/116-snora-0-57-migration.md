@@ -5,6 +5,11 @@
 `linux-theme-detection`, and keeping `Light` as the default. Lives in
 `rfcs/accepted/`; the folder is the source of truth for this state (RFC 000).
 
+> **Implemented 2026-11-11** — §S1 in `33c9814`, §S2 in `47610e4`, CI and
+> three-OS B0 green on both. Reviewed in
+> `.git-exclude/reviewed/090-rfc116-snora-0-57-migration-review-2026-11-12.md`.
+> Moves to `done/` at the next release cut, with the release.
+
 **Tracks.** Dependency currency; prerequisite for RFC 106 (keyboard
 operability), RFC 110 (modal overlays) and RFC 115 §S2b (target-size
 remediation). Precedent: RFC 108 (the 0.37 migration).

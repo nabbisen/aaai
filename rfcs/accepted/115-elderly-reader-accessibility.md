@@ -304,6 +304,15 @@ Folded in, from review-request 087 §7:
   extend RFC 099's V1 grep to `.text_size(` so the next one fails.
 - **C.** `bottombar.approve_and_save` carries a `// ABDD ≥44px` comment and
   measures 40.8 px. The comment goes when the control passes, not before.
+- **D.** *(Added 2026-11-12, from review-request 090.)* Toasts are anchored
+  `ToastPosition::BottomEnd` (`crates/aaai-gui/src/app/view.rs:15`) and sit
+  over the bottom bar's right end — the **unresolved-count label**
+  (`views/main_view.rs`, `build_bottom_bar`), not the primary action. Since
+  snora 0.54 an error toast stays until dismissed, so it now hides that count
+  for as long as the error stands. Choose a position that covers no status, and
+  check it at the worst case (Japanese, largest text, 800 × 550). snora's own
+  default, `TopEnd`, is the first candidate; check it against the toolbar
+  before taking it.
 
 Done when the ratchet list is empty and `every_control_reaches_44px` asserts
 the plain rule with no list at all.
