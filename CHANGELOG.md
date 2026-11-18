@@ -6,6 +6,12 @@ Format: `## [version] — description`
 
 ## [Unreleased]
 
+### Button labels stay readable when hovered or pressed
+
+The GUI now builds against snora 0.65. It raises the contrast of button labels
+while the pointer is over a button or it is pressed, for the secondary and
+ghost styles that most of aaai's buttons use.
+
 ### New theme choice: "Match system"
 
 Settings → Theme now offers **Match system** (システムに合わせる), third in the

@@ -803,7 +803,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1210,7 +1210,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2007,7 +2007,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20fd6de4ccfcc187e38bc21cfa543cb5a302cb86a8b114eb7f0bf0dc9f8ac00f"
 dependencies = [
  "io-lifetimes 3.0.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3484,7 +3484,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3817,9 +3817,9 @@ dependencies = [
 
 [[package]]
 name = "snora"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee04601048ce66dd47c51fae86caf00385887a16529a3662d2d8c4edbcb088c4"
+checksum = "84fe42c3bdd734cc0489c41598ba1380aa52de9b5f6c8e471306b5796144e557"
 dependencies = [
  "iced",
  "iced_runtime",
@@ -3832,21 +3832,21 @@ dependencies = [
 
 [[package]]
 name = "snora-core"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f71ae77bdba5e27cd1e932735cf327779dc9b44ce92ca8789ab70c4991b2404"
+checksum = "53ef6e7134309a16a9ed147a1775dadd16c40335ccb8d9451a468694ac40cfa9"
 
 [[package]]
 name = "snora-design"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e587609f08fa7ef4902ea86a47f24f1a3c6518d69531f48b2e876fab76a9975"
+checksum = "57538c73d076a57b275b2b0d4d1be22d2bcf4f8f4faf81d808eaff54c5c1012b"
 
 [[package]]
 name = "snora-interaction"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2aa69470ce2e1855dc8a3b0da8004119663d445353b4ec9d46698d7b035f2c1"
+checksum = "d08b5fc5f2a35e7b7eb683c1382f63a79d0ecca59add1812ee9cb77adf500cd6"
 dependencies = [
  "iced",
  "iced_core",
@@ -3854,9 +3854,9 @@ dependencies = [
 
 [[package]]
 name = "snora-style"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5ccb1004a773f80d068990bc30105905db2758b303c5cc237c4d61897d88aaa"
+checksum = "2ddb9cc6584a6a12d312f5cfe01ff6f1542636509c98ab061301245db24b295a"
 dependencies = [
  "iced",
  "snora-design",
@@ -3864,9 +3864,9 @@ dependencies = [
 
 [[package]]
 name = "snora-widgets"
-version = "0.59.0"
+version = "0.65.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "045cc384d7867e3e07978a1e947fe0199afaa41c2fe813487c8c5a9ad6d44db6"
+checksum = "e3b7d46bdbee15016da01e76cc07dd498c39c7c955ad032ea7da326eac4c81bc"
 dependencies = [
  "iced",
  "snora-core",
@@ -3996,7 +3996,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.6",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4787,7 +4787,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
