@@ -1,256 +1,307 @@
-# RFC 106 — Keyboard operability: implementer handoff
+# RFC 106 handoff — Keyboard Operability, rescoped
 
 **RFC.** [`rfcs/accepted/106-keyboard-operability.md`](../../accepted/106-keyboard-operability.md)
-
-**Status.** **Accepted by the owner 2026-10-18.** §5 settled on `F6` /
-`Shift+F6`. Ready to implement.
-2026-09-05. **The RFC itself is not yet accepted for implementation.** Do not
-start until it is.
-
-**Baseline.** `main` at `8dcfafd`. **Re-measure before relying on any line
-number here** — see §7.
-
+— read **§6b** (why the original design could not work), **§6b.7** (option
+(d), the 2026-11-14 and 2026-11-18 updates), and **§6c** (the rescoped
+acceptance contract this handoff implements).
+**Status.** Accepted; option (d) chosen 2026-11-09; extended to the six
+pickers 2026-11-18. **This document replaces the handoff held on 2026-11-04**,
+as that hold promised. Nothing in the old version applies.
+**Builds on.** snora **0.65.0**, already on `main` (`aec37ff`). Re-check for a
+newer release before you start, read its guide, and report either way.
 **Evidence location.** `.git-exclude/evidence/106-keyboard-operability/`
 
-| Role | Who | Scope |
+## 0. Two units, reviewed separately
+
+| Unit | What | Changes the UI? |
 |---|---|---|
-| Design owner | high-capability model | The RFC and this handoff |
-| Implementer | GUI developer | T1–T5 |
-| Reviewer | high-capability model | On request |
-| Integrator | nabbisen | Commit, push, observe CI |
+| **A** | The test foundation: the shared session script, tests that never read the operator's settings, and the headless level-2 harness | **No** |
+| **B** | The migration: every button to `snora::design::control`, the six pickers to `snora::design::select`, Tab, F6, and the safe-choice focus on the unsaved-changes dialog | **Yes** |
+
+**Do Unit A first and send it for review. Do not start Unit B until A is
+approved.** B is proved by A's harness, so building B first would mean proving
+it by eye.
+
+**Commit locally and send each unit for review. Do not push either until it is
+approved.** Nothing in this handoff is pre-approved.
 
 ---
 
-> ## ⛔ Do not start — held 2026-11-04
->
-> **RFC 106 §6b is blocking and the owner has not yet decided it.**
->
-> iced 0.14's `button` is not focusable and has no focused state: only
-> `text_input` and `text_editor` implement `Focusable`. So **§4's design —
-> delegate `Tab` to `focus_next()` — cannot reach any of the controls §6
-> condition 1 names**, all of which are buttons. On the Opening screen (6
-> buttons, 1 `text_input`) `Tab` would cycle one widget and reach none of the
-> six buttons.
->
-> This is a defect in the RFC, found before you started; nothing you were
-> handed is wrong, and T1–T5 below are not yet safe to build against
-> conditions 1–3.
->
-> **What you may do now:** nothing in this handoff. **What changes when the
-> decision lands:** §3's snora bump and the `iced_test` dev-dependency are
-> unaffected; the traversal tasks are rescoped. I will amend this handoff
-> rather than reissue it.
->
-> Read RFC 106 §6b before this document, so the rescope makes sense when it
-> arrives.
+## Unit A — the test foundation
 
-## 1. What this is
+### A0. Start from a working example
 
-**The Opening screen cannot be operated by keyboard at all.** `Tab` reaches no
-control and `Enter` activates none, so a keyboard-only user cannot start an
-audit. This is the application's entry point.
+I built one level-2 cell end to end before writing this, in a throwaway
+worktree:
+`.git-exclude/evidence/106-keyboard-operability/architect-level2-probe/level2_probe.rs`,
+and its output beside it. It renders the Opening screen headless, Light,
+English, 1280 × 720, with a long recent-project path, in **0.56 s**, and lists
+every text target's `bounds` against its `visible_bounds`. Of 26 labels it
+found **four clipped**:
 
-The cause is not a missing feature. `crates/aaai-gui/src/app.rs` intercepts
-`Tab` globally and maps
-it to `Message::FocusNext`, which cycles an enum naming three panes of the
-**`Main`** screen and **never calls iced's `focus_next()`**. No widget focus
-moves on any screen.
+- **`Open`** (the recent project's button) — zero width, not visible. This is
+  RFC 115 finding A, now caught automatically.
+- **`×`** (delete the recent project) — zero width, not visible. **New: no
+  screenshot or static check had seen it.**
+- The long path text — laid out 151 px high, 47 px visible.
+- An empty text node — zero width; find out what it is.
 
-**The fix deletes code rather than adding it:** stop intercepting `Tab`, let the
-toolkit traverse.
+Two techniques in the probe are yours to keep:
 
-## 2. The decision that was open, and is now closed
+- **Collecting every target.** `Simulator::find` stops at the first match, and
+  the simulator's widget tree is private. A closure selector that records each
+  `Candidate::Text` into a shared `Vec` and always returns `None` makes `find`
+  walk the whole tree. It then returns `Err(SelectorNotFound)`, which is
+  expected and ignored.
+- **`ICED_TEST_BACKEND=tiny-skia`.** It needs no GPU, and it is the renderer
+  aaai falls back to on real machines anyway.
 
-RFC 005 gave `Tab` the job of cycling the three `Main` panes. Delegating `Tab`
-to widget traversal removes its only trigger.
+**One thing in the probe you must not keep:** it isolates state with
+`std::env::set_var("AAAI_TEST_STATE_DIR", …)` inside the test. That is unsafe
+under parallel tests, and it is exactly what A2 replaces.
 
-**Owner decision, 2026-09-05: pane cycling moves to `F6` / `Shift+F6`.** RFC
-005's behaviour survives; `Tab` and `Shift+Tab` become ordinary traversal.
+### A1. The shared session script
 
-**Use `snora::keyboard::cycle_zones(key, modifiers)`** rather than hand-writing
-the decode. It is a pure key decoder — `F6` → `Cycle::Forward`, `Shift+F6` →
-`Cycle::Backward`, `None` otherwise (`snora/src/keyboard.rs:122-131`). It never
-mentions `FocusZone` or `AppLayout`.
+`.git-exclude/rules/project-instructions-gui-common.md`, *Test Optimization
+Rules*: start every real-window session with **the project's shared session
+script**. Promote your RFC 115 `launch.sh` to
+**`.git-exclude/tools/gui-session.sh`** (git-ignored, beside the evidence it
+produces). It does **mechanics only**: isolation, launch, window choice,
+capture, teardown. **It never decides which evidence a task needs** — that is
+the task's evidence plan (RFC 105 §5.4's warning).
 
-**Do not adopt `snora_core::focus::next_zone`.** Its model is `AppLayout`'s four
-zones (Header / SideBar / Body / Footer); ours is three panes. Take the binding
-and the decoder, not the enum. This was decided in RFC §5 and is unchanged.
+What it must do — most of it you already wrote:
 
-## 3. The snora bump this needs
+- **Isolation:** a fresh scratch root per run, with `AAAI_TEST_STATE_DIR`
+  pointing into it (`crates/aaai/src/user_state.rs:8,17` — it is validated and
+  works on every platform) **and** the four `XDG_*` directories (the common rule
+  asks for them, and they cost nothing). Pin theme and locale through the
+  isolated `prefs.yaml`.
+- **One instance:** abort if `aaai-gui` is already running; kill by exact
+  process name on teardown, on every exit path (`trap`).
+- **Backend:** X11 (XWayland) by default, for pointer input; a `--wayland` mode
+  for keyboard runs with `wtype`.
+- **Window:** chosen by niri window id, by the before/after diff. Record the
+  **actual** window size into the run's log, because niri ignores the 1280 × 720
+  request for a tiled window.
+- **Capture:** `niri msg action screenshot-window --id … --path <absolute>`, into
+  `.git-exclude/evidence/<NNN>-<slug>/screenshots/`.
+- **Fixtures:** the long path that found finding A, and a Japanese profile.
+  Keep the fixture path configurable, not hard-coded to your scratch directory.
 
-`Cycle` is only nameable from the `snora` facade at 0.39+, and our pin is 0.38.
-Per RFC §5a, the manifest line becomes:
+**Header comment:** the aaai facts the common rule file no longer carries —
+`AAAI_TEST_STATE_DIR`; that the Recent-projects list lives in the **config**
+directory; that iced 0.14 publishes no AT-SPI tree; the evidence location. A
+dozen lines, and they describe what the script does.
 
-```toml
-snora = { version = "0.53", default-features = false, features = ["design"] }
-```
+### A2. Tests never read the operator's settings (T0b)
 
-**Two changes in one line, one B0 run.**
+`App::default()` calls `UserPrefs::load()` and `ProfileStore::load()`, which
+read the real `prefs.yaml` and `profiles.yaml`. That is gate **S1 (tests never
+touch the operator's real config)**: a read-only gap, recorded in RFC 104 §7a,
+and it must close **before** the harness, which builds `App` once per matrix
+cell.
 
-- **`"0.53"`** — 0.39 for `snora::focus`, 0.41 for overlay pointer containment,
-  0.42 for toast `Warning`/`Info` contrast repairs, 0.51 for the toast close
-  button reaching 24 × 24, 0.52 for long unbroken text wrapping instead of
-  being cut off. 0.43, 0.44, 0.46 and the rest add nothing we compile against;
-  0.45 removed `Emphasis` and `Size`, which we do not use.
-  **This number is a tested floor, not a claim about what is current** — it has
-  moved six times in nine weeks. **Check for a newer release, read its
-  migration guide, and report what you find either way.**
-  **Retargeted 0.51 → 0.53 on 2026-10-28** (RFC §5a.2). No API we use breaks
-  across that span. Two consequences for your run: the 0.52 wrapping fix lands
-  on the file paths we put in toast bodies at three sites in
-  `crates/aaai-gui/src/app/update/save.rs`, which were truncating; and 0.53
-  changes modal dim rendering in both themes, so **GUI baselines regenerate**
-  (RFC 110 §6b.3 — no assertion changes, only pictures).
-- **`default-features = false`** — snora's default enables `widgets`, and we
-  import nothing from it. **Do not justify this on binary size:** another
-  consumer measured that delta at exactly zero, byte-identical either way. The
-  reasons are compile time and a manifest that states what we actually depend
-  on.
+RFC 104 §7a already names the shape: **an injection point on `App`**. Build an
+`App` from a `UserPrefs` and a `ProfileStore` you pass in. `Default` keeps
+loading from disk and calls it, so the running application is unchanged.
+`UserPrefs::load_from(&paths)` and `ProfileStore::load_from(&paths)` exist. The
+name and exact signature are yours.
 
-**If anything fails to compile with `default-features = false`, report it rather
-than restoring the default.** That would mean we depend on `widgets` somewhere
-the inventory missed, which is itself the finding.
+Then move **every** test that builds an `App` onto it — today the RFC 098 and
+RFC 116 tests in `crates/aaai-gui/src/app/tests.rs`, whether they call
+`App::default()` or use `..Default::default()`. **Done when** no test in
+`crates/aaai-gui` reaches `UserPrefs::load()` or `ProfileStore::load()`, and you
+say in the report how you established that.
 
-### 3.1 A Windows-only trap in this upgrade — check for it explicitly
+### A3. The level-2 harness
 
-Another snora consumer hit ten compile errors on **Windows only, invisible on
-Linux**, upgrading across this span. Cause: when a lockfile *shrinks*, a
-transitive dependency can re-resolve **downward**. For them `gpu-allocator`
-pulled `windows` 0.56 while `wgpu-hal` held 0.58.
+`iced_test = "0.14"` as a **dev-dependency** of `crates/aaai-gui`; report the
+build-time and test-time delta. A module beside `contrast_check` and
+`target_size_check`, in their shape: a documented header, named exemptions,
+traceability.
 
-**Our current state is the aligned one** — verified on `aa834ec`:
+**The matrix:**
 
-| Crate | Version | `windows` dep |
-|---|---|---|
-| `gpu-allocator` | 0.27.0 | `windows 0.58.0` |
-| `wgpu-hal` | 27.0.4 | `windows 0.58.0` |
+| Axis | Values |
+|---|---|
+| Language | `en`, `ja` |
+| Theme | the four presets — `Light`, `Dark`, `HighContrastLight`, `HighContrastDark` |
+| Window | **800 × 550** (the smallest RFC 099 T8 made usable) and **1280 × 720** (the default) |
+| Text size | one value until RFC 115 §S3 adds the others — **build the axis now**, with one entry |
 
-**After bumping snora, diff `Cargo.lock` and confirm those two still agree.**
-If a `windows 0.56` appears, the fix is `cargo update -p gpu-allocator`.
+**The screens**, each in a state that exercises it:
 
-**A green local build proves nothing here.** We develop on Linux; this surfaces
-only in B0's Windows job. Check the lockfile rather than waiting for CI to tell
-you, and record the before/after `windows` versions in the evidence either way.
+- Opening — empty, and with a recent project whose path is long;
+- Main — with an audit result (reuse the existing test fixtures);
+- the Settings dialog, the Help overlay, the unsaved-changes dialog;
+- the Dashboard.
 
-Expect the toast appearance to change — `Warning` text white → black, `Info`
-fill and text. Both are contrast repairs. We hold no visual baselines, so
-nothing should break; if something does, that is a finding.
+**What each cell asserts:**
 
-## 4. Tasks
+1. **Every label is fully visible.** Every `Text` target's `visible_bounds`
+   equals its `bounds`, to 0.5 px.
+2. **Nothing overflows.** Each `Scrollable`'s content is reachable.
 
-### T1 — The failing test, first (commit 1)
+Hit area is **not** asserted in Unit A: our buttons are not focusable yet, so
+there is nothing to measure. It arrives in Unit B.
 
-Per RFC §6a. Add `iced_test = "0.14"` as a **dev-dependency** of
-`crates/aaai-gui` and report the build-time delta.
+**It will fail on day one.** The probe already shows four failures in one cell.
+Land it **as a ratchet**, exactly the pattern you built for `target_size_check`:
+a known-debt list keyed by screen, cell and label, which may only shrink — a new
+clipped label fails, a listed one that passes must be removed. Finding A and the
+`×` go on it, and RFC 115 §S2b removes them.
 
-Assert **traversal by effect**, not focus position:
+### A4. Japanese must be measured with Japanese glyphs
 
-```
-tap_key(Tab); tap_key(Tab); tap_key(Enter)
-  → assert the activation message of the control expected at that position
-```
+aaai bundles no fonts (`crates/aaai-gui/src/main.rs` loads none); it relies on
+the system's. The simulator loads Fira Sans by default. **If no CJK font is
+present, Japanese text is measured as missing-glyph boxes, and the `ja` cells
+pass or fail on numbers that mean nothing.** GitHub's Ubuntu runner does not
+ship a CJK font; macOS and Windows do.
 
-**There is no `find_focused` without iced's `advanced` feature, which we do not
-enable. Do not try to assert a focus position.** `tap_key` returns
-`event::Status`, and `into_messages()` gives what an input produced; those two
-calls carry the test.
+**Required:**
 
-**This must fail before T2.** `Tab` produces `FocusNext`, which moves no widget
-focus, so the `Enter` that follows activates nothing. Red before, green after.
+- The harness **fails loudly** when it cannot find a font that covers Japanese
+  — never measure `ja` silently. How you detect coverage is yours to choose;
+  explain it.
+- `ci.yaml` installs a CJK font on Ubuntu (`fonts-noto-cjk` is the obvious
+  package). This **is a workflow change, so it is part of the review.**
+- Report the font each OS actually resolved for `ja`.
 
-`snapshot` / `matches_image` / `matches_hash` exist and are **declined** —
-golden values invalidate whenever snora ships an appearance change, which has
-now happened four times in the span we track.
+### A5. Unit A evidence plan
 
-### T2 — Delegate `Tab` (commit 2)
+| # | Question | Level | How |
+|---|---|---|---|
+| 1 | Does no test read the operator's settings? | 1 | A2's established check |
+| 2 | Does the harness see a clipped label? | 2 | The finding A cell — it must report `Open` and `×` |
+| 3 | Is `ja` measured with real glyphs, on all three OSes? | 2 | A4's loud failure, and the resolved font in CI's log |
+| 4 | Is the matrix fast enough for every CI run? | 2 | Report its wall time locally and in CI |
+| 5 | Does the session script work? | 3 | **One** run: launch, capture the Opening screen, tear down. Record the actual window size. No other capture in this unit |
 
-Replace the `Tab` / `Shift+Tab` interception with
-`iced::widget::operation::{focus_next, focus_previous}`. The codebase already
-uses `operation::scroll_to` in the RFC 069 scroll-sync handlers, so this
-introduces no new mechanism.
+**Done when:** the full suite, fmt, clippy `-D warnings` are clean on
+`+1.91 --locked`; the harness passes with its known-debt list; no test reads the
+operator's settings. **Commit locally, send for review, do not push.**
 
-`Enter` currently maps to `Message::FocusInspectorReason`, which is `Main`-only.
-It must stop swallowing `Enter` on every screen; activation of the focused
-control is the toolkit's job.
+---
 
-### T3 — Pane cycling on `F6` (commit 2 or 3)
+## Unit B — the migration (after A is approved)
 
-Wire `cycle_zones`. Keep `FocusTarget` and its three-pane model; only the
-trigger changes.
+### B1. Every button becomes a focusable control
 
-**One i18n key** for the help overlay's entry, both locales. That is the single
-key RFC §3.2's "no i18n change" is relaxed for, by the same owner decision that
-chose `F6`.
+`snora::design::control(&tokens, content)` — the builder of iced's `button`, so
+each `button(content)` becomes `snora::design::control(&tokens, content)`, and
+`.on_press`, `.padding` and `.style` stay as they are
+(`snora-0.65.0/src/design.rs`; snora's 0.65 letter shows the before and
+after). It is a Tab stop; Enter and Space press it; a click presses it without
+focusing it; the ring comes from `Tokens::focus`; the minimum target comes from
+our `targets.min = 44.0`.
 
-### T4 — Focus-trapping gap, recorded not solved (same commit)
+- **Every `button(` site in `crates/aaai-gui/src/views/` and
+  `crates/aaai-gui/src/app/view.rs`.** Glyph-and-label rows, file-tree rows and
+  suggestion chips included — snora built `control` against exactly those three
+  cases.
+- **Keep each control's current style closure.** Without `.style(…)` a control
+  looks like `ghost`. That is right for a tree row and wrong for *Save and
+  continue*.
+- **Label size:** a control built to look like a `design::button` variant needs
+  its label at `t.typography.label.size`, or it draws larger.
+- **The three hand-rolled modal backdrops stay iced `mouse_area`s.** They are
+  RFC 110's, and they are not targets.
 
-**§4 makes an existing latent defect observable:** once `Tab` moves real focus, a
-keyboard user can Tab out of an open dialog. snora has trapping *staged, not
-shipped* — it needs iced's `advanced` feature, which is their open decision.
+### B2. The six pickers become `snora::design::select`
 
-**Do not build a trap.** Record it: the keyboard help overlay must not claim
-modal focus containment. See RFC §5b.
+`snora::design::select(&tokens, options, selected, on_select,
+LayoutDirection::Ltr)` (`snora-widgets-0.65.0/src/design/form.rs:55`) — the shape
+of `pick_list`, plus the tokens and a direction:
 
-### T5 — Evidence
+- `views/settings_dialog.rs:57` (language) and `:202` (**theme** — the route to
+  the high-contrast themes and *Match system*);
+- `views/inspector.rs:299` (strategy), `:312` (template), `:680` (LineMatch
+  action), `:816` (Regex target).
 
-RFC §7's two rules are not optional, because both produced wrong conclusions on
-exactly this question before:
+Re-measure those line numbers first. The two `.text_size(11)` / `.text_size(13)`
+literals go with them: use a typography role.
 
-- **Prove key delivery with `xdotool type` into a text field before recording
-  any negative result.** A binding that does nothing looks identical to a dead
-  channel.
-- **Check the binding under test has a visible effect on the screen under
-  test.** `?` renders an overlay only on `Main`; pressing it on Opening proves
-  nothing either way.
+### B3. Tab, F6, Enter
 
-Procedure and traps: `.git-exclude/rules/gui-automation-niri-xdotool.md` §5.
+- **Tab / Shift+Tab:** `snora::keyboard::traverse(key, modifiers)` in the
+  keyboard subscription — iced binds no Tab. **Delete the interception RFC 106
+  §2.2 documents**: `Tab` → `Message::FocusNext`, the pane-cycling enum.
+- **F6 / Shift+F6** (RFC 106 §5's decision): `snora::keyboard::cycle_zones` +
+  `snora::keyboard::focus_zone` (the 0.61 replacement for the removed
+  `next_zone`). Keep `FocusTarget`'s three-pane model; only the trigger moves.
+  **One new i18n key** for the help overlay's entry, in both locales.
+- **Enter** stops being swallowed globally. `Message::FocusInspectorReason`'s
+  global `Enter` binding goes; activating the focused control is the control's
+  job. `Ctrl+Enter` still reaches the app: since snora 0.62, a chord does not
+  press a focused control.
 
-## 5. Acceptance
+### B4. The unsaved-changes dialog opens on its safe choice
 
-RFC §6 is the contract. Four notes:
+Give **Keep reviewing** an id (`.id("nav-guard-keep")` or similar), and in the
+update that opens the dialog, return
+`iced::widget::operation::focus(<that id>)`. A reflexive Enter then keeps the
+user reviewing, rather than reaching RFC 086's discard. snora's note: the task
+runs on the new view; an id must be unique in the window; an unreachable id
+focuses nothing.
 
-**Item 1** — every interactive control on Opening, in **visual order**: both
-`Pick folder` buttons, `Optional settings`, `Check changes`, and each
-recent-project `Open` and delete control. Order, not just reachability. If iced
-cannot be made to match visual order, **stop and escalate** — reordering the view
-tree is a layout change and out of scope.
+### B5. What Unit B adds to the harness
 
-**Item 5** — the test must have failed before T2. Say so in the evidence and
-show the failure.
+1. **Hit area, measured.** Every `Focusable` target is at least 44 × 44, in
+   every cell. This is the measurement `target_size_check` could only estimate
+   for width. **When a control passes it, delete its entry from
+   `target_size_check`'s known-debt list**, as that ratchet requires. Report
+   how many left.
+2. **Tab reaches every control, in visual order.** On each screen, tap Tab
+   repeatedly and read `iced_test::selector::is_focused()` after each press.
+   The focused targets' bounds must visit every control once, in reading order
+   (top to bottom, then start to end). snora's letter says its controls report
+   through `is_focused`. **If they do not, stop and report** rather than falling
+   back to inferring order from messages.
+3. **The dialog opens focused on Keep reviewing.**
+4. **The focus ring, SC 1.4.11 (3:1 against the adjacent colour).** snora
+   guarantees the ring at 3:1 or more against the page, `surface` and
+   `surface_raised` from 0.63. Assert that pair at level 1 in all four presets,
+   in `contrast_check`'s shape — it is cheap, and it fails if we ever override
+   a token. **List any control you place on a coloured fill of our own**, which
+   snora does not cover, and assert those pairs too.
 
-**Item 7** — RFC 099's V1 greps still pass. Note the count is expected to grow
-by the named tests only; report the measured GUI figure and why, not a
-prediction.
+### B6. Recorded, not solved
 
-**Clippy** — `--no-deps`, not `-- -D warnings`: the crate carries 13 pre-existing
-findings and that flag fails on all of them. The check is that no new finding
-appears.
+Under our three **hand-rolled** dialogs, Tab can still reach the page behind
+them. snora's controls are out of reach beneath **snora's** dialogs, and ours
+are not snora's until RFC 110 moves them. **Do not build a trap.** The keyboard
+help overlay must not claim modal focus containment (RFC 106 §5b). Say in your
+report which dialogs are affected.
 
-## 6. Out of scope
+### B7. Unit B evidence plan
 
-- **New shortcuts** beyond `F6` / `Shift+F6`. Existing bindings unchanged:
-  `Ctrl+S`, `Ctrl+Z`, `/`, `?`, `Ctrl+Enter`, `Escape`, arrow-key selection.
-- **Screen-reader support.** A separate and much larger question. This RFC does
-  not deliver it and must not be described as doing so.
-- **Focus-ring visual design.** Whatever iced draws by default is accepted;
-  styling it is RFC 101's business. `tokens.focus.{ring_color, ring_width,
-  ring_offset}` is already reachable if RFC 101 wants it.
-- **The three modal overlays.** RFC 110 owns them, and it follows this RFC.
-- **The S1 test-hermeticity gap** (RFC 104 §7a) and **the C2 lint debt**.
+| # | Question | Level | How |
+|---|---|---|---|
+| 1 | Does every control take focus and respond to Enter / Space? | 2 | B5.2 plus an Enter per screen, checked by message |
+| 2 | Is Tab order the reading order? | 2 | B5.2 |
+| 3 | Is every focusable target ≥ 44 px? | 2 | B5.1 |
+| 4 | Does the dialog open on Keep reviewing? | 2 | B5.3 |
+| 5 | Is the focus ring visible enough? | 1 | B5.4 |
+| 6 | Does the ring *read* well on a real screen? | 3 | **One** capture through the session script: Settings dialog, theme picker focused, High Contrast Dark, Japanese, 800 × 550 if the compositor gives it. That is the worst case for this question |
 
-## 7. A standing check this project has learned three times
+## Acceptance
 
-**Any line number, ELOC figure, or test count in this document is stale until
-you re-measure it on current `main`.**
+RFC 106 §6c is the contract. Unconditionally: `cargo +1.91 fmt --check --all`,
+`clippy --workspace --all-targets -- -D warnings`, the full suite on
+`--locked`, no `unsafe`, and three-OS B0 green — after approval and push.
 
-RFC 100 shipped with three acceptance items written wider than its own scope;
-RFC 111's removal table had to be regenerated after RFC 100 moved everything;
-RFC 104's §2 quoted a code block from a file that no longer held it. Re-measure
-first; if a figure is wrong, report it rather than working around it.
+## Out of scope
 
-## 8. When you are done
+- **RFC 110's backdrops** (B1, B6).
+- **Screen-reader support** — iced 0.14 publishes no accessibility tree.
+  `docs/src/abdd-audit.md` §7.
+- **RFC 115 §S2b's fixes** to the clipped controls the harness finds. Unit A
+  records them as debt; §S2b removes them.
+- **New shortcuts** beyond `F6` / `Shift+F6`.
 
-Package a review request as usual, entry point stated in chat. Then Integrator
-pushes and B0 runs.
+## A standing check
 
-Sequence after this: **110 → 101**.
+**Every line number and count in this document is stale until you re-measure it
+on current `main`.** Report a wrong one; do not work around it.

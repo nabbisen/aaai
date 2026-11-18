@@ -51,7 +51,7 @@ RFC 110 §8.
 
 | ID | Title | Tracks |
 |---|---|---|
-| [106](accepted/106-keyboard-operability.md) | Keyboard Operability — **held on §6b** | NF-4 / ABDD |
+| [106](accepted/106-keyboard-operability.md) | Keyboard Operability — rescoped to snora's focusable controls; handoff in two units | NF-4 / ABDD |
 | [110](accepted/110-modal-overlay-consolidation.md) | Modal Overlay Consolidation — hardcoded backdrops to snora's dim | V1 (after RFC 106) |
 | [115](accepted/115-elderly-reader-accessibility.md) | Elderly-Reader Accessibility — text size, target size, reachability | ABDD |
 | [116](accepted/116-snora-0-57-migration.md) | snora 0.57 Migration — the bump, detached from RFC 106; ships `Theme::System` | Prerequisite for 106, 110, 115 §S2b |

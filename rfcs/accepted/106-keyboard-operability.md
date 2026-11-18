@@ -1,6 +1,6 @@
 # RFC 106 — Keyboard Operability
 
-**Status.** **Accepted, implementation held** — approved by the owner
+**Status.** **Accepted — rescoped; the hold is lifted (2026-11-18).** Approved by the owner
 2026-10-18; §5 settled on `F6` / `Shift+F6` the same day. Lives in
 `rfcs/accepted/`; the folder is the source of truth for this state (RFC 000).
 
@@ -12,6 +12,10 @@
 > rewritten around snora's focusable controls **after RFC 116 lands**, against
 > the post-bump tree rather than a reading of snora's notes; until then it
 > stays marked do-not-start. **The snora bump moved to RFC 116** (§5a).
+>
+> **Lifted 2026-11-18.** snora 0.65 is on `main`, and the handoff is rewritten
+> around option (d) in two units (test foundation, then migration). **§6c is
+> the acceptance contract; §6's conditions 1–3 are superseded by it.**
 
 **Tracks.** NF-4 / ABDD keyboard completeness. No existing milestone covers
 this — see §8.
@@ -664,6 +668,33 @@ GUI rules; review-request 089 §2, §5; the third from review 090 §4):
   `App` from injected prefs and profiles (`UserPrefs::load_from` exists), and
   move every test that uses `App::default()` or `..Default::default()` onto
   it. Today that is `app/tests.rs` — two RFC 098 tests and two RFC 116 tests.
+
+## 6c. Rescoped acceptance contract (added 2026-11-18)
+
+Supersedes §6's conditions 1–3, which named controls iced 0.14 could not focus
+(§6b). Conditions 4–8 stand where they do not conflict. Implemented by
+`rfcs/handoffs/106-keyboard-operability/README.md`.
+
+**Unit A — test foundation (no UI change)**
+
+| # | Condition |
+|---|---|
+| A1 | A shared session script exists at `.git-exclude/tools/gui-session.sh`: mechanics only, isolating with `AAAI_TEST_STATE_DIR` and the `XDG_*` directories, recording the actual window size |
+| A2 | No test in `crates/aaai-gui` reads the operator's settings: `App` takes injected prefs and profiles (RFC 104 §7a), and every test uses it |
+| A3 | A headless level-2 harness on `iced_test 0.14` asserts every label fully visible and nothing overflowing, across language × theme × window × text size, on every CI run, landed as a ratchet |
+| A4 | The `ja` cells are measured with a font that covers Japanese, or fail loudly; CI installs one on Ubuntu |
+
+**Unit B — migration**
+
+| # | Condition |
+|---|---|
+| B1 | Every button is a `snora::design::control`, with its existing style |
+| B2 | The six pickers are `snora::design::select`; no `pick_list` remains |
+| B3 | Tab and Shift+Tab traverse through `snora::keyboard::traverse`; §2.2's interception is deleted; F6 / Shift+F6 cycle zones; Enter is not swallowed globally |
+| B4 | The unsaved-changes dialog opens with focus on **Keep reviewing** |
+| B5 | The harness asserts, in every cell: every focusable target ≥ 44 × 44; Tab visits every control once in reading order (by `is_focused`); B4 |
+| B6 | The focus ring is asserted at ≥ 3:1 against every surface a control sits on, in all four presets |
+| B7 | The help overlay claims no modal focus containment while our dialogs are hand-rolled (§5b; RFC 110) |
 
 ## 7. Verification note
 
