@@ -8,6 +8,17 @@ route to v1.0.0).
 
 ---
 
+## Draft — being written
+
+| ID | Title | Tracks |
+|---|---|---|
+| [117](draft/117-unmaintained-format-dependencies.md) | Replace the engine's unmaintained format dependencies (`chrono`, `serde_yaml`) | C0 · RISK-007, in progress |
+
+RFCs whose problem is recorded and whose design is not yet complete. Each states
+when it moves to `proposed/`.
+
+---
+
 ## Proposed — awaiting review
 
 | ID | Title | Tracks |

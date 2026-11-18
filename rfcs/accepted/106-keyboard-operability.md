@@ -598,6 +598,48 @@ name as a recorded gap until snora answers; §6b.6's SC 1.4.11 assertion
 extended to snora's ring via `Tokens::focus`, the colour we pass. One question
 goes to snora (`.git-exclude/upstream/snora/send/draft/aaai-to-snora-2026-11-09.md`).
 
+> **Update 2026-11-14 — the limit above is gone.** snora 0.58 added
+> `snora::control` and `snora::design::control`: any content as a focus target
+> that Enter and Space press, with the focus ring, built like iced's `button`
+> (`snora-0.59.0/src/control.rs:149`, `src/lib.rs:175`, `src/design.rs:68`).
+> `design::control` **needs only the `design` feature, not `widgets`**. That is
+> what our 2026-11-09 letter asked for. So under (d) **every** button can become
+> a focusable control: glyph-and-label rows, file-tree rows and suggestion chips
+> included. The rescoped handoff will check whether `widgets` is still needed
+> once `design::control` covers the plain-string buttons too; RFC 116 kept it
+> only for `design::button::*`.
+
+> **Update 2026-11-18 — snora 0.65, and a scope extension awaiting the owner.**
+> snora's 0.65 letters
+> (`.git-exclude/upstream/snora/receive/0.65.0/`) confirm `design::control` for
+> our three hard cases (glyph-and-label, file-tree row, wrapping suggestion) and
+> add three things the rescoped handoff will use:
+>
+> - **iced 0.14's form controls are not Tab stops either.** `pick_list`,
+>   `checkbox`, `toggler`, `radio`, `combo_box` and `slider` register no focus.
+>   **We use six `pick_list`s**: the **theme picker**
+>   (`views/settings_dialog.rs:202`), which is the only route to the
+>   high-contrast themes and *Match system*; the language picker (`:57`); and
+>   four in the inspector (`views/inspector.rs:299, 312, 680, 816`), including
+>   the strategy picker on the core review path. snora 0.65 ships
+>   `snora::design::select(tokens, options, selected, on_select, direction)`,
+>   which has nearly the shape of `pick_list` and is a Tab stop with the platform's keys
+>   (`snora-widgets-0.65.0/src/design/form.rs:55`). **Extending §6 condition 1
+>   from buttons to these six is a scope change — authorized by the owner on
+>   2026-11-18.** Condition 1 now covers every interactive control: buttons
+>   through `design::control`, and the six pickers through `design::select`.
+> - **A dialog can open with focus on its safe choice.** Since 0.61 a control
+>   takes `.id(…)`, and `iced::widget::operation::focus(id)` focuses it on the
+>   new view. The unsaved-changes guard should open focused on **Keep
+>   reviewing**, so that a reflexive Enter cannot reach RFC 086's discard.
+> - **F6 uses `snora::keyboard::cycle_zones` + `focus_zone`.** `next_zone` was
+>   removed in 0.64; the two-line replacement also moves focus, which
+>   `next_zone` could not. And since 0.62 a chord with Ctrl, Alt or the logo key
+>   no longer presses a focused control, so `Ctrl+Enter` still reaches the app.
+>
+> The bump to 0.65 itself needs no code change (trial, 2026-11-18). It rides
+> the dev team's pre-approved push in review 091.
+
 **Sequencing.** After RFC 116. The rescoped handoff is mine to write once the
 owner chooses.
 

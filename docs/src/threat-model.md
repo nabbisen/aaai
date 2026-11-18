@@ -8,7 +8,7 @@ are, what is defended, and — equally — what is not.
 **Audience.** Maintainers, reviewers, and anyone assessing aaai before using it
 on content they care about.
 
-**Last reviewed:** 2026-10-28, against `0.43.0`.
+**Last reviewed:** 2026-11-14, against `0.43.0` plus unreleased work on `main`.
 
 ---
 
@@ -85,7 +85,7 @@ holds it. A mitigation with no pointer is a claim, not a mitigation.
 
 | # | Threat | Boundary | State | Held by |
 |---|---|---|---|---|
-| **T1** | A link inside a selected folder resolves outside it, so content from elsewhere on disk reaches a diff or report | B1 | **Mitigated** | RFC 098. `selected_root_symlink_is_rejected`, `symlinked_file_is_incomparable_and_outside_content_is_absent`, `symlinked_directory_is_not_traversed`, `broken_and_cyclic_links_are_reported_without_following`, `relative_inside_links_and_link_type_conflicts_are_incomparable`, plus Windows reparse twins — `crates/aaai/src/diff/tests.rs`. Adversarial matrix discharged on all three platforms |
+| **T1** | A link inside a selected folder resolves outside it, so content from elsewhere on disk reaches a diff or report | B1 | **Mitigated** | RFC 098. `selected_root_symlink_is_rejected`, `symlinked_file_is_incomparable_and_outside_content_is_absent`, `symlinked_directory_is_not_traversed`, `broken_and_cyclic_links_are_reported_without_following`, `relative_inside_links_and_link_type_conflicts_are_incomparable`, plus Windows reparse twins — `crates/aaai/src/diff/tests.rs`. Adversarial matrix discharged on all three platforms. **The mitigation does not rely on `cap-std`'s own resolver being correct:** `crates/aaai/src/diff/path_boundary.rs` passes the sandbox one directory-entry name at a time, opens it no-follow, and records links instead of following them. That is why `RUSTSEC-2026-0482` (`cap-primitives`, critical — a symlink is followed when its target or the opened path ends in `/`) could not be reached through aaai; it was cleared in 4.0.3 regardless. **A change that passes a multi-component path into the sandbox, or follows a link, is a T1 change** |
 | **T2** | A secret in a `reason`, `ticket` or `note` reaches a shared report | B3 | **Mitigated** | RFC 103 (engine, CLI) and RFC 104 (GUI). `connection_string_password_masked`, `bearer_token_masked`, `multiple_secrets_all_masked` (`masking/tests.rs`, plus property tests); `markdown_export_does_not_contain_the_secret`, `json_export_does_not_contain_the_secret`, `gui_export_matches_cli_report_for_the_same_input` (`aaai-gui/src/app/update/save/tests.rs`) |
 | **T3** | Hostile content in a filename or diff line is interpreted by whoever opens the report — spreadsheet formula injection, HTML or SARIF escaping | B1 → B3 | **Mitigated** | RFC 103. `every_surface_encodes_and_masks_every_untrusted_field` — `crates/aaai/src/report/generator/tests.rs` |
 | **T4** | A pathological regular expression in a definition file hangs the audit | B2 | **Not expressible** | The `regex` crate is a finite-automata engine with linear-time matching and no backtracking. Recorded because this is a property of a dependency choice, and would be lost if that choice changed |
@@ -132,7 +132,7 @@ outcome, not only a usability one.
 ## 6. Accepted dependency advisories
 
 Gate C0 requires the dependency audit to be clean **or** its exceptions to be
-formally accepted. `cargo audit` reports **no vulnerabilities**. These seven
+formally accepted. `cargo audit` reports **no vulnerabilities**. These eight
 informational warnings are accepted, with reachability recorded:
 
 | Advisory | Crate | Kind | Reachability and reason |
@@ -144,9 +144,10 @@ informational warnings are accepted, with reachability recorded:
 | `RUSTSEC-2026-0371` | `zbus_names` | unmaintained | Merged into `zbus` 6.0.0 upstream on 2026-10-16. **Linux only**, and feature-gated — see §6.2. Nothing is wrong with the code; the crate moved |
 | `RUSTSEC-2026-0370` | `zvariant` | unmaintained | Same event, same path |
 | `RUSTSEC-2026-0372` | `zvariant_derive` | unmaintained | Same event, same path |
+| `RUSTSEC-2026-0543` | `chrono` | unmaintained | **A direct dependency of all three crates**, and serialized through `serde`. Published 2026-09-14; no patched version exists. **§6.3 — the one that is ours to replace** |
 
-**All but the first two clear when `iced` updates its own dependencies.** They
-are not aaai's to fix and are recorded rather than chased.
+**All but `unsafe-libyaml`, `lru` and `chrono` clear when `iced` updates its own
+dependencies.** Those are not aaai's to fix and are recorded rather than chased.
 
 ### 6.1 `unsafe-libyaml` — the one that is different
 
@@ -199,6 +200,21 @@ the switch exists; we keep it for this reason.
 vulnerabilities; `cargo audit` exits 0 on them with no ignore list. The upstream
 crates were merged into `zbus` 6, which `iced` does not yet use, so nothing here
 can be fixed by us. The reasoning and the alternatives are in RFC 116 §5.
+
+### 6.3 `chrono` — unmaintained, and ours
+
+Unlike every other row, `chrono` is not brought in by `iced` or `serde_yaml`: we
+chose it. `Cargo.toml` declares it for the workspace with the `serde` feature,
+and `aaai`, `aaai-cli` and `aaai-gui` all depend on it, in 19 source files. It is
+unmaintained, not vulnerable, and no release will clear the notice.
+
+**Accepted by ID for now.** Replacing it is a migration, not a lockfile change,
+and timestamps that reach the audit definition and report formats make it a
+compatibility question as well as a code one. `jiff`, which the advisory
+recommends, is already in the dependency graph. The migration is **in progress**
+as `rfcs/draft/117-unmaintained-format-dependencies.md`, together with the
+`serde_yaml` question in §6.1. It moves ahead of other work at once if either
+crate gets a vulnerability advisory.
 
 ## 7. Reporting a problem
 

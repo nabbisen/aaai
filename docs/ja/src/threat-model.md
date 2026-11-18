@@ -8,7 +8,7 @@
 **想定読者。** メンテナ、レビュア、および重要なデータに対して aaai を使う前に
 評価を行う方。
 
-**最終レビュー:** 2026-10-28、`0.43.0` に対して。
+**最終レビュー:** 2026-11-14、`0.43.0` および `main` 上の未リリース分に対して。
 
 ---
 
@@ -83,7 +83,7 @@ URL は SARIF レポートに文字列として書き出されるスキーマ識
 
 | # | 脅威 | 境界 | 状態 | 根拠 |
 |---|---|---|---|---|
-| **T1** | 選択フォルダ内のリンクが外部を指し、ディスク上の別の場所の内容が差分やレポートに混入する | B1 | **対策済** | RFC 098。`selected_root_symlink_is_rejected`、`symlinked_file_is_incomparable_and_outside_content_is_absent`、`symlinked_directory_is_not_traversed`、`broken_and_cyclic_links_are_reported_without_following`、`relative_inside_links_and_link_type_conflicts_are_incomparable`、および Windows リパースポイント版 — `crates/aaai/src/diff/tests.rs`。敵対的マトリクスは 3 プラットフォームすべてで実施済 |
+| **T1** | 選択フォルダ内のリンクが外部を指し、ディスク上の別の場所の内容が差分やレポートに混入する | B1 | **対策済** | RFC 098。`selected_root_symlink_is_rejected`、`symlinked_file_is_incomparable_and_outside_content_is_absent`、`symlinked_directory_is_not_traversed`、`broken_and_cyclic_links_are_reported_without_following`、`relative_inside_links_and_link_type_conflicts_are_incomparable`、および Windows リパースポイント版 — `crates/aaai/src/diff/tests.rs`。敵対的マトリクスは 3 プラットフォームすべてで実施済。**この対策は `cap-std` 自身のパス解決が正しいことに依存しない:** `crates/aaai/src/diff/path_boundary.rs` はサンドボックスへディレクトリ項目名を 1 つずつ渡してリンクをたどらずに開き、リンクはたどらずに記録する。そのため `RUSTSEC-2026-0482` (`cap-primitives`、重大 — 開くパスまたはリンク先が `/` で終わるとシンボリックリンクがたどられる) は aaai からは到達できなかった。4.0.3 で解消済み。**サンドボックスへ複数要素のパスを渡す変更、またはリンクをたどる変更は T1 の変更である** |
 | **T2** | `reason` / `ticket` / `note` 中の秘密情報が共有レポートに出る | B3 | **対策済** | RFC 103 (エンジン・CLI)、RFC 104 (GUI)。`connection_string_password_masked`、`bearer_token_masked`、`multiple_secrets_all_masked` (`masking/tests.rs` ほかプロパティテスト)、`markdown_export_does_not_contain_the_secret`、`json_export_does_not_contain_the_secret`、`gui_export_matches_cli_report_for_the_same_input` (`aaai-gui/src/app/update/save/tests.rs`) |
 | **T3** | ファイル名や差分行中の悪意ある内容が、レポートを開いた側で解釈される — 表計算の数式インジェクション、HTML / SARIF のエスケープ漏れ | B1 → B3 | **対策済** | RFC 103。`every_surface_encodes_and_masks_every_untrusted_field` — `crates/aaai/src/report/generator/tests.rs` |
 | **T4** | 定義ファイル中の病的な正規表現が監査を停止させる | B2 | **表現不可能** | `regex` クレートは有限オートマトン方式であり、線形時間・バックトラッキング無し。これは依存選択の性質であり、その選択が変われば失われるため記録する |
@@ -129,7 +129,7 @@ URL は SARIF レポートに文字列として書き出されるスキーマ識
 ## 6. 受容した依存アドバイザリ
 
 ゲート C0 は、依存監査がクリーンであるか、例外が正式に受容されていることを要
-求します。`cargo audit` の報告は **脆弱性 0 件**。以下 7 件の情報レベル警告を、
+求します。`cargo audit` の報告は **脆弱性 0 件**。以下 8 件の情報レベル警告を、
 到達性とともに記録のうえ受容します。
 
 | アドバイザリ | クレート | 種別 | 到達性と理由 |
@@ -141,9 +141,10 @@ URL は SARIF レポートに文字列として書き出されるスキーマ識
 | `RUSTSEC-2026-0371` | `zbus_names` | 保守終了 | 2026-10-16 に上流で `zbus` 6.0.0 へ統合。**Linux のみ**、かつフィーチャで分岐 — §6.2 参照。コードに問題があるのではなく、クレートが移動した |
 | `RUSTSEC-2026-0370` | `zvariant` | 保守終了 | 同じ経緯、同じ経路 |
 | `RUSTSEC-2026-0372` | `zvariant_derive` | 保守終了 | 同じ経緯、同じ経路 |
+| `RUSTSEC-2026-0543` | `chrono` | 保守終了 | **3 クレートすべての直接依存**で、`serde` 経由で直列化される。2026-09-14 公開、修正版は無い。**§6.3 — 当方が置き換えるべき 1 件** |
 
-**最初の 2 件を除き、`iced` が自身の依存を更新した時点で解消します。** aaai が
-修正すべきものではなく、追いかけずに記録します。
+**`unsafe-libyaml`・`lru`・`chrono` を除き、`iced` が自身の依存を更新した時点で解消
+します。** それらは aaai が修正すべきものではなく、追いかけずに記録します。
 
 ### 6.1 `unsafe-libyaml` — 性質が異なる 1 件
 
@@ -193,6 +194,20 @@ unsafe-libyaml 0.2.11
 通知であり、`cargo audit` は無視リストなしで終了コード 0 を返します。上流の
 クレートは `zbus` 6 に統合されましたが `iced` はまだそれを使っておらず、
 当方で解消できる手段はありません。理由と代替案は RFC 116 §5 にあります。
+
+### 6.3 `chrono` — 保守終了、かつ当方の選択
+
+他の行と異なり、`chrono` は `iced` や `serde_yaml` が持ち込むものではなく、当方が
+選んだ依存です。`Cargo.toml` がワークスペース用に `serde` フィーチャ付きで宣言し、
+`aaai`・`aaai-cli`・`aaai-gui` の 3 つすべてが 19 のソースファイルで使っています。
+保守終了であって脆弱性ではなく、どのリリースでもこの通知は解消しません。
+
+**当面は ID 指定で受容します。** 置き換えはロックファイルの変更ではなく移行であり、
+タイムスタンプが監査定義ファイルとレポートの形式に入るため、コードだけでなく互換性の
+問題でもあります。勧告が推奨する `jiff` はすでに依存グラフにあります。移行は
+`rfcs/draft/117-unmaintained-format-dependencies.md` として**進行中**で、§6.1 の
+`serde_yaml` の件もあわせて扱います。いずれかのクレートに脆弱性アドバイザリが出た
+場合は、直ちに他の作業より優先します。
 
 ## 7. 問題の報告
 
